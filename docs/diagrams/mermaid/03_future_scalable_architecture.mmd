@@ -1,0 +1,11 @@
+flowchart TB
+  A[Listings API / IDX feed] --> B[Scheduled ingestion job]
+  B --> C[Postgres + PostGIS]
+  D[Official district polygons by state] --> C
+  E[District ratings, tags, curated collections] --> C
+  C --> F[District assignment service]
+  F --> G[App API]
+  G --> H[React + Mapbox frontend]
+  H --> I[Browse by state / metro / near me]
+  H --> J[Filters: budget, beds, baths, commute, district quality]
+  H --> K[Saved searches and alerts]

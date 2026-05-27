@@ -1,0 +1,13 @@
+flowchart TB
+  A[RentCast Sale Listings API] --> B[JSON files saved locally by ZIP]
+  B --> C[Convert to GeoJSON listing points]
+  C --> D[Import into PostGIS]
+  E[Official PA school district polygons] --> D
+  F[Good school districts table] --> D
+  D --> G[Spatial join: listing point inside district polygon]
+  G --> H[Enriched listings table]
+  H --> I[Export listings.geojson]
+  E --> J[Export districts.geojson]
+  I --> K[Lovable / React map app]
+  J --> K
+  K --> L[Filters: price, beds, baths, good districts only]

@@ -1,0 +1,8 @@
+flowchart LR
+  A[New files: CSV, JSON, GeoJSON, SQL, screenshots] --> B[Agent scans folder]
+  B --> C[Classify: raw data, processed data, scripts, docs]
+  C --> D[Detect secrets and exclude API keys / .env]
+  D --> E[Move files into repo structure]
+  E --> F[Update manifest and README]
+  F --> G[Open review checklist]
+  G --> H[Commit to private GitHub repo]

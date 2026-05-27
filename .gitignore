@@ -1,0 +1,30 @@
+# Secrets
+.env
+*.env
+*.key
+secrets.*
+
+# API pulls / paid data / large raw exports
+rentcast_*.json
+rentcast_*.geojson
+*.sqlite
+*.db
+
+# Large data files
+app/public/data/districts.geojson
+data/raw/
+
+
+# Lovable internal
+.lovable/
+
+# Mac / editor
+.DS_Store
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/

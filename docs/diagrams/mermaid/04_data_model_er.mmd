@@ -1,0 +1,35 @@
+erDiagram
+  LISTINGS {
+    int id
+    string address
+    string city
+    string state
+    string zip
+    float price
+    float beds
+    float baths
+    string url
+    geometry geom
+  }
+  SCHOOL_DISTRICTS {
+    int id
+    string district_name
+    string county_name
+    string state
+    geometry geom
+  }
+  GOOD_DISTRICTS {
+    string district_name
+    string collection_name
+    string notes
+  }
+  LISTINGS_WITH_DISTRICTS {
+    int listing_id
+    string school_district
+    string county_name
+    boolean good_district
+    geometry geom
+  }
+  LISTINGS ||--o| LISTINGS_WITH_DISTRICTS : enriched_into
+  SCHOOL_DISTRICTS ||--o{ LISTINGS_WITH_DISTRICTS : contains
+  GOOD_DISTRICTS ||--o{ LISTINGS_WITH_DISTRICTS : flags
