@@ -13,6 +13,9 @@ rentcast_*.geojson
 # Large data files
 app/public/data/districts.geojson
 data/raw/
+data/shapefiles/
+data/rentcast_hv/
+data/processed/
 
 
 # Lovable internal
