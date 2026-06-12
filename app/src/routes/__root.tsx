@@ -83,7 +83,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "stylesheet", href: "https://api.mapbox.com/mapbox-gl-js/v3.7.0/mapbox-gl.css" },
     ],
   }),
   shellComponent: RootShell,

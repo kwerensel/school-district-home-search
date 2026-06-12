@@ -43,7 +43,8 @@ HV_ZIPS = [
     "12771","12780",
 ]
 
-OUT_DIR = Path(__file__).parent.parent / "data" / "rentcast_hv"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+OUT_DIR = REPO_ROOT / "data" / "rentcast_hv"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 fetched = skipped = errors = total_listings = 0

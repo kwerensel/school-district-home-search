@@ -8,7 +8,8 @@ import glob
 import json
 from pathlib import Path
 
-INPUT_DIR = Path(__file__).parent.parent / "data" / "rentcast_hv"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+INPUT_DIR = REPO_ROOT / "data" / "rentcast_hv"
 OUTPUT = INPUT_DIR / "hv_listings_raw.geojson"
 
 features = []

@@ -10,13 +10,9 @@ rentcast_*.geojson
 *.sqlite
 *.db
 
-# Large data files
+# Large/generated data files
+data/
 app/public/data/districts.geojson
-data/raw/
-data/shapefiles/
-data/rentcast_hv/
-data/processed/
-
 
 # Lovable internal
 .lovable/
@@ -28,6 +24,9 @@ data/processed/
 # Python
 __pycache__/
 *.pyc
+.venv/
+.pytest_cache/
 
 # Node
 node_modules/
+dist/
