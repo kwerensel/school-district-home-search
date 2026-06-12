@@ -10,6 +10,7 @@ dependencies = [
   "matplotlib",
   "osmnx",
   "psycopg",
+  "pyyaml",
   "pydantic",
   "rasterio",
   "rasterstats",
