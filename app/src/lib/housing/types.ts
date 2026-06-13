@@ -7,8 +7,9 @@ export interface ListingProps {
   price: number;
   beds: number;
   baths: number;
-  url: string;
+  url: string | null;
   school_district: string;
+  county_name?: string | null;
   good_district: boolean;
 }
 

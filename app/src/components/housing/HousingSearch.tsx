@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ClientOnly } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -7,59 +8,40 @@ import { Filter as FilterIcon, Home } from "lucide-react";
 import { FiltersSidebar } from "./FiltersSidebar";
 
 const MapView = lazy(() => import("./MapView").then((m) => ({ default: m.MapView })));
+import { getDistricts, getListings } from "@/lib/housing/listings.functions";
 import { getMapboxToken } from "@/lib/housing/mapbox-token.functions";
 import { applyFilters, DEFAULT_FILTERS, priceBounds, uniqueDistricts } from "@/lib/housing/filters";
 import type { DistrictFC, Filters, ListingFC } from "@/lib/housing/types";
 
 const EMPTY_LISTINGS: ListingFC = { type: "FeatureCollection", features: [] };
 
-async function fetchJson<T>(url: string): Promise<T | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
-}
-
 export function HousingSearch() {
   const getToken = useServerFn(getMapboxToken);
-  const [token, setToken] = useState("");
-  const [listings, setListings] = useState<ListingFC>(EMPTY_LISTINGS);
-  const [districts, setDistricts] = useState<DistrictFC | null>(null);
-  const [isBooting, setIsBooting] = useState(true);
+  const getListingsFn = useServerFn(getListings);
+  const getDistrictsFn = useServerFn(getDistricts);
 
-  useEffect(() => {
-    let cancelled = false;
+  const tokenQuery = useQuery({
+    queryKey: ["mapbox-token"],
+    queryFn: () => getToken(),
+    staleTime: Infinity,
+  });
 
-    async function load() {
-      setIsBooting(true);
+  const listingsQuery = useQuery({
+    queryKey: ["listings"],
+    queryFn: () => getListingsFn({ data: {} }),
+    staleTime: Infinity,
+  });
 
-      const [tokenResult, listingsResult, districtsResult] = await Promise.allSettled([
-        getToken(),
-        fetchJson<ListingFC>("/data/listings.geojson"),
-        fetchJson<DistrictFC>("/data/districts.geojson"),
-      ]);
+  const districtsQuery = useQuery({
+    queryKey: ["districts"],
+    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.001 } }),
+    staleTime: 60 * 60 * 1000,
+  });
 
-      if (cancelled) return;
-
-      setToken(tokenResult.status === "fulfilled" ? (tokenResult.value?.token ?? "") : "");
-      setListings(
-        listingsResult.status === "fulfilled"
-          ? (listingsResult.value ?? EMPTY_LISTINGS)
-          : EMPTY_LISTINGS,
-      );
-      setDistricts(districtsResult.status === "fulfilled" ? (districtsResult.value ?? null) : null);
-      setIsBooting(false);
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const token = tokenQuery.data?.token ?? "";
+  const listings = listingsQuery.data ?? EMPTY_LISTINGS;
+  const districts = (districtsQuery.data ?? null) as DistrictFC | null;
+  const isBooting = tokenQuery.isPending || listingsQuery.isPending || districtsQuery.isPending;
 
   const allListings = listings;
   const bounds = useMemo(() => priceBounds(allListings), [allListings]);
@@ -129,7 +111,7 @@ export function HousingSearch() {
           ) : !hasData ? (
             <EmptyState
               title="No listings loaded"
-              body="Add public/data/listings.geojson (and optionally public/data/districts.geojson) to see pins on the map."
+              body="Check the database connection and try again."
             />
           ) : (
             <ClientOnly fallback={<div className="h-full w-full bg-muted" />}>

@@ -3,9 +3,7 @@ import type { ListingProps } from "@/lib/housing/types";
 export function ListingPopup({ p }: { p: ListingProps }) {
   return (
     <div className="min-w-[220px] space-y-2 p-1">
-      <div className="text-base font-semibold text-foreground">
-        ${p.price.toLocaleString()}
-      </div>
+      <div className="text-base font-semibold text-foreground">${p.price.toLocaleString()}</div>
       <div className="text-sm text-foreground">
         {p.beds} bd · {p.baths} ba
       </div>
@@ -22,14 +20,16 @@ export function ListingPopup({ p }: { p: ListingProps }) {
           </span>
         ) : null}
       </div>
-      <a
-        href={p.url}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-      >
-        View listing
-      </a>
+      {p.url ? (
+        <a
+          href={p.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="inline-flex w-full items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          View listing
+        </a>
+      ) : null}
     </div>
   );
 }

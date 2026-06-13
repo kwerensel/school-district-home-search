@@ -25,7 +25,8 @@ export function applyFilters(fc: ListingFC, f: Filters): ListingFC {
 
 export function uniqueDistricts(fc: ListingFC): string[] {
   const set = new Set<string>();
-  for (const f of fc.features) if (f.properties.school_district) set.add(f.properties.school_district);
+  for (const f of fc.features)
+    if (f.properties.school_district) set.add(f.properties.school_district);
   return Array.from(set).sort();
 }
 
