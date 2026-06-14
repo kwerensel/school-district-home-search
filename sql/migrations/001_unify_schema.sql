@@ -107,6 +107,18 @@ CREATE TABLE IF NOT EXISTS listing_metrics (
   PRIMARY KEY (listing_id, metric_key, grain, vintage)
 );
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_matviews
+    WHERE schemaname = 'public'
+      AND matviewname = 'district_metrics'
+  ) THEN
+    EXECUTE 'DROP MATERIALIZED VIEW district_metrics';
+  END IF;
+END $$;
+
 DROP VIEW IF EXISTS district_metrics;
 CREATE VIEW district_metrics AS
 SELECT

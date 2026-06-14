@@ -174,7 +174,7 @@ def _load_districts(cur: psycopg.Cursor[Any]) -> int:
 
 
 def _load_listings(cur: psycopg.Cursor[Any]) -> int:
-    listings_path = repo_root() / "app" / "public" / "data" / "listings.geojson"
+    listings_path = repo_root() / "data" / "processed" / "listings.geojson"
     features = json.loads(listings_path.read_text())["features"]
     for feature in features:
         props = feature["properties"]

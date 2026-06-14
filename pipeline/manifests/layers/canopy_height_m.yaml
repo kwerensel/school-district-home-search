@@ -1,0 +1,27 @@
+metric_key: canopy_height_m
+name: Canopy height
+source: WRI and Meta Version 2 High Resolution Canopy Height Maps
+source_urls:
+  - https://registry.opendata.aws/dataforgood-fb-forestsv2/
+  - s3://dataforgood-fb-data/forests/v2/global/dinov3_global_chm_v2_ml3/
+vintage: "2026"
+units: m
+direction: higher_better
+native_resolution: ~1.2m
+allowed_range: [0, 100]
+reduction_method: zonal_mean
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - point
+  - buffer_100m
+notes: >
+  Cloud Optimized GeoTIFF tiles in EPSG:3857. Values represent top-of-canopy
+  height above ground in meters. Tract grain uses zonal mean; listing grain
+  uses point sample and 100 m buffer mean because this native resolution
+  supports address/block-level context. The current POC reducer reads a
+  4096 x 4096 overview grid per zoom-10 tile, roughly 9.6 m working resolution,
+  to avoid impractical remote random reads from the 1.2 m COGs; source native
+  resolution is still recorded separately. Transform outputs to EPSG:4326
+  before loading and keep rasters out of Postgres.

@@ -1,0 +1,25 @@
+slug: pa-mainline
+name: Pennsylvania Main Line
+state_fips:
+  - "42"
+counties:
+  - "42029" # Chester
+  - "42045" # Delaware
+  - "42091" # Montgomery
+layers:
+  - canopy_height_m
+  - light_pollution_radiance
+  - tree_canopy_pct
+  - noise_mean_dba
+  - flood_sfha
+  - risk_index
+  - walkability_index
+  - transit_access
+  - park_access
+  - effective_tax_rate
+  - median_home_value
+  - gvi_ndvi_street
+anchors:
+  - label: Center City Philadelphia
+    lat: 39.9526
+    lng: -75.1652

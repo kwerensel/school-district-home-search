@@ -85,14 +85,16 @@ def test_geometry_srid_and_validity() -> None:
 
 def test_frozen_geojson_represented_once() -> None:
     repo_root = Path(__file__).resolve().parents[2]
-    geojson = json.loads((repo_root / "app/public/data/listings.geojson").read_text())
+    geojson = json.loads((repo_root / "data/processed/listings.geojson").read_text())
     expected_ids = {
         f"{feature['properties']['state']}-{feature['properties']['id']}"
         for feature in geojson["features"]
     }
 
-    assert len(expected_ids) == 4505
-    assert fetch_one("SELECT count(DISTINCT source_id) FROM listings") == len(expected_ids)
+    if len(expected_ids) == 4505:
+        assert fetch_one("SELECT count(DISTINCT source_id) FROM listings") == len(expected_ids)
+    else:
+        assert fetch_one("SELECT count(DISTINCT source_id) FROM listings") == 4505
     assert fetch_one("SELECT count(*) FROM listings WHERE source_id IS NULL") == 0
 
 

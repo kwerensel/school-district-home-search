@@ -1,0 +1,26 @@
+slug: hudson-valley
+name: Hudson Valley
+state_fips:
+  - "36"
+counties:
+  - "36119" # Westchester
+  - "36087" # Rockland
+  - "36079" # Putnam
+  - "36071" # Orange
+layers:
+  - canopy_height_m
+  - light_pollution_radiance
+  - tree_canopy_pct
+  - noise_mean_dba
+  - flood_sfha
+  - risk_index
+  - walkability_index
+  - transit_access
+  - park_access
+  - effective_tax_rate
+  - median_home_value
+  - gvi_ndvi_street
+anchors:
+  - label: Grand Central
+    lat: 40.7527
+    lng: -73.9772
