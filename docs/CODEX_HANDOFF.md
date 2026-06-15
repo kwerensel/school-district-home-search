@@ -21,8 +21,9 @@ Completed checkpoints:
 - Phase 4 and promoted `canopy_height_m` were committed on `main` at commit `a59ed76 Phase 4 harness and canopy height layer`.
 - `tree_canopy_pct` source onboarding was committed on `main` at commit `125a85d Draft tree canopy layer onboarding`.
 - `tree_canopy_pct` implementation, staging run, validation, and QA map generation were committed and pushed on `main` at commit `133a59b Implement tree canopy layer staging`.
+- `tree_canopy_pct` was promoted to Neon for both `pa-mainline` and `hudson-valley` after explicit human approval in the follow-up session.
 
-Important current gate: `tree_canopy_pct` is staged and promotable, but **not promoted**. Promotion still requires explicit human approval after reviewing the reports and QA PNGs.
+Important current gate: `tree_canopy_pct` is now promoted. The next Phase 5 action is to onboard the next clean source; do not start GVI.
 
 Do not start GVI. `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation GVI is Phase 11.
 
@@ -99,7 +100,7 @@ acceptance detail for `canopy_height_m`.
   - `listing_metrics`: `buffer_100m` and `buffer_500m` means.
 - Deliberately did not compute listing point samples, because the native 30 m product is block/context resolution rather than address-pixel truth.
 - Rendered QA maps from staging.
-- Confirmed public/live `region_metrics` and `listing_metrics` still have 0 `tree_canopy_pct` rows, so the promote gate stayed closed.
+- Promoted `tree_canopy_pct` into Neon `metric_definitions`, `region_metrics`, `listing_metrics`, and refreshed `district_metrics` after explicit human approval.
 
 Staged validation:
 
@@ -122,6 +123,18 @@ Latest Neon-backed pipeline test run after staging:
 19 passed in 3.77s
 ```
 
+Neon live `tree_canopy_pct` counts after promote:
+
+- `region_metrics`: 932 tract rows:
+  - `hudson-valley`: 437 census-tract rows, range 0.59-76.03.
+  - `pa-mainline`: 495 census-tract rows, range 2.14-64.04.
+- `listing_metrics`: 9,010 rows total:
+  - `hudson-valley`: 4,254 `buffer_100m` and 4,254 `buffer_500m`.
+  - `pa-mainline`: 251 `buffer_100m` and 251 `buffer_500m`.
+- `district_metrics`: 139 district rollups:
+  - `hudson-valley`: 78 rollups, range 11.28-74.53.
+  - `pa-mainline`: 61 rollups, range 14.24-56.38.
+
 ## 4. Recently Changed Files And Why
 
 Committed in `133a59b Implement tree canopy layer staging`:
@@ -139,9 +152,9 @@ Gitignored/generated local files under `data/` include validation JSON reports a
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current pushed commit: `133a59b Implement tree canopy layer staging`
-- `main` is aligned with `origin/main` at the time this handoff was written.
-- Worktree was clean before editing this handoff document.
+- Current pushed commit: `d79b009 Update Codex handoff after tree canopy staging`
+- `main` was aligned with `origin/main` before this handoff update.
+- Worktree has this handoff edit unless it has been committed.
 
 After this handoff edit, commit `docs/CODEX_HANDOFF.md` if the user wants the updated handoff persisted on GitHub.
 
@@ -155,39 +168,31 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`. Implemented/staged/not promoted: `tree_canopy_pct`. Remaining Phase 5 layers are `light_pollution_radiance`, `risk_index`, `walkability_index`, and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m` and `tree_canopy_pct`. Remaining Phase 5 layers are `light_pollution_radiance`, `risk_index`, `walkability_index`, and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
 - GVI/perceived green is not part of Phase 5. Per spec, `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation `gvi_streetlevel` is Phase 11.
 
-Checks last run:
+Checks last run after `tree_canopy_pct` promote:
 
-- Neon-backed pipeline suite: `19 passed` on 2026-06-15.
-- Golden Neon checks passed after `tree_canopy_pct` staging:
+- Report validation rechecked both `tree_canopy_pct` reports; both remain `promotable: true`.
+- Golden Neon checks: `11 passed, 8 deselected` on 2026-06-15.
   - 4,505 listings
   - 0 missing districts
   - pinned PA/NY address -> district facts
   - nearest fallback count/cap
   - SRID and geometry validity checks
+- Public metric counts and `district_metrics` rollups confirmed after promote.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
 
 ## 7. Recommended Next Steps
 
-Recommended next chat boundary: start a fresh chat now. This is a clean checkpoint: implementation is committed and pushed, staging/validation/QA are complete, and the next action is a human-gated promote decision.
+Recommended next chat boundary: start a fresh chat now. This is a clean checkpoint: `tree_canopy_pct` is promoted and verified; the next action changes mode to onboarding the next Phase 5 source.
 
 Next actions, in order:
 
-1. Review the staged `tree_canopy_pct` validation reports and QA maps:
-   - `data/reports/layer_tree_canopy_pct_pa-mainline_latest.json`
-   - `data/reports/layer_tree_canopy_pct_hudson-valley_latest.json`
-   - `data/reports/qa/tree_canopy_pct_pa-mainline.png`
-   - `data/reports/qa/tree_canopy_pct_hudson-valley.png`
-2. If approved, explicitly run promotion for both `tree_canopy_pct` reports.
-3. After promotion, rerun validation/golden checks and confirm `district_metrics` has district rollups for `tree_canopy_pct`.
-4. Then choose the next approved Phase 5 layer onboarding target. A reasonable next layer is one of:
-   - `risk_index` if you want an easier tract-native join.
-   - `light_pollution_radiance` if you want another raster layer with neighborhood-context semantics.
-   - `walkability_index` if you want block-group/housing-weighted tract mechanics.
-   - `flood_sfha` if you want polygon-overlay mechanics.
-5. Do not start GVI.
+1. Choose the next approved Phase 5 layer onboarding target. Recommended: `risk_index`, because FEMA NRI is tract-native and should harden the source-onboarding/reporting path without introducing raster or polygon-overlay complexity.
+2. Draft the `risk_index` layer manifest plus sample-stats summary, then stop for human approval before implementing ingestion.
+3. Keep `light_pollution_radiance`, `walkability_index`, and `flood_sfha` queued after `risk_index`.
+4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 
@@ -213,7 +218,7 @@ When recommending a new chat, Codex should update `docs/CODEX_HANDOFF.md` before
 - Assumed `app/.env.local` points to the intended Neon database; this was confirmed by listing counts and passing golden tests.
 - Region scaffolding currently handles tract -> district and tract -> municipality overlaps. ZCTA -> district housing-unit overlaps are mentioned in Phase 4 but not implemented yet; this will matter for `median_home_value` in Phase 6.
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
-- `tree_canopy_pct` is staged in Neon `staging.layer_region_metrics` and `staging.layer_listing_metrics`. It is not yet promoted to public/live metric tables.
+- `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 
 ## 10. Suggested Prompt For Next Codex Chat
 
@@ -229,19 +234,13 @@ RentCast frozen, no GreatSchools, all geometry EPSG:4326, staging -> validate
 -> explicit promote.
 
 Current checkpoint: tree_canopy_pct was implemented, staged for both
-pa-mainline and hudson-valley, validated as promotable, and QA maps were
-rendered. It was committed and pushed at 133a59b, but it has NOT been promoted.
+pa-mainline and hudson-valley, validated as promotable, QA maps were rendered,
+then it was explicitly approved and promoted to Neon public metric tables.
 app/.env.local contains the Neon DATABASE_URL; do not print or commit secrets.
 
-First inspect git status and latest validation state. Then review the staged
-tree_canopy_pct reports and QA PNGs:
-- data/reports/layer_tree_canopy_pct_pa-mainline_latest.json
-- data/reports/layer_tree_canopy_pct_hudson-valley_latest.json
-- data/reports/qa/tree_canopy_pct_pa-mainline.png
-- data/reports/qa/tree_canopy_pct_hudson-valley.png
-
-Ask me for explicit approval before running any promote command. If I approve
-promotion, promote tree_canopy_pct for both regions, rerun validation and golden
-checks, confirm public metric counts and district rollups, then stop and
-recommend the next Phase 5 layer onboarding target.
+First inspect git status and latest validation state. Then start the next Phase
+5 source onboarding packet. Recommended target: risk_index from FEMA NRI because
+it is tract-native and should be the lowest-risk next layer. Draft the layer
+manifest plus sample-stats summary and stop for human approval before writing
+the full ingestion module. Do not start GVI.
 ```
