@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 
 from gt.db.migrate import run_migrations
-from gt.layers import promote_layer, render_layer_qa, run_canopy_height
+from gt.layers import promote_layer, render_layer_qa, run_canopy_height, run_tree_canopy
 from gt.manifests import LayerManifest, RegionManifest, load_manifest
 from gt.region import add_region, promote_region, render_region_qa, validate_region_report
 from gt.reports import read_report
@@ -138,10 +138,15 @@ def layer_run(
     """Run an approved layer into staging and write a validation report."""
     if grain not in {"tract", "listing", "both"}:
         raise typer.BadParameter("grain must be tract, listing, or both")
-    if key != "canopy_height_m":
+    layer_runners = {
+        "canopy_height_m": run_canopy_height,
+        "tree_canopy_pct": run_tree_canopy,
+    }
+    runner = layer_runners.get(key)
+    if runner is None:
         typer.echo(f"Layer '{key}' is not implemented yet.")
         raise typer.Exit(1)
-    report, path = run_canopy_height(_layer_manifest_path(key), region, grain)
+    report, path = runner(_layer_manifest_path(key), region, grain)
     payload = report.as_dict() | {"report_path": str(path)}
     typer.echo(json_dumps(payload))
 
