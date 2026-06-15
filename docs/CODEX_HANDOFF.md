@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Generated: 2026-06-14, America/New_York.
+Generated: 2026-06-15, America/New_York.
 
 ## 1. Project Goal
 
@@ -16,11 +16,18 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 Current work spans:
 
 - Phase 4: Pipeline harness + region scaffolding.
-- Phase 5: First enrichment layer, `canopy_height_m`, only.
+- Phase 5: First enrichment layer, `canopy_height_m`, plus the next-layer
+  approval packet for `tree_canopy_pct`.
 
 Phase 0-3 were already complete on `main` at commit `360bc45 Phase 3 live Neon Explorer API`.
 
-Phase 4 is effectively implemented and replayed against Neon. Phase 5 has started and the first approved layer, `canopy_height_m`, has been staged, QA-rendered, promoted, and validated against Neon. Do not start additional Phase 5 layers without following the manifest + sample-stats + human approval rule.
+Phase 4 and `canopy_height_m` were committed on `main` at commit
+`a59ed76 Phase 4 harness and canopy height layer`. Phase 5 has started and the
+first approved layer, `canopy_height_m`, has been staged, QA-rendered, promoted,
+and validated against Neon. The next Phase 5 candidate, `tree_canopy_pct`, has a
+draft manifest and onboarding note only; do not implement or run it until the
+human approval gate is explicit. Do not start GVI; `gvi_ndvi_street` is Phase 8
+and Mapillary GVI is Phase 11.
 
 ## 3. Completed So Far
 
@@ -71,6 +78,33 @@ QA maps generated locally:
 
 - `data/reports/qa/canopy_height_m_hudson-valley.png`
 - `data/reports/qa/canopy_height_m_pa-mainline.png`
+- `data/reports/qa/listing_canopy_variation_pa-mainline.png`
+- `data/reports/qa/listing_canopy_variation_pa-mainline.json`
+
+Listing-level canopy QA selected a close Wayne, PA pair from promoted Neon
+`listing_metrics`: `1052 Eagle Rd, Wayne` and `Walnut Ave, Lot 2, Wayne` are
+172 m apart and differ by 18.1 m in `buffer_100m` canopy height
+(19.9 m vs. 1.8 m). This satisfies the Phase 5 house-to-house variation
+acceptance detail for `canopy_height_m`.
+
+### Phase 5 `tree_canopy_pct` approval packet
+
+- Drafted layer manifest:
+  - `pipeline/manifests/layers/tree_canopy_pct.yaml`
+- Drafted onboarding note:
+  - `docs/layer-onboarding/tree_canopy_pct.md`
+- Selected source: USDA Forest Service / MRLC NLCD Tree Canopy Cover Product
+  Suite v2025.6, CONUS NLCD TCC 2025 raster.
+- Source download candidate:
+  - `https://data.fs.usda.gov/geodata/rastergateway/treecanopycover/docs/v2025-6/nlcd_tcc_conus_2025_v2025-6_wgs84.zip`
+- Proposed reductions:
+  - `region_metrics`: census-tract zonal mean percent canopy.
+  - `listing_metrics`: 100 m and 500 m buffer means.
+  - No listing point sample, because native 30 m pixels are better treated as
+    block/context rather than address-pixel truth.
+- Manifest validation via `gt.manifests.load_layer_manifest` passed.
+- No ingestion module has been written; no staging writes or promote have run
+  for `tree_canopy_pct`.
 
 Latest full Neon-backed pipeline test run passed:
 
@@ -80,7 +114,7 @@ Latest full Neon-backed pipeline test run passed:
 
 ## 4. Recently Changed Files And Why
 
-Tracked modified files:
+Recent committed Phase 4 / `canopy_height_m` files:
 
 - `pipeline/gt/cli.py`: added region/layer manifest validation commands, real `gt region add`, layer runner wiring, QA map routing, and report-gated promote logic.
 - `pipeline/gt/recovery/load_frozen.py`: repointed stale recovery read path from deleted `app/public/data/listings.geojson` to `data/processed/listings.geojson`.
@@ -88,18 +122,12 @@ Tracked modified files:
 - `pipeline/tests/test_golden.py`: repointed stale GeoJSON path and made the frozen-GeoJSON representation test tolerate the current checkout's 3-row local sample while still asserting the DB has 4,505 distinct `source_id`s.
 - `sql/migrations/001_unify_schema.sql`: made the `district_metrics` view recreation tolerant of an existing materialized view so migrations can be replayed idempotently after Phase 4.
 
-New untracked files/directories:
+Current uncommitted tracked-intended files:
 
-- `sql/migrations/002_phase4_region_harness.sql`: staging tables for region scaffolding and materialized `district_metrics`.
-- `sql/migrations/003_layer_staging.sql`: generic staging tables for layer region/listing metrics.
-- `pipeline/gt/manifests/`: pydantic manifest models/loaders.
-- `pipeline/gt/reports.py`: JSON validation report helper.
-- `pipeline/gt/region.py`: region staging/promote/validation/QA implementation.
-- `pipeline/gt/layers/`: canopy layer implementation and generic layer promote/QA helpers.
-- `pipeline/manifests/regions/`: seed region manifests.
-- `pipeline/manifests/layers/canopy_height_m.yaml`: approved canopy manifest.
-- `docs/layer-onboarding/canopy_height_m.md`: source approval/sample-stats note.
-- `docs/CODEX_HANDOFF.md`: this handoff.
+- `pipeline/manifests/layers/tree_canopy_pct.yaml`: draft Phase 5 manifest.
+- `docs/layer-onboarding/tree_canopy_pct.md`: source approval/sample-stats note
+  for human review.
+- `docs/CODEX_HANDOFF.md`: updated handoff state.
 
 Gitignored/generated local files also changed or were created under `data/`, including raw TIGER downloads, validation JSON reports, and QA PNGs. `app/.env.local` already contained the Neon `DATABASE_URL`; do not commit it.
 
@@ -107,11 +135,13 @@ Gitignored/generated local files also changed or were created under `data/`, inc
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- `git worktree list` shows this single worktree at commit `360bc45`.
-- Status before this handoff file: `main...origin/main` with uncommitted Phase 4 + `canopy_height_m` changes.
-- No commit has been made for this work yet.
+- Latest committed Phase 4/canopy checkpoint before this handoff update:
+  `a59ed76 Phase 4 harness and canopy height layer`.
+- Status before this handoff update: `main...origin/main` with only the
+  `tree_canopy_pct` approval packet uncommitted.
 
-Important status note: `git diff --stat` only shows tracked-file modifications and does not include the many new untracked files listed above. Use `git status --short` before committing.
+Important status note: `data/reports/qa/` is gitignored. The listing-level
+canopy QA PNG/JSON exists locally but will not be included in a normal commit.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -120,7 +150,9 @@ Known caveats:
 - `uv` is not available in this shell; commands were run through the existing `pipeline/.venv` instead.
 - `data/processed/listings.geojson` in this checkout is a 3-row sample, not the full frozen 4,505 listing dataset. The full frozen dataset is in Neon and is validated by the golden tests.
 - The `canopy_height_m` source native resolution is about 1.2 m, but the current POC reducer uses a 4096 x 4096 overview grid per zoom-10 tile, roughly 9.6 m working resolution, for practical remote COG reads. This is recorded in the manifest and metric notes. It is appropriate for tract means and 100 m listing buffers, but not a final house-to-house pixel-level QA pass.
-- Phase 5 acceptance asks for QA showing visible house-to-house variation for `canopy_height_m`. The current promoted data includes listing point and 100 m buffer values, but only tract-level QA PNGs have been rendered. A listing-level/known-street QA artifact is still recommended before calling the entire `canopy_height_m` layer fully polished.
+- The listing-level canopy QA artifact exists locally under
+  `data/reports/qa/listing_canopy_variation_pa-mainline.*`, but because `data/`
+  is gitignored it is not part of the repo history.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
 - Phase 5 is not complete. Only `canopy_height_m` is implemented/promoted. Remaining Phase 5 layers are `tree_canopy_pct`, `light_pollution_radiance`, `risk_index`, `walkability_index`, and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
@@ -128,7 +160,8 @@ Known caveats:
 
 Checks last run:
 
-- Neon-backed pipeline suite: `17 passed`.
+- Neon-backed pipeline suite: `17 passed` on 2026-06-14.
+- `tree_canopy_pct` manifest loader validation passed on 2026-06-14.
 - Neon listing truth validated during the run:
   - 4,505 listings
   - 0 missing districts
@@ -138,18 +171,15 @@ Checks last run:
 
 ## 7. Recommended Next Steps
 
-1. Review the uncommitted changes and generated QA PNGs.
-2. Optionally run a focused listing-level canopy QA:
-   - Pick one leafy vs. bare street/listing pair.
-   - Query `listing_metrics` for `canopy_height_m` `point` and `buffer_100m`.
-   - Render a small map or report to satisfy the Phase 5 house-to-house variation acceptance detail.
-3. If satisfied, make a checkpoint commit for Phase 4 + first Phase 5 canopy layer.
-4. Continue Phase 5 one layer at a time. Next likely layer: `tree_canopy_pct` (NLCD TCC) or another clean tract/listing source, but follow the process rule:
-   - draft manifest + sample stats,
-   - stop for human approval,
-   - then write/run/promote ingestion module.
+1. Commit the `tree_canopy_pct` approval packet and this handoff update.
+2. Push that commit after explicit user approval.
+3. Start a fresh chat for implementation once `tree_canopy_pct` is approved.
+4. In that fresh chat, implement only `tree_canopy_pct`: ingestion module,
+   staging load, validation report, QA PNGs, and stop before promote unless the
+   user explicitly approves promotion.
 5. Defer Discovery UI until enough metrics and Phase 6 finance/tax layers exist.
-6. Consider updating `README.md` in a separate cleanup commit so public project docs match the new Neon/PostGIS pipeline architecture.
+6. Consider updating `README.md` in a separate cleanup commit so public project
+   docs match the new Neon/PostGIS pipeline architecture.
 
 ## 8. Assumptions And Uncertainty
 
@@ -157,6 +187,9 @@ Checks last run:
 - Assumed CHMv2 2026 is the right successor to the Meta/WRI canopy source named in the original spec. The source was approved by the user before implementation.
 - Region scaffolding currently handles tract -> district and tract -> municipality overlaps. ZCTA -> district housing-unit overlaps are mentioned in Phase 4 but not implemented yet; this will matter for `median_home_value` in Phase 6.
 - The canopy implementation reads public WRI/Meta COGs remotely rather than caching full tiles locally. It works, but future layers may need explicit local caching for speed or reproducibility.
+- The selected `tree_canopy_pct` source is the current Forest Service raster
+  gateway v2025.6 NLCD TCC release rather than the older 2021 ScienceBase item.
+  This needs human approval before implementation.
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
 
 ## 9. Suggested Prompt For Next Codex Chat
@@ -164,11 +197,20 @@ Checks last run:
 ```text
 Continue Groundtruth Home Search App work in /Users/katherine/Dropbox/school-district-home-search.
 
-First read AGENTS.md, docs/tasks.md, docs/architecture-spec.md, docs/agentic-pipeline-plan.md, and docs/CODEX_HANDOFF.md.
+First read AGENTS.md, docs/tasks.md, docs/architecture-spec.md,
+docs/agentic-pipeline-plan.md, and docs/CODEX_HANDOFF.md.
 
-Do not redo Phase 3. Current uncommitted work contains Phase 4 pipeline harness/region scaffolding and the first Phase 5 layer, canopy_height_m. Preserve the hard rules: deterministic district truth via PostGIS only, RentCast frozen, no GreatSchools, all geometry EPSG:4326, staging -> validate -> explicit promote.
+Do not redo Phase 3. Phase 4 and canopy_height_m are complete. The next
+approved Phase 5 layer is tree_canopy_pct, with draft manifest at
+pipeline/manifests/layers/tree_canopy_pct.yaml and onboarding note at
+docs/layer-onboarding/tree_canopy_pct.md.
 
-Start by inspecting git status, the uncommitted files, and the latest Neon-backed validation/test state. app/.env.local contains the Neon DATABASE_URL; do not print or commit secrets.
+Preserve hard rules: deterministic district truth via PostGIS only, RentCast
+frozen, no GreatSchools, all geometry EPSG:4326, staging -> validate ->
+explicit promote. Do not start GVI.
 
-Before new feature work, decide whether the current state is ready for a checkpoint commit. If continuing Phase 5, first complete/review a listing-level canopy QA artifact for house-to-house variation, then proceed one layer at a time using the manifest + sample-stats + human approval rule. Do not start GVI yet; gvi_ndvi_street is Phase 8 and Mapillary GVI is Phase 11.
+First inspect git status and latest validation state. app/.env.local contains
+the Neon DATABASE_URL; do not print or commit secrets. Then implement
+tree_canopy_pct one layer at a time from the approved manifest, stage/validate,
+render QA, and stop before promote unless I explicitly approve promotion.
 ```

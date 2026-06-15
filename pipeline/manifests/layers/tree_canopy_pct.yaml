@@ -1,0 +1,29 @@
+metric_key: tree_canopy_pct
+name: Tree canopy cover
+source: USDA Forest Service / MRLC NLCD Tree Canopy Cover Product Suite v2025.6
+source_urls:
+  - https://data.fs.usda.gov/geodata/rastergateway/treecanopycover/
+  - https://data.fs.usda.gov/geodata/rastergateway/treecanopycover/docs/v2025-6/nlcd_tcc_conus_2025_v2025-6_wgs84.zip
+vintage: "2025"
+units: pct
+direction: higher_better
+native_resolution: 30m
+allowed_range: [0, 100]
+reduction_method: zonal_mean
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - buffer_100m
+  - buffer_500m
+notes: >
+  NLCD Tree Canopy Cover values represent percent tree canopy cover per
+  30 m pixel. Use the NLCD TCC product, not the Forest Service Science TCC
+  direct model output, because the NLCD suite applies masking, filtering,
+  minimum-mapping-unit routines, and temporal noise reduction intended for
+  NLCD users. Reduce to census-tract means for Discovery and 100 m / 500 m
+  listing-buffer means for Explorer. Do not expose point samples at listing
+  grain because the native 30 m product is better treated as block/context
+  rather than address-pixel truth. The source raster is distributed in a
+  WGS84-datum Albers equal-area projection; assert source CRS, transform
+  output geometries to EPSG:4326, and keep rasters out of Postgres.
