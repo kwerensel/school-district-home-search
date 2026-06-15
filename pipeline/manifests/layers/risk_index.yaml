@@ -1,0 +1,27 @@
+metric_key: risk_index
+name: Natural hazard risk index
+source: FEMA National Risk Index via Resilience Analysis and Planning Tool 2025
+source_urls:
+  - https://hazards.fema.gov/nri/transition
+  - https://experience.arcgis.com/experience/0a317e8998534c30a9b2d3861c814d42/
+  - https://services.arcgis.com/XG15cJAlne2vxtgt/arcgis/rest/services/National_Risk_Index_Census_Tracts/FeatureServer/0
+vintage: "2025"
+units: score
+direction: lower_better
+native_resolution: census tract
+allowed_range: [0, 100]
+reduction_method: direct_join
+coverage_threshold: 0.99
+grains:
+  - tract
+listing_reductions: []
+notes: >
+  FEMA National Risk Index composite risk score at census-tract grain. Join
+  the ArcGIS service field RISK_SCORE to local census-tract regions by
+  TRACTFIPS/source_id, retaining RISK_RATNG and companion fields such as
+  RISK_SPCTL, EAL_SCORE, SOVI_SCORE, and RESL_SCORE for validation or future
+  explanatory UI if needed. Do not use the source service geometry as truth
+  for local regions; source geometry is Web Mercator and local stored
+  geometry remains EPSG:4326. This is a regional/context metric, not an
+  address-level metric. If shown in Explorer later, attach the listing's
+  containing tract value and label it as tract context.

@@ -55,6 +55,21 @@ def test_tree_canopy_layer_manifest_validates() -> None:
     assert "tree_canopy_pct" in result.output
 
 
+def test_risk_index_layer_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/risk_index.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "risk_index" in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(
@@ -79,6 +94,17 @@ def test_layer_runner_accepts_tree_canopy_key_before_database_work(monkeypatch) 
     result = CliRunner().invoke(
         app,
         ["layer", "run", "tree_canopy_pct", "--region", "hudson-valley", "--grain", "both"],
+    )
+
+    assert result.exit_code != 0
+    assert "not implemented yet" not in result.output
+
+
+def test_layer_runner_accepts_risk_index_key_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    result = CliRunner().invoke(
+        app,
+        ["layer", "run", "risk_index", "--region", "hudson-valley", "--grain", "tract"],
     )
 
     assert result.exit_code != 0

@@ -5,7 +5,13 @@ from pathlib import Path
 import typer
 
 from gt.db.migrate import run_migrations
-from gt.layers import promote_layer, render_layer_qa, run_canopy_height, run_tree_canopy
+from gt.layers import (
+    promote_layer,
+    render_layer_qa,
+    run_canopy_height,
+    run_risk_index,
+    run_tree_canopy,
+)
 from gt.manifests import LayerManifest, RegionManifest, load_manifest
 from gt.region import add_region, promote_region, render_region_qa, validate_region_report
 from gt.reports import read_report
@@ -140,6 +146,7 @@ def layer_run(
         raise typer.BadParameter("grain must be tract, listing, or both")
     layer_runners = {
         "canopy_height_m": run_canopy_height,
+        "risk_index": run_risk_index,
         "tree_canopy_pct": run_tree_canopy,
     }
     runner = layer_runners.get(key)

@@ -22,8 +22,9 @@ Completed checkpoints:
 - `tree_canopy_pct` source onboarding was committed on `main` at commit `125a85d Draft tree canopy layer onboarding`.
 - `tree_canopy_pct` implementation, staging run, validation, and QA map generation were committed and pushed on `main` at commit `133a59b Implement tree canopy layer staging`.
 - `tree_canopy_pct` was promoted to Neon for both `pa-mainline` and `hudson-valley` after explicit human approval in the follow-up session.
+- `risk_index` source onboarding was approved, implemented, staged for both regions, validated as promotable, and QA maps were rendered. It has **not** been promoted.
 
-Important current gate: `tree_canopy_pct` is now promoted. The next Phase 5 action is to onboard the next clean source; do not start GVI.
+Important current gate: `risk_index` is staged and promotable, but **not promoted**. Promotion still requires explicit human approval after reviewing the reports and QA PNGs.
 
 Do not start GVI. `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation GVI is Phase 11.
 
@@ -135,7 +136,48 @@ Neon live `tree_canopy_pct` counts after promote:
   - `hudson-valley`: 78 rollups, range 11.28-74.53.
   - `pa-mainline`: 61 rollups, range 14.24-56.38.
 
+### Phase 5 `risk_index`
+
+- Drafted and approved source onboarding for FEMA National Risk Index via RAPT 2025.
+- Added layer manifest:
+  - `pipeline/manifests/layers/risk_index.yaml`
+- Added onboarding note:
+  - `docs/layer-onboarding/risk_index.md`
+- Implemented layer runner:
+  - `pipeline/gt/layers/risk_index.py`
+- Wired the CLI so `gt layer run risk_index --region <slug> --grain tract` works.
+- Staged `risk_index` for both regions at tract grain only:
+  - `region_metrics`: direct census-tract join from NRI `RISK_SCORE`.
+  - `listing_metrics`: none. NRI is tract-native and should only be attached to listings later as neighborhood/tract context.
+- Rendered QA maps from staging.
+- Confirmed public/live `metric_definitions`, `region_metrics`, and `listing_metrics` still have 0 `risk_index` rows, so the promote gate stayed closed.
+
+Staged validation:
+
+- `pa-mainline`: 495/495 tracts; value range 0.1689-94.3004; `promotable: true`.
+- `hudson-valley`: 437/437 tracts; value range 0.0214-99.0392; `promotable: true`.
+
+Generated reports:
+
+- `data/reports/layer_risk_index_pa-mainline_latest.json`
+- `data/reports/layer_risk_index_hudson-valley_latest.json`
+
+Generated QA maps:
+
+- `data/reports/qa/risk_index_pa-mainline.png`
+- `data/reports/qa/risk_index_hudson-valley.png`
+
+Latest Neon-backed pipeline test run after staging:
+
+```text
+21 passed in 7.19s
+```
+
 ## 4. Recently Changed Files And Why
+
+Recently committed:
+
+- `6f7dc2b Update handoff after tree canopy promote`: documentation-only handoff update after `tree_canopy_pct` promotion and verification.
 
 Committed in `133a59b Implement tree canopy layer staging`:
 
@@ -148,15 +190,22 @@ Gitignored/generated local files under `data/` include validation JSON reports a
 
 `app/.env.local` contains the Neon `DATABASE_URL`; do not print it and do not commit secrets.
 
+Uncommitted/current staging checkpoint files before committing `risk_index`:
+
+- `pipeline/gt/layers/risk_index.py`: new FEMA/RAPT NRI direct-join layer runner. Fetches tract rows by manifest counties from the official ArcGIS service, joins `TRACTFIPS` to local tract `regions.source_id`, stages `RISK_SCORE`, and writes validation reports.
+- `pipeline/manifests/layers/risk_index.yaml`: approved layer manifest.
+- `docs/layer-onboarding/risk_index.md`: approved onboarding packet and sample statistics.
+- `pipeline/gt/cli.py`: registers `risk_index` in the layer runner dispatch.
+- `pipeline/gt/layers/__init__.py`: exports `run_risk_index`.
+- `pipeline/tests/test_cli.py`: validates the risk index manifest and confirms the CLI recognizes the layer key.
+
 ## 5. Current Branch / Worktree Status
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current pushed commit: `d79b009 Update Codex handoff after tree canopy staging`
-- `main` was aligned with `origin/main` before this handoff update.
-- Worktree has this handoff edit unless it has been committed.
-
-After this handoff edit, commit `docs/CODEX_HANDOFF.md` if the user wants the updated handoff persisted on GitHub.
+- Current local commit before `risk_index` checkpoint commit: `6f7dc2b Update handoff after tree canopy promote`
+- `main` is ahead of `origin/main` by at least 1 local commit unless pushed.
+- Worktree has the `risk_index` implementation and this handoff edit until committed.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -168,31 +217,38 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m` and `tree_canopy_pct`. Remaining Phase 5 layers are `light_pollution_radiance`, `risk_index`, `walkability_index`, and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m` and `tree_canopy_pct`. Implemented/staged/not promoted: `risk_index`. Remaining Phase 5 layers are `light_pollution_radiance`, `walkability_index`, and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
 - GVI/perceived green is not part of Phase 5. Per spec, `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation `gvi_streetlevel` is Phase 11.
 
-Checks last run after `tree_canopy_pct` promote:
+Checks last run after `risk_index` staging:
 
-- Report validation rechecked both `tree_canopy_pct` reports; both remain `promotable: true`.
-- Golden Neon checks: `11 passed, 8 deselected` on 2026-06-15.
+- Manifest validation passed for `risk_index`.
+- Full Neon-backed pipeline suite: `21 passed` on 2026-06-15.
+- Golden Neon checks passed:
   - 4,505 listings
   - 0 missing districts
   - pinned PA/NY address -> district facts
   - nearest fallback count/cap
   - SRID and geometry validity checks
-- Public metric counts and `district_metrics` rollups confirmed after promote.
+- Public/live `risk_index` counts remain 0 in `metric_definitions`, `region_metrics`, and `listing_metrics`; staging rows exist for 437 Hudson Valley tracts and 495 PA Main Line tracts.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
 
 ## 7. Recommended Next Steps
 
-Recommended next chat boundary: start a fresh chat now. This is a clean checkpoint: `tree_canopy_pct` is promoted and verified; the next action changes mode to onboarding the next Phase 5 source.
+Recommended next chat boundary: start a fresh chat now. This is a clean checkpoint: `risk_index` is implemented, staged, validated, and QA-rendered; the next action is a human-gated promote decision.
 
 Next actions, in order:
 
-1. Choose the next approved Phase 5 layer onboarding target. Recommended: `risk_index`, because FEMA NRI is tract-native and should harden the source-onboarding/reporting path without introducing raster or polygon-overlay complexity.
-2. Draft the `risk_index` layer manifest plus sample-stats summary, then stop for human approval before implementing ingestion.
-3. Keep `light_pollution_radiance`, `walkability_index`, and `flood_sfha` queued after `risk_index`.
-4. Do not start GVI.
+1. Review the staged `risk_index` validation reports and QA maps:
+   - `data/reports/layer_risk_index_pa-mainline_latest.json`
+   - `data/reports/layer_risk_index_hudson-valley_latest.json`
+   - `data/reports/qa/risk_index_pa-mainline.png`
+   - `data/reports/qa/risk_index_hudson-valley.png`
+2. If approved, explicitly run promotion for both `risk_index` reports.
+3. After promotion, rerun validation/golden checks and confirm `district_metrics` has district rollups for `risk_index`.
+4. Then choose the next Phase 5 layer onboarding target. Recommended next target: `light_pollution_radiance`, because it is a core Discovery context metric and exercises the next raster/neighborhood-context pattern.
+5. Keep `walkability_index` and `flood_sfha` queued after `light_pollution_radiance`.
+6. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 
@@ -219,6 +275,7 @@ When recommending a new chat, Codex should update `docs/CODEX_HANDOFF.md` before
 - Region scaffolding currently handles tract -> district and tract -> municipality overlaps. ZCTA -> district housing-unit overlaps are mentioned in Phase 4 but not implemented yet; this will matter for `median_home_value` in Phase 6.
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
 - `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
+- `risk_index` is staged in Neon `staging.layer_region_metrics`. It is not yet promoted to public/live metric tables.
 
 ## 10. Suggested Prompt For Next Codex Chat
 
@@ -233,14 +290,20 @@ GVI. Preserve hard rules: deterministic district truth via PostGIS only,
 RentCast frozen, no GreatSchools, all geometry EPSG:4326, staging -> validate
 -> explicit promote.
 
-Current checkpoint: tree_canopy_pct was implemented, staged for both
-pa-mainline and hudson-valley, validated as promotable, QA maps were rendered,
-then it was explicitly approved and promoted to Neon public metric tables.
+Current checkpoint: risk_index was implemented from the approved FEMA/RAPT NRI
+onboarding packet, staged for both pa-mainline and hudson-valley at tract grain,
+validated as promotable, and QA maps were rendered. It has NOT been promoted.
 app/.env.local contains the Neon DATABASE_URL; do not print or commit secrets.
 
-First inspect git status and latest validation state. Then start the next Phase
-5 source onboarding packet. Recommended target: risk_index from FEMA NRI because
-it is tract-native and should be the lowest-risk next layer. Draft the layer
-manifest plus sample-stats summary and stop for human approval before writing
-the full ingestion module. Do not start GVI.
+First inspect git status and latest validation state. Then review the staged
+risk_index reports and QA PNGs:
+- data/reports/layer_risk_index_pa-mainline_latest.json
+- data/reports/layer_risk_index_hudson-valley_latest.json
+- data/reports/qa/risk_index_pa-mainline.png
+- data/reports/qa/risk_index_hudson-valley.png
+
+Ask me for explicit approval before running any promote command. If I approve
+promotion, promote risk_index for both regions, rerun validation and golden
+checks, confirm public metric counts and district rollups, then stop and
+recommend the next Phase 5 layer onboarding target. Do not start GVI.
 ```
