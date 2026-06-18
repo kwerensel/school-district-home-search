@@ -61,3 +61,4 @@ cd app && npm test             # finance engine + server fn tests
 - After any spatial operation, run the golden-region checks (`uv run pytest -k golden`): known listings must keep their known districts (e.g., the Lower Merion fixtures).
 - When onboarding a new data source: draft the layer manifest + a sample-stats summary first, and stop for human review before writing the full ingestion module.
 - Visual QA replaces QGIS: `gt qa map <layer> --region <slug>` renders PNGs to `data/reports/qa/` for human review. Generate these after every layer run.
+- After every commit + push or build-phase gate, advise whether to continue in the current chat or start a fresh one. If a fresh chat is recommended, always provide a copy-paste prompt for the next session.
