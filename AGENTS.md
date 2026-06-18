@@ -57,7 +57,9 @@ cd app && npm test             # finance engine + server fn tests
 
 ## Working agreements for agents
 
-- Read `docs/tasks.md` before starting work; tasks are ordered and have acceptance criteria. Don't skip phases.
+- Read `docs/tasks.md` before starting work; tasks are ordered and have acceptance criteria. Follow phase order for data promotion and user-facing feature gates: don't promote, launch, or depend on later-phase behavior until earlier gates pass.
+- If a phase is blocked by external access or human review, agents may work ahead only on reversible, non-promoting tasks: source onboarding notes, manifests, tests, scaffolding, docs, or isolated UI prototypes that do not imply live data availability.
+- Any work-ahead must explicitly document the blocker, avoid staging/promoting data, avoid irreversible schema/API commitments unless approved, and stop before wiring later-phase behavior into the main user journey.
 - After any spatial operation, run the golden-region checks (`uv run pytest -k golden`): known listings must keep their known districts (e.g., the Lower Merion fixtures).
 - When onboarding a new data source: draft the layer manifest + a sample-stats summary first, and stop for human review before writing the full ingestion module.
 - Visual QA replaces QGIS: `gt qa map <layer> --region <slug>` renders PNGs to `data/reports/qa/` for human review. Generate these after every layer run.
