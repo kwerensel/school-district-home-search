@@ -1,0 +1,26 @@
+metric_key: flood_sfha
+name: Special Flood Hazard Area share
+source: FEMA National Flood Hazard Layer
+source_urls:
+  - https://www.fema.gov/flood-maps/national-flood-hazard-layer
+  - https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer
+  - https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28
+vintage: "live-nfhl"
+units: share
+direction: lower_better
+native_resolution: FEMA FIRM flood hazard polygons
+allowed_range: [0, 1]
+reduction_method: zonal_share
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - point_in_polygon
+notes: >
+  FEMA National Flood Hazard Layer Flood Hazard Zones polygons identify Special
+  Flood Hazard Areas through SFHA_TF = 'T' and flood zone classes such as A,
+  AE, AO, AH, and VE. Reduce to census tracts as the share of tract area inside
+  SFHA polygons. Attach listing context as an exact point-in-polygon flag only;
+  do not buffer or interpolate this parcel-scale regulatory boundary source.
+  Source geometry is NAD83/EPSG:4269 in the FEMA service and must be
+  transformed to EPSG:4326 before staging.

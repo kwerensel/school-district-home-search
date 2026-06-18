@@ -85,6 +85,21 @@ def test_walkability_index_layer_manifest_validates() -> None:
     assert "walkability_index" in result.output
 
 
+def test_flood_sfha_layer_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/flood_sfha.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "flood_sfha" in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(
