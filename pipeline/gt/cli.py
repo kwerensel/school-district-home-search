@@ -11,6 +11,7 @@ from gt.layers import (
     run_canopy_height,
     run_risk_index,
     run_tree_canopy,
+    run_walkability,
 )
 from gt.manifests import LayerManifest, RegionManifest, load_manifest
 from gt.region import add_region, promote_region, render_region_qa, validate_region_report
@@ -148,6 +149,7 @@ def layer_run(
         "canopy_height_m": run_canopy_height,
         "risk_index": run_risk_index,
         "tree_canopy_pct": run_tree_canopy,
+        "walkability_index": run_walkability,
     }
     runner = layer_runners.get(key)
     if runner is None:

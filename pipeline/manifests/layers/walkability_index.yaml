@@ -1,0 +1,32 @@
+metric_key: walkability_index
+name: National Walkability Index
+source: EPA National Walkability Index
+source_urls:
+  - https://www.epa.gov/smartgrowth/smart-location-mapping
+  - https://www.epa.gov/smartgrowth/national-walkability-index-user-guide-and-methodology
+  - https://catalog.data.gov/dataset/walkability-index
+  - https://edg.epa.gov/EPADataCommons/public/OA/WalkabilityIndex.zip
+  - https://geodata.epa.gov/arcgis/rest/services/OA/WalkabilityIndex/MapServer/0
+vintage: "2021"
+units: index
+direction: higher_better
+native_resolution: census block group
+allowed_range: [1, 20]
+reduction_method: housing_unit_weighted
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - point_in_polygon
+notes: >
+  EPA National Walkability Index scores rank Census 2019 block groups relative
+  to other U.S. block groups using Smart Location Database inputs associated
+  with walk-trip likelihood, including employment and housing mix, employment
+  mix, pedestrian-oriented intersection density, and proximity to transit.
+  Reduce block-group NatWalkInd values to local census-tract metrics with
+  housing-unit weights, using source CountHU/HH fields where available and
+  area-overlap weighting to handle boundary-vintage mismatches between source
+  block groups and local tracts. Listing grain should attach the containing
+  block-group value by point-in-polygon and label it as block-group
+  neighborhood context, not an address-level fact. Keep source geometry out of
+  public region truth tables; local stored geometries remain EPSG:4326.
