@@ -1,0 +1,28 @@
+metric_key: light_pollution_radiance
+name: Nighttime light radiance
+source: Earth Observation Group VIIRS Annual VNL V2.2 median-masked composite
+source_urls:
+  - https://eogdata.mines.edu/products/vnl/
+  - https://eogdata.mines.edu/nighttime_light/annual/v22/
+vintage: "2024"
+units: nW/cm2/sr
+direction: lower_better
+native_resolution: 15 arc-second (~500m at equator)
+allowed_range: [0, 1000]
+reduction_method: zonal_mean
+coverage_threshold: 0.99
+grains:
+  - tract
+listing_reductions: []
+notes: >
+  VIIRS Annual VNL V2.2 median-masked nighttime radiance from the Earth
+  Observation Group. Use the annual median-masked product, not monthly
+  composites, because the annual V2 processing is designed to remove
+  background, fires, and other ephemeral lights. Reduce to census-tract means
+  for Discovery and district rollups. Do not write listing_metrics from this
+  source: the native 15 arc-second grid is neighborhood context, not
+  address-level truth. If shown in Explorer later, attach the containing tract
+  value and label it as neighborhood context. The EOG V2.2 data directory
+  requires EOG authentication; before implementation, verify that the 2024
+  median-masked GeoTIFF is the latest complete annual file available, or update
+  vintage and filename if a newer complete annual V2.2 product is available.

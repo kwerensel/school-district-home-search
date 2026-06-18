@@ -227,10 +227,11 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, and `risk_index`. Remaining Phase 5 layers are `light_pollution_radiance`, `walkability_index`, and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, and `risk_index`. Drafted for approval only: `light_pollution_radiance`. Remaining after approval/implementation: `walkability_index` and `flood_sfha`, plus the Explorer listing detail panel/environmental filters.
+- `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
 - GVI/perceived green is not part of Phase 5. Per spec, `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation `gvi_streetlevel` is Phase 11.
 
-Checks last run after `risk_index` promote:
+Checks last run after `risk_index` promote and `light_pollution_radiance` draft:
 
 - Manifest validation passed for `risk_index`.
 - Report validation rechecked both `risk_index` reports; both remain `promotable: true`.
@@ -242,16 +243,18 @@ Checks last run after `risk_index` promote:
   - nearest fallback count/cap
   - SRID and geometry validity checks
 - Public metric counts and `district_metrics` rollups confirmed after promote.
+- `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
+- A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
 
 ## 7. Recommended Next Steps
 
-Recommended next chat boundary: start a fresh chat now. This is a clean checkpoint: `risk_index` is promoted and verified; the next action changes mode to onboarding the next Phase 5 source.
+Recommended next chat boundary: start a fresh chat now. This is a clean checkpoint: `light_pollution_radiance` source onboarding is drafted and waiting for human approval/source-access decision.
 
 Next actions, in order:
 
-1. Choose the next Phase 5 layer onboarding target. Recommended next target: `light_pollution_radiance`, because it is a core Discovery context metric and exercises the raster/neighborhood-context pattern.
-2. Draft the `light_pollution_radiance` layer manifest plus sample-stats summary, then stop for human approval before implementing ingestion.
+1. Human review: decide whether to approve `light_pollution_radiance` with authenticated numeric sample stats as an implementation prerequisite, or require exact EOG file download/sampling before approval.
+2. If approved, verify the latest complete Annual VNL V2.2 median-masked file through EOG-authenticated access or an approved local file, update manifest vintage/filename notes if needed, then implement the ingestion module.
 3. Keep `walkability_index` and `flood_sfha` queued after `light_pollution_radiance`.
 4. Do not start GVI.
 
@@ -281,6 +284,7 @@ When recommending a new chat, Codex should update `docs/CODEX_HANDOFF.md` before
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
 - `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 - `risk_index` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
+- `light_pollution_radiance` manifest uses draft vintage `2024`. This should be updated before implementation if EOG-authenticated listing shows a newer complete annual V2.2 median-masked product.
 
 ## 10. Suggested Prompt For Next Codex Chat
 
@@ -298,12 +302,15 @@ RentCast frozen, no GreatSchools, all geometry EPSG:4326, staging -> validate
 Current checkpoint: risk_index was implemented from the approved FEMA/RAPT NRI
 onboarding packet, staged for both pa-mainline and hudson-valley at tract grain,
 validated as promotable, QA maps were rendered, then it was explicitly approved
-and promoted to Neon public metric tables.
+and promoted to Neon public metric tables. light_pollution_radiance source
+onboarding has now been drafted only:
+pipeline/manifests/layers/light_pollution_radiance.yaml and
+docs/layer-onboarding/light_pollution_radiance.md. The manifest validates, but
+numeric sample stats and exact latest-year filename are pending EOG-authenticated
+source access because the official V2.2 directory redirects to sign-in.
 app/.env.local contains the Neon DATABASE_URL; do not print or commit secrets.
 
-First inspect git status and latest validation state. Then start the next Phase
-5 source onboarding packet. Recommended target: light_pollution_radiance because
-it is a core Discovery context metric and exercises the next raster/neighborhood
-context pattern. Draft the layer manifest plus sample-stats summary and stop
-for human approval before writing the full ingestion module. Do not start GVI.
+First inspect git status and latest validation state. Then wait for human
+approval/source-access direction on light_pollution_radiance. Do not implement
+the ingestion module, do not stage/promote, and do not start GVI until approval.
 ```
