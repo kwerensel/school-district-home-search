@@ -18,6 +18,7 @@ interface Props {
   setFilters: (f: Filters) => void;
   districts: string[];
   priceMax: number;
+  canopyMax: number;
   resultCount: number;
   totalCount: number;
 }
@@ -30,6 +31,7 @@ export function FiltersSidebar({
   setFilters,
   districts,
   priceMax,
+  canopyMax,
   resultCount,
   totalCount,
 }: Props) {
@@ -120,6 +122,36 @@ export function FiltersSidebar({
           id="good-only"
           checked={filters.goodOnly}
           onCheckedChange={(v) => update("goodOnly", v)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Min canopy</Label>
+          <span className="text-sm font-medium text-foreground">
+            {Math.round(filters.minCanopyHeight)} m
+          </span>
+        </div>
+        <Slider
+          min={0}
+          max={Math.max(canopyMax, 1)}
+          step={1}
+          value={[Math.min(filters.minCanopyHeight, Math.max(canopyMax, 1))]}
+          onValueChange={(v) => update("minCanopyHeight", v[0])}
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-md border border-border p-3">
+        <div>
+          <Label htmlFor="flood-only" className="cursor-pointer">
+            In mapped SFHA
+          </Label>
+          <p className="text-xs text-muted-foreground">FEMA point flag</p>
+        </div>
+        <Switch
+          id="flood-only"
+          checked={filters.floodOnly}
+          onCheckedChange={(v) => update("floodOnly", v)}
         />
       </div>
 

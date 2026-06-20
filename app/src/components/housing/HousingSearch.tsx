@@ -6,12 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Filter as FilterIcon, Home } from "lucide-react";
 import { FiltersSidebar } from "./FiltersSidebar";
+import { ListingDetailPanel } from "./ListingDetailPanel";
 
 const MapView = lazy(() => import("./MapView").then((m) => ({ default: m.MapView })));
 import { getDistricts, getListings } from "@/lib/housing/listings.functions";
 import { getMapboxToken } from "@/lib/housing/mapbox-token.functions";
-import { applyFilters, DEFAULT_FILTERS, priceBounds, uniqueDistricts } from "@/lib/housing/filters";
-import type { DistrictFC, Filters, ListingFC } from "@/lib/housing/types";
+import {
+  applyFilters,
+  canopyHeightBounds,
+  DEFAULT_FILTERS,
+  priceBounds,
+  uniqueDistricts,
+} from "@/lib/housing/filters";
+import type { DistrictFC, Filters, ListingFC, ListingFeature } from "@/lib/housing/types";
 
 const EMPTY_LISTINGS: ListingFC = { type: "FeatureCollection", features: [] };
 
@@ -45,9 +52,11 @@ export function HousingSearch() {
 
   const allListings = listings;
   const bounds = useMemo(() => priceBounds(allListings), [allListings]);
+  const canopyBounds = useMemo(() => canopyHeightBounds(allListings), [allListings]);
   const districtList = useMemo(() => uniqueDistricts(allListings), [allListings]);
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [selectedListing, setSelectedListing] = useState<ListingFeature | null>(null);
 
   // Initialize maxPrice when data loads
   useEffect(() => {
@@ -60,12 +69,22 @@ export function HousingSearch() {
 
   const filtered = useMemo(() => applyFilters(allListings, filters), [allListings, filters]);
 
+  useEffect(() => {
+    if (
+      selectedListing &&
+      !filtered.features.some((feature) => feature.properties.id === selectedListing.properties.id)
+    ) {
+      setSelectedListing(null);
+    }
+  }, [filtered, selectedListing]);
+
   const sidebar = (
     <FiltersSidebar
       filters={filters}
       setFilters={setFilters}
       districts={districtList}
       priceMax={Math.max(bounds.max, 100_000)}
+      canopyMax={canopyBounds.max}
       resultCount={filtered.features.length}
       totalCount={allListings.features.length}
     />
@@ -121,6 +140,12 @@ export function HousingSearch() {
                   listings={filtered}
                   districts={districts ?? null}
                   goodOnly={filters.goodOnly}
+                  selectedListingId={selectedListing?.properties.id ?? null}
+                  onListingSelect={setSelectedListing}
+                />
+                <ListingDetailPanel
+                  listing={selectedListing}
+                  onClose={() => setSelectedListing(null)}
                 />
               </Suspense>
             </ClientOnly>

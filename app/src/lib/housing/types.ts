@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, Point, Polygon, MultiPolygon } from "geojson";
 
 export interface ListingProps {
+  id: number;
   address: string;
   city: string;
   zip: string | number;
@@ -11,6 +12,8 @@ export interface ListingProps {
   school_district: string;
   county_name?: string | null;
   good_district: boolean;
+  canopy_height_m_100m?: number | null;
+  flood_sfha?: number | null;
 }
 
 export interface DistrictProps {
@@ -29,4 +32,26 @@ export interface Filters {
   minBaths: number;
   goodOnly: boolean;
   district: string; // "all" or a school_district name
+  minCanopyHeight: number;
+  floodOnly: boolean;
+}
+
+export type ListingMetricContext = "street" | "property" | "neighborhood";
+
+export interface ListingMetricItem {
+  metricKey: string;
+  name: string;
+  value: number;
+  units: string | null;
+  grain: string;
+  vintage: string;
+  source: string;
+  nativeResolution: string | null;
+  context: ListingMetricContext;
+}
+
+export interface ListingMetricsPayload {
+  listing: ListingProps;
+  metrics: ListingMetricItem[];
+  tractMetrics: ListingMetricItem[];
 }

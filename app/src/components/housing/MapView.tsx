@@ -2,44 +2,52 @@ import { useEffect, useRef } from "react";
 import type { Feature, Geometry, Point } from "geojson";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { DistrictFC, ListingFC, ListingProps } from "@/lib/housing/types";
+import type { DistrictFC, ListingFC, ListingFeature, ListingProps } from "@/lib/housing/types";
 
 interface Props {
   token: string;
   listings: ListingFC;
   districts: DistrictFC | null;
   goodOnly: boolean;
+  selectedListingId: number | null;
+  onListingSelect: (listing: ListingFeature) => void;
 }
 
 const DEFAULT_CENTER: L.LatLngTuple = [39.95, -75.3];
 type ListingGeoFeature = Feature<Point, ListingProps>;
 type DistrictGeoFeature = Feature<Geometry, { good_district?: boolean }>;
 
-function popupMarkup(p: ListingProps) {
-  const href = p.url && p.url !== "null" ? p.url : "#";
+function markerStyle(props: ListingProps, selectedListingId: number | null): L.CircleMarkerOptions {
+  const price = Number(props.price ?? 0);
+  const radius = price >= 2_000_000 ? 12 : price >= 1_000_000 ? 10 : price >= 500_000 ? 8 : 6;
+  const isSelected = props.id === selectedListingId;
 
-  return `
-    <div style="min-width:220px;padding:4px 2px;font-family:inherit;line-height:1.4;">
-      <div style="font-size:16px;font-weight:600;color:#0f172a;">$${p.price.toLocaleString()}</div>
-      <div style="margin-top:4px;font-size:14px;color:#0f172a;">${p.beds} bd · ${p.baths} ba</div>
-      <div style="margin-top:6px;font-size:13px;color:#475569;">
-        ${p.address}<br />
-        ${p.city}, ${p.zip}
-      </div>
-      <div style="margin-top:6px;font-size:12px;color:#475569;">
-        District: <strong style="color:#0f172a;">${p.school_district}</strong>
-        ${p.good_district ? '<span style="margin-left:6px;display:inline-block;border-radius:999px;background:#dbeafe;padding:2px 6px;font-size:10px;font-weight:600;color:#1d4ed8;">Good</span>' : ""}
-      </div>
-      ${href === "#" ? "" : `<a href="${href}" target="_blank" rel="noreferrer noopener" style="margin-top:10px;display:inline-flex;width:100%;justify-content:center;border-radius:8px;background:#0f172a;padding:8px 12px;font-size:12px;font-weight:600;color:#ffffff;text-decoration:none;">View listing</a>`}
-    </div>
-  `;
+  return {
+    radius: isSelected ? radius + 4 : radius,
+    weight: isSelected ? 3 : 1.5,
+    color: isSelected ? "#111827" : "#ffffff",
+    fillColor: props.good_district ? "#2563eb" : "#475569",
+    fillOpacity: 0.92,
+  };
 }
 
-export function MapView({ token, listings, districts, goodOnly }: Props) {
+export function MapView({
+  token,
+  listings,
+  districts,
+  goodOnly,
+  selectedListingId,
+  onListingSelect,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const listingsLayerRef = useRef<L.GeoJSON | null>(null);
   const districtsLayerRef = useRef<L.GeoJSON | null>(null);
+  const onListingSelectRef = useRef(onListingSelect);
+
+  useEffect(() => {
+    onListingSelectRef.current = onListingSelect;
+  }, [onListingSelect]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current || !token) return;
@@ -74,12 +82,8 @@ export function MapView({ token, listings, districts, goodOnly }: Props) {
       onEachFeature: (feature: ListingGeoFeature, layer: L.Layer) => {
         const props = feature.properties as ListingProps;
         const marker = layer as L.CircleMarker;
-        const price = Number(props.price ?? 0);
-        const radius = price >= 2_000_000 ? 12 : price >= 1_000_000 ? 10 : price >= 500_000 ? 8 : 6;
-
-        marker.setRadius(radius);
-        marker.setStyle({ fillColor: props.good_district ? "#2563eb" : "#475569" });
-        marker.bindPopup(popupMarkup(props), { maxWidth: 280, offset: [0, -2] });
+        marker.setStyle(markerStyle(props, selectedListingId));
+        marker.on("click", () => onListingSelectRef.current(feature));
       },
     }).addTo(map);
 
@@ -109,6 +113,17 @@ export function MapView({ token, listings, districts, goodOnly }: Props) {
       mapRef.current = null;
     };
   }, [token, goodOnly]);
+
+  useEffect(() => {
+    const listingsLayer = listingsLayerRef.current;
+    if (!listingsLayer) return;
+
+    listingsLayer.eachLayer((layer) => {
+      const marker = layer as L.CircleMarker & { feature?: ListingGeoFeature };
+      const props = marker.feature?.properties;
+      if (props) marker.setStyle(markerStyle(props, selectedListingId));
+    });
+  }, [selectedListingId]);
 
   useEffect(() => {
     const map = mapRef.current;

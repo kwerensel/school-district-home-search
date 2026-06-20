@@ -25,8 +25,13 @@ export const DistrictQuerySchema = z
   })
   .default({});
 
+export const ListingMetricsQuerySchema = z.object({
+  listingId: z.number().int().positive(),
+});
+
 export type ListingQuery = z.infer<typeof ListingQuerySchema>;
 export type DistrictQuery = z.infer<typeof DistrictQuerySchema>;
+export type ListingMetricsQuery = z.infer<typeof ListingMetricsQuerySchema>;
 
 export const EMPTY_FEATURE_COLLECTION = {
   type: "FeatureCollection",
@@ -93,14 +98,126 @@ export function buildListingsSql(input: ListingQuery): SqlFragment {
           l.url,
           d.name_display AS school_district,
           l.county AS county_name,
-          COALESCE(dq.good_district, false) AS good_district
+          COALESCE(dq.good_district, false) AS good_district,
+          canopy.value AS canopy_height_m_100m,
+          flood.value AS flood_sfha
         FROM listings l
         JOIN school_districts d ON d.id = l.district_id
         LEFT JOIN district_quality dq ON dq.district_id = d.id
+        LEFT JOIN listing_metrics canopy
+          ON canopy.listing_id = l.id
+         AND canopy.metric_key = 'canopy_height_m'
+         AND canopy.grain = 'buffer_100m'
+        LEFT JOIN listing_metrics flood
+          ON flood.listing_id = l.id
+         AND flood.metric_key = 'flood_sfha'
+         AND flood.grain = 'point'
         WHERE ${where.join(" AND ")}
       ) row
     `,
     values,
+  };
+}
+
+export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment {
+  return {
+    text: `
+      WITH target AS (
+        SELECT
+          l.id,
+          l.address,
+          l.city,
+          l.zip,
+          l.price,
+          l.beds,
+          l.baths,
+          l.url,
+          l.county AS county_name,
+          l.region_slug,
+          l.geom,
+          d.name_display AS school_district,
+          COALESCE(dq.good_district, false) AS good_district,
+          canopy.value AS canopy_height_m_100m,
+          flood.value AS flood_sfha
+        FROM listings l
+        JOIN school_districts d ON d.id = l.district_id
+        LEFT JOIN district_quality dq ON dq.district_id = d.id
+        LEFT JOIN listing_metrics canopy
+          ON canopy.listing_id = l.id
+         AND canopy.metric_key = 'canopy_height_m'
+         AND canopy.grain = 'buffer_100m'
+        LEFT JOIN listing_metrics flood
+          ON flood.listing_id = l.id
+         AND flood.metric_key = 'flood_sfha'
+         AND flood.grain = 'point'
+        WHERE l.id = $1
+      ),
+      tract AS (
+        SELECT r.id
+        FROM regions r
+        JOIN target t
+          ON r.region_group = t.region_slug
+         AND ST_Contains(r.geom, t.geom)
+        WHERE r.region_type = 'census_tract'
+        ORDER BY ST_Area(r.geom::geography)
+        LIMIT 1
+      ),
+      listing_metric_rows AS (
+        SELECT
+          lm.metric_key,
+          md.name,
+          lm.value,
+          md.units,
+          lm.grain,
+          lm.vintage,
+          md.source,
+          md.native_resolution,
+          CASE
+            WHEN lm.metric_key = 'flood_sfha' AND lm.grain = 'point' THEN 'property'
+            WHEN lm.grain IN ('buffer_100m', 'buffer_500m') THEN 'street'
+            ELSE 'neighborhood'
+          END AS context
+        FROM listing_metrics lm
+        JOIN metric_definitions md ON md.metric_key = lm.metric_key
+        WHERE lm.listing_id = $1
+      ),
+      tract_metric_rows AS (
+        SELECT
+          rm.metric_key,
+          md.name,
+          rm.value,
+          md.units,
+          'census_tract' AS grain,
+          rm.vintage,
+          md.source,
+          md.native_resolution,
+          'neighborhood' AS context
+        FROM region_metrics rm
+        JOIN metric_definitions md ON md.metric_key = rm.metric_key
+        JOIN tract ON tract.id = rm.region_id
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM listing_metrics lm
+          WHERE lm.listing_id = $1
+            AND lm.metric_key = rm.metric_key
+        )
+      )
+      SELECT json_build_object(
+        'listing', (
+          SELECT to_jsonb(t) - 'geom' - 'region_slug'
+          FROM target t
+        ),
+        'metrics', COALESCE((
+          SELECT json_agg(row_to_json(m) ORDER BY m.metric_key, m.grain)
+          FROM listing_metric_rows m
+        ), '[]'::json),
+        'tractMetrics', COALESCE((
+          SELECT json_agg(row_to_json(m) ORDER BY m.metric_key)
+          FROM tract_metric_rows m
+        ), '[]'::json)
+      ) AS payload
+    `,
+    values: [input.listingId],
   };
 }
 
