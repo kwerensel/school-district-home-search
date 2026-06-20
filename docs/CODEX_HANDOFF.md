@@ -30,6 +30,11 @@ Completed checkpoints:
 - `flood_sfha` source onboarding was approved, implemented, staged for both
   regions, validated as promotable, QA maps were rendered, repaired for
   non-finite zero-overlap tract shares, and promoted to Neon.
+- Explorer listing metrics panel work was implemented and pushed at
+  `e44c204 Add Explorer listing metrics panel`: listing GeoJSON now carries
+  compact canopy/flood filter fields, `getListingMetrics` returns promoted
+  listing and tract context metrics, map clicks open a React detail panel, and
+  the filter sidebar includes minimum canopy and FEMA SFHA flag filters.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -346,6 +351,11 @@ Uncommitted in the current worktree:
 
 Recently committed:
 
+- `e44c204 Add Explorer listing metrics panel`: `getListingMetrics` server
+  function, selected-listing detail panel, map click selection, compact
+  environmental fields on listing GeoJSON, and canopy/flood filters.
+- `2cc6a57 Repair flood SFHA finite shares`: flood reducer/validation repair,
+  clean restaging, promotion, live aggregate verification, and handoff update.
 - `a05eb92 Relax autonomous approval gates`: standing-approval instructions for
   already-planned data/application work.
 - `172a9a7 Implement flood SFHA layer staging`: FEMA NFHL `flood_sfha`
@@ -385,11 +395,9 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `a05eb92 Relax autonomous approval gates`
-- `main` is even with `origin/main` at that commit before the current flood
-  repair/handoff edits.
-- Worktree has uncommitted edits to `pipeline/gt/layers/flood_sfha.py` and
-  `docs/CODEX_HANDOFF.md`.
+- Current local commit: `e44c204 Add Explorer listing metrics panel`
+- `main` is even with `origin/main` at that commit before this handoff edit.
+- Worktree has this uncommitted `docs/CODEX_HANDOFF.md` update.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -401,7 +409,7 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`. Blocked on source access: `light_pollution_radiance`. Remaining Phase 5 app work: the Explorer listing detail panel/environmental filters.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`. Explorer listing metrics panel/environmental filters are implemented. Blocked on source access: `light_pollution_radiance`. Remaining Phase 5 app work is follow-up polish/QA on the Explorer metrics surface and any missing environmental dimensions after blocked light pollution is resolved.
 - `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
@@ -453,6 +461,12 @@ Checks last run after repaired `flood_sfha` promotion:
   `11 passed, 14 deselected in 10.90s`.
 - Full Neon-backed pipeline suite passed with `./.venv/bin/pytest -q`:
   `25 passed in 9.45s`.
+- App tests passed with `npm test`: `6 passed`.
+- App production build passed with `npm run build`.
+- Vite dev server started on `http://localhost:8080/`; localhost `HEAD /`
+  returned `HTTP/1.1 200`. In-app browser visual QA was attempted, but the
+  browser connector failed before opening a session in this thread, so visual
+  inspection is still a useful follow-up.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
@@ -465,10 +479,10 @@ required if continuing immediately.
 
 Next actions, in order:
 
-1. Commit and push the `flood_sfha` finite-share repair plus this handoff.
-2. Continue Phase 5 app work: `getListingMetrics` server function, Explorer
-   listing detail panel, and environmental filters. Distinguish exact
-   listing-grain metrics from neighborhood/tract context.
+1. Commit and push this handoff update.
+2. Continue Phase 5 app polish/QA: visually inspect the Explorer metrics panel
+   in a browser, verify marker selection and mobile panel behavior, and tune
+   any copy/layout issues found.
 3. Separately, `light_pollution_radiance` remains blocked until EOG-authenticated exact file verification and numeric sample stats are available.
 4. Do not start GVI.
 
