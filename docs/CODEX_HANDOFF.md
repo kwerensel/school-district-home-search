@@ -35,6 +35,8 @@ Completed checkpoints:
   compact canopy/flood filter fields, `getListingMetrics` returns promoted
   listing and tract context metrics, map clicks open a React detail panel, and
   the filter sidebar includes minimum canopy and FEMA SFHA flag filters.
+- Follow-up lint/format repair was pushed at
+  `6a99c54 Fix Explorer panel lint issues`.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -351,6 +353,11 @@ Uncommitted in the current worktree:
 
 Recently committed:
 
+- `6a99c54 Fix Explorer panel lint issues`: formats the Explorer panel/server
+  function files, formats two pre-existing app files that lint was already
+  flagging, and fixes the selected-marker hook warning.
+- `79abdff Update handoff after Explorer metrics panel`: handoff update after
+  the first Explorer metrics panel checkpoint.
 - `e44c204 Add Explorer listing metrics panel`: `getListingMetrics` server
   function, selected-listing detail panel, map click selection, compact
   environmental fields on listing GeoJSON, and canopy/flood filters.
@@ -395,7 +402,7 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `e44c204 Add Explorer listing metrics panel`
+- Current local commit: `6a99c54 Fix Explorer panel lint issues`
 - `main` is even with `origin/main` at that commit before this handoff edit.
 - Worktree has this uncommitted `docs/CODEX_HANDOFF.md` update.
 
@@ -461,6 +468,8 @@ Checks last run after repaired `flood_sfha` promotion:
   `11 passed, 14 deselected in 10.90s`.
 - Full Neon-backed pipeline suite passed with `./.venv/bin/pytest -q`:
   `25 passed in 9.45s`.
+- App lint passed with `npm run lint`: 0 errors, 6 pre-existing shadcn
+  fast-refresh warnings.
 - App tests passed with `npm test`: `6 passed`.
 - App production build passed with `npm run build`.
 - Vite dev server started on `http://localhost:8080/`; localhost `HEAD /`
