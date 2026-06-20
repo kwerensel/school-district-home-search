@@ -49,6 +49,11 @@ Completed checkpoints:
   checkpoint: `getDistrictPurchasingPower` validates user budget inputs,
   reads promoted district `effective_tax_rate` rows, and maps them through the
   pure TypeScript finance engine without logging profile contents.
+- First Phase 6 Discovery surface is implemented in the current checkpoint:
+  `/discover` provides budget controls, district purchasing-power ranking, and
+  a Leaflet district choropleth driven by the new server function. It does not
+  compare against median home values because the ZCTA/ZHVI reduction gate is
+  still blocked.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -364,11 +369,25 @@ Uncommitted in the current worktree:
   short-lived cache headers.
 - `app/src/lib/finance/server-data.test.ts`: covers SQL construction, lower-tax
   ordering, and DTI-limited output with mocked database rows.
+- `app/src/components/discovery/DiscoveryEngine.tsx`: first Discovery
+  interface with monthly payment, credit, down-payment, and region controls.
+- `app/src/components/discovery/RegionChoroplethMap.tsx`: Leaflet district
+  choropleth colored by computed district purchasing-power ceiling.
+- `app/src/routes/discover.tsx` and `app/src/routeTree.gen.ts`: register the
+  `/discover` route.
+- `app/src/lib/housing/server-queries.ts`, `app/src/lib/housing/types.ts`, and
+  `app/src/lib/housing/server-data.test.ts`: include district region metadata
+  in district GeoJSON so the choropleth can join shapes to purchasing-power
+  rows.
+- `app/src/components/housing/HousingSearch.tsx`: adds a desktop header link
+  from Explorer to Discovery.
 - `docs/CODEX_HANDOFF.md`: records the new app checkpoint and updated
   median-value/source blockers.
 
 Recently committed:
 
+- `89df754 Add district purchasing power server function`: server-side district
+  purchasing-power query/function, mocked app tests, and handoff update.
 - `7c0bfab Implement effective tax layer`: implemented `effective_tax_rate`
   layer runner using ACS 2024 5-year table-based bulk files, staged/promoted
   both regions, and updated onboarding provenance.
@@ -429,11 +448,11 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `7c0bfab Implement effective tax layer`
+- Current local commit: `89df754 Add district purchasing power server function`
 - `main` is even with `origin/main` at that commit before the current
-  purchasing-power server-function checkpoint.
-- Worktree has uncommitted edits for the purchasing-power server data path and
-  this handoff update.
+  Discovery UI checkpoint.
+- Worktree has uncommitted edits for the first `/discover` UI, district GeoJSON
+  metadata, generated route tree, and this handoff update.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -553,6 +572,15 @@ Checks last run after repaired `flood_sfha` promotion:
   - `npm test`: 3 test files, 14 tests passed.
   - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
   - `npm run build`: production client and SSR builds passed.
+- App checks passed after adding the first `/discover` surface:
+  - `npm test`: 3 test files, 14 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed; TanStack route
+    tree regenerated for `/discover`.
+  - Local dev server served `http://127.0.0.1:8081/discover` with `HTTP 200`.
+  - In-app browser visual QA was attempted, but the browser connector failed
+    before opening a session in this thread, so a screenshot/manual browser pass
+    is still useful.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 
@@ -563,18 +591,20 @@ committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Commit and push the purchasing-power server-function checkpoint.
-2. Continue Phase 5 app polish/QA when browser access is available: visually inspect the Explorer metrics panel
-   in a browser, verify marker selection and mobile panel behavior, and tune
-   any copy/layout issues found.
+1. Commit and push the first `/discover` UI checkpoint.
+2. Continue app visual QA when browser access is available: inspect
+   `/discover` and the Explorer metrics panel in a browser, verify district
+   selection, mobile layout, marker selection, and panel behavior, and tune any
+   copy/layout issues found.
 3. Resolve blocked source/data access:
    - `light_pollution_radiance`: EOG-authenticated exact file verification and
      numeric sample stats.
    - `median_home_value`: use the restored local Zillow ZHVI CSV plus a
      verified official ZCTA geometry/crosswalk input before layer ingestion.
-4. Next unblocked app path is a first Discovery/choropleth surface consuming
-   `getDistrictPurchasingPower`; keep median-home-value comparisons disabled
-   until the ZCTA layer gate is resolved.
+4. Next unblocked app path is Discovery polish: URL-param profile persistence,
+   clearer selected-district state, and handoff from Discovery to Explorer.
+   Keep median-home-value comparisons disabled until the ZCTA layer gate is
+   resolved.
 5. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

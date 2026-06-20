@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ClientOnly } from "@tanstack/react-router";
+import { ClientOnly, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Filter as FilterIcon, Home } from "lucide-react";
+import { Compass, Filter as FilterIcon, Home } from "lucide-react";
 import { FiltersSidebar } from "./FiltersSidebar";
 import { ListingDetailPanel } from "./ListingDetailPanel";
 
@@ -99,18 +99,26 @@ export function HousingSearch() {
           <Home className="h-5 w-5 text-primary" />
           <h1 className="text-base font-semibold text-foreground">Housing Search</h1>
         </div>
-        <div className="md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm">
-                <FilterIcon className="mr-2 h-4 w-4" /> Filters
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[320px] p-0">
-              <SheetTitle className="sr-only">Filters</SheetTitle>
-              {sidebar}
-            </SheetContent>
-          </Sheet>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+            <Link to="/discover">
+              <Compass className="mr-2 h-4 w-4" />
+              Discover
+            </Link>
+          </Button>
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FilterIcon className="mr-2 h-4 w-4" /> Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[320px] p-0">
+                <SheetTitle className="sr-only">Filters</SheetTitle>
+                {sidebar}
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
 

@@ -247,10 +247,16 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
         SELECT
           d.id,
           ST_SimplifyPreserveTopology(d.geom, $1) AS geom,
+          d.nces_geoid,
+          dr.slug AS district_slug,
+          dr.region_group,
           d.name_display AS name,
           COALESCE(dq.good_district, false) AS good_district
         FROM school_districts d
         LEFT JOIN district_quality dq ON dq.district_id = d.id
+        LEFT JOIN regions dr
+          ON dr.district_id = d.id
+         AND dr.region_type = 'school_district'
         WHERE ${where.join(" AND ")}
       ) row
     `,

@@ -17,6 +17,9 @@ export interface ListingProps {
 }
 
 export interface DistrictProps {
+  nces_geoid?: string;
+  district_slug?: string | null;
+  region_group?: string | null;
   name: string;
   good_district?: boolean;
 }

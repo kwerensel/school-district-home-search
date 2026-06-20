@@ -42,6 +42,8 @@ describe("housing server data", () => {
     expect(fragment.text).toContain("EXISTS (SELECT 1 FROM listings l WHERE l.district_id = d.id)");
     expect(fragment.text).toContain("ST_MakeEnvelope($2, $3, $4, $5, 4326)");
     expect(fragment.text).toContain("d.state = $6");
+    expect(fragment.text).toContain("dr.slug AS district_slug");
+    expect(fragment.text).toContain("dr.region_group");
   });
 
   it("builds listing metric detail SQL for listing and tract context", () => {
