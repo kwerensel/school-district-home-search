@@ -43,6 +43,12 @@ Completed checkpoints:
 - Phase 6 pure finance engine was implemented and pushed at
   `816b127 Add purchasing power finance engine`: closed-form purchasing power,
   credit-band spreads, PMI, insurance, optional DTI ceiling, and unit tests.
+- Phase 6 `effective_tax_rate` implementation and promotion was pushed at
+  `7c0bfab Implement effective tax layer`.
+- Phase 6 purchasing-power server data path is implemented in the current
+  checkpoint: `getDistrictPurchasingPower` validates user budget inputs,
+  reads promoted district `effective_tax_rate` rows, and maps them through the
+  pure TypeScript finance engine without logging profile contents.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -350,18 +356,22 @@ Staged validation:
 
 Uncommitted in the current worktree:
 
-- `pipeline/gt/layers/flood_sfha.py`: fixes `NaN` tract shares by coercing
-  zero-overlap/degenerate tract reductions to finite `0.0`, clamps shares to
-  the manifest range, and makes the validation report fail promotion if staged
-  tract or listing values are non-finite.
-- `docs/CODEX_HANDOFF.md`: records the repaired flood promotion checkpoint and
-  latest verification results.
+- `app/src/lib/finance/server-data.ts`: validates district purchasing-power
+  profile inputs, builds the promoted `effective_tax_rate` district query, and
+  maps tax rows through the pure finance engine.
+- `app/src/lib/finance/purchasing-power.functions.ts`: exposes
+  `getDistrictPurchasingPower` as a TanStack server function with private
+  short-lived cache headers.
+- `app/src/lib/finance/server-data.test.ts`: covers SQL construction, lower-tax
+  ordering, and DTI-limited output with mocked database rows.
+- `docs/CODEX_HANDOFF.md`: records the new app checkpoint and updated
+  median-value/source blockers.
 
 Recently committed:
 
-- Pending current checkpoint: implemented `effective_tax_rate` layer runner
-  using ACS 2024 5-year table-based bulk files, staged/promoted both regions,
-  and updated onboarding provenance.
+- `7c0bfab Implement effective tax layer`: implemented `effective_tax_rate`
+  layer runner using ACS 2024 5-year table-based bulk files, staged/promoted
+  both regions, and updated onboarding provenance.
 - `816b127 Add purchasing power finance engine`: pure TypeScript purchasing
   power engine and unit tests for mortgage constant, credit spreads, PMI, DTI
   ceiling, and Hudson Valley/Lower Merion ordering under different tax rates.
@@ -419,11 +429,11 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `1ee416e Update handoff after finance engine`
+- Current local commit: `7c0bfab Implement effective tax layer`
 - `main` is even with `origin/main` at that commit before the current
-  `effective_tax_rate` implementation/handoff edits.
-- Worktree has uncommitted edits for the effective tax implementation and this
-  handoff update.
+  purchasing-power server-function checkpoint.
+- Worktree has uncommitted edits for the purchasing-power server data path and
+  this handoff update.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -441,6 +451,15 @@ Known caveats:
   ACS 2024 5-year table-based Summary File bulk downloads. It uses
   county-subdivision rows only (`mun-cousub-*`) because including both county
   subdivisions and places would double-count many tract overlaps.
+- The Zillow ZHVI single-family ZIP file is restored locally at
+  `data/raw/Zip_zhvi_uc_sfr_tier_0.33_0.67_sm_sa_month.csv`; latest date column
+  observed is `2026-05-31`. This file is gitignored and is not enough by itself
+  for promotion because the approved layer still needs a ZCTA geometry/source
+  crosswalk to reduce ZIP/ZCTA values to districts.
+- `median_home_value` is blocked on the official ZCTA geometry/crosswalk input.
+  A `HEAD` probe against Census TIGER 2023 ZCTA succeeded, but the actual local
+  ZIP download failed from this environment with DNS resolution errors. No
+  median-value staging or promotion has been run.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
 - `flood_sfha` is promoted to public/live metric tables. The initial promote
@@ -530,30 +549,32 @@ Checks last run after repaired `flood_sfha` promotion:
   errors, 6 pre-existing shadcn fast-refresh warnings.
 - App production build passed with `npm run build` after the finance engine
   change.
+- App checks passed after adding `getDistrictPurchasingPower`:
+  - `npm test`: 3 test files, 14 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
-- No app frontend build/test was run after the pipeline work because no frontend files were changed.
 
 ## 7. Recommended Next Steps
 
-Recommended next chat boundary: optional. This is a clean checkpoint:
-`flood_sfha` is promoted and verified after repair. A fresh chat is not
-required if continuing immediately.
+Recommended next chat boundary: optional. This is a clean app checkpoint once
+committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Commit and push this handoff update.
+1. Commit and push the purchasing-power server-function checkpoint.
 2. Continue Phase 5 app polish/QA when browser access is available: visually inspect the Explorer metrics panel
    in a browser, verify marker selection and mobile panel behavior, and tune
    any copy/layout issues found.
 3. Resolve blocked source/data access:
    - `light_pollution_radiance`: EOG-authenticated exact file verification and
      numeric sample stats.
-   - `median_home_value`: restore/fetch the ZHVI ZCTA CSV and implement the
-     missing ZCTA -> district housing-unit crosswalk before layer ingestion.
-4. Next unblocked code path after source access/crosswalk work is resolved:
-   implement `median_home_value`, then wire `computePurchasingPower` to live
-   tax/home value data.
+   - `median_home_value`: use the restored local Zillow ZHVI CSV plus a
+     verified official ZCTA geometry/crosswalk input before layer ingestion.
+4. Next unblocked app path is a first Discovery/choropleth surface consuming
+   `getDistrictPurchasingPower`; keep median-home-value comparisons disabled
+   until the ZCTA layer gate is resolved.
 5. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
@@ -593,7 +614,10 @@ work requires new product/design direction that cannot be inferred responsibly.
 ## 9. Assumptions And Uncertainty
 
 - Assumed `app/.env.local` points to the intended Neon database; this was confirmed by listing counts and passing golden tests.
-- Region scaffolding currently handles tract -> district and tract -> municipality overlaps. ZCTA -> district housing-unit overlaps are mentioned in Phase 4 but not implemented yet; this will matter for `median_home_value` in Phase 6.
+- Region scaffolding currently handles tract -> district and tract ->
+  municipality overlaps. ZCTA -> district housing-unit overlaps are mentioned
+  in Phase 4 but not implemented yet; this will matter for `median_home_value`
+  in Phase 6.
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
 - `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 - `risk_index` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
