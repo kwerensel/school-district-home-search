@@ -42,9 +42,9 @@ Ordered phases for Claude Code. Each task has acceptance criteria (AC). Don't st
 ## Phase 5 — First six layers (clean sources)
 
 For each of `canopy_height_m` (Meta/WRI 1 m canopy height — **the street-level green headline; do this one first**), `tree_canopy_pct` (NLCD TCC), `light_pollution_radiance` (VIIRS VNL V2), `risk_index` (FEMA NRI, tract-native join), `walkability_index` (EPA NWI, block-group → housing-unit-weighted tract), `flood_sfha` (FEMA NFHL): layer module + manifest + run for both regions **at both grains where the source's native resolution permits (per spec §3.3 honesty rule)** + QA PNG + promote. Register all in `metric_definitions` with source/vintage/direction/native_resolution.
-**Process rule (CLAUDE.md):** draft manifest + sample stats → human approval → full module.
+**Process rule (AGENTS.md):** draft manifest + sample stats as evidence → full module for sources already covered by the approved spec; stop only for genuinely new/ambiguous sources or missing information.
 **5.x Listing detail panel.** `getListingMetrics` server function + Explorer detail panel replacing the bare popup: environmental metrics grouped by grain, neighborhood-context metrics (VIIRS, AQI) visually distinguished from street-level ones; environmental dimensions added to `filters.ts` (min canopy height, flood flag).
-**AC per layer:** report `promotable: true`; tract coverage ≥ 99%; listing coverage = 4,505/4,505 for listing-grain layers; values inside manifest range; QA PNG approved — for `canopy_height_m`, the QA PNG must show visible house-to-house variation on a known leafy-vs-bare street pair. **Phase gate:** `district_metrics` shows all metrics for every district in both regions; clicking any Explorer listing shows its environmental panel; spot-check three known places (e.g., Manhattan-adjacent Yonkers tracts high radiance; Putnam tracts high canopy).
+**AC per layer:** report `promotable: true`; tract coverage ≥ 99%; listing coverage = 4,505/4,505 for listing-grain layers; values inside manifest range; QA PNG generated and visually plausible — for `canopy_height_m`, the QA PNG must show visible house-to-house variation on a known leafy-vs-bare street pair. **Phase gate:** `district_metrics` shows all metrics for every district in both regions; clicking any Explorer listing shows its environmental panel; spot-check three known places (e.g., Manhattan-adjacent Yonkers tracts high radiance; Putnam tracts high canopy).
 
 ## Phase 6 — Money: taxes, prices, purchasing power
 
@@ -52,7 +52,7 @@ For each of `canopy_height_m` (Meta/WRI 1 m canopy height — **the street-level
 **6.2** `median_home_value` from the ZHVI ZCTA file via housing-unit-weighted crosswalk to districts; ZCTAs missing from ZHVI (thin-market/rural gaps) fall back to ACS B25077 median value, recorded as a distinct vintage so provenance stays visible per district.
 **6.3** `app/src/lib/finance/`: closed-form P_max per spec §7 (PMMS rate fetch + 24 h cache + fallback constant; credit-band spreads; PMI under 20% down; optional DTI second ceiling with binding-bound label). Exhaustive unit tests incl. the brief's worked example (B=$5,500 ⇒ ordering Hudson Valley > Lower Merion must hold with real tax data).
 **6.4** `computePurchasingPower` server function + `RegionChoropleth` Leaflet component shading districts by P_max.
-**AC:** finance tests green; choropleth renders for a budget slider with <100 ms recompute; tax metric QA PNG approved.
+**AC:** finance tests green; choropleth renders for a budget slider with <100 ms recompute; tax metric QA PNG generated and visually plausible.
 
 ## Phase 7 — Access layers
 

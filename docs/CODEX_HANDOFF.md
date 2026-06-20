@@ -31,9 +31,13 @@ Completed checkpoints:
   regions, validated as promotable, and QA maps were rendered. It has not been
   promoted yet.
 
-Important current gate: `flood_sfha` is staged/validated/QA-rendered and is
-waiting for explicit human promotion approval. Do not promote until approved.
-`light_pollution_radiance` remains blocked and GVI must not start.
+Standing approval model: source and application choices already documented in
+the approved architecture/tasks/handoff count as approved. Do not stop for
+routine yes/no source or promotion approval when validation is green; preserve
+staging -> validate -> explicit promote and keep moving. Stop only for genuinely
+missing information, surprising/red validation, a source-of-truth conflict, or a
+new unapproved source/provider/paid integration. `light_pollution_radiance`
+remains blocked and GVI must not start.
 
 Do not start GVI. `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation GVI is Phase 11.
 
@@ -347,6 +351,9 @@ Uncommitted in the current worktree:
 
 Recently committed:
 
+- `172a9a7 Implement flood SFHA layer staging`: FEMA NFHL `flood_sfha`
+  implementation, staging/validation/QA status, CLI wiring/tests, and the first
+  autonomy-instruction update.
 - `08f9196 Draft flood SFHA source onboarding`: draft FEMA NFHL manifest,
   onboarding note, and manifest validation test.
 - `20922c9 Implement walkability layer`: EPA NWI source onboarding,
@@ -381,11 +388,12 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `08f9196 Draft flood SFHA source onboarding`
-- `main` is even with `origin/main` before the current uncommitted flood
-  implementation/staging work.
-- Worktree has uncommitted flood implementation files, CLI wiring/tests, and
-  this handoff edit.
+- Current local commit: `172a9a7 Implement flood SFHA layer staging`
+- `main` is even with `origin/main` at that commit before the current
+  instruction-relaxation edits.
+- Worktree has uncommitted instruction updates in `AGENTS.md`,
+  `docs/CODEX_HANDOFF.md`, `docs/agentic-pipeline-plan.md`, and
+  `docs/tasks.md`.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -397,13 +405,15 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, and `walkability_index`. Drafted for approval only: `light_pollution_radiance`. Staged/validated/QA-rendered but not promoted: `flood_sfha`. Remaining after source gates: the Explorer listing detail panel/environmental filters.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, and `walkability_index`. Blocked on source access: `light_pollution_radiance`. Staged/validated/QA-rendered but not promoted: `flood_sfha`. Remaining after flood promotion and the blocked light-pollution source: the Explorer listing detail panel/environmental filters.
 - `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
 - `flood_sfha` source onboarding is approved and the ingestion module is
-  implemented. Staging/validation/QA are complete; explicit human approval is
-  still required before promotion.
+  implemented. Staging/validation/QA are complete; under the current standing
+  approval model, the next autonomous arc may run the explicit promote command
+  and verify it, as long as the promotable reports and QA artifacts are still
+  present.
 - GVI/perceived green is not part of Phase 5. Per spec, `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation `gvi_streetlevel` is Phase 11.
 
 Checks last run after `flood_sfha` staging:
@@ -448,21 +458,19 @@ Checks last run after `flood_sfha` staging:
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean checkpoint:
-`flood_sfha` is staged, validated, QA-rendered, and waiting for explicit
-promotion approval. A fresh chat may help context, but it is not required if
-continuing immediately.
+`flood_sfha` is staged, validated, and QA-rendered. A fresh chat is not required
+if continuing immediately.
 
 Next actions, in order:
 
-1. Human review: inspect the `flood_sfha` validation summaries and QA maps.
-2. If approved, run explicit promotion separately:
+1. Run explicit promotion separately:
    `./.venv/bin/gt promote --report layer_flood_sfha_pa-mainline_latest.json`
    and
    `./.venv/bin/gt promote --report layer_flood_sfha_hudson-valley_latest.json`.
-3. After promotion, confirm public `region_metrics`, `listing_metrics`, and
+2. After promotion, confirm public `region_metrics`, `listing_metrics`, and
    `district_metrics` counts/ranges.
-4. Separately, `light_pollution_radiance` remains blocked until EOG-authenticated exact file verification and numeric sample stats are available.
-5. Do not start GVI.
+3. Separately, `light_pollution_radiance` remains blocked until EOG-authenticated exact file verification and numeric sample stats are available.
+4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 
@@ -480,7 +488,7 @@ At meaningful checkpoints, update `docs/CODEX_HANDOFF.md` with:
 - What changed and why.
 - Validation/test results.
 - Data staging/promotion status.
-- Remaining gates and explicit "do not do" constraints.
+- Remaining blockers, missing information, and explicit "do not do" constraints.
 
 Default continuation prompt:
 
@@ -491,9 +499,11 @@ from the latest committed state.
 Work autonomously for as long as the build path remains stable. Do not stop
 after one checkpoint. Continue through multiple data, pipeline, and UI
 checkpoints when they are unblocked. Commit and push each green checkpoint when
-working an autonomous arc. Stop only for a real blocker, an approval-required
-data gate or promotion, a conflict with the source-of-truth docs, or a point
-where the next meaningful work requires missing product/design direction.
+working an autonomous arc. Treat source and application choices already
+documented in the approved architecture/tasks/handoff as standing approval.
+Stop only for a real blocker, genuinely missing information from the user, a
+conflict with the source-of-truth docs, or a point where the next meaningful
+work requires new product/design direction that cannot be inferred responsibly.
 ```
 
 ## 9. Assumptions And Uncertainty
@@ -522,7 +532,9 @@ from the latest committed state.
 Work autonomously for as long as the build path remains stable. Do not stop
 after one checkpoint. Continue through multiple data, pipeline, and UI
 checkpoints when they are unblocked. Commit and push each green checkpoint when
-working an autonomous arc. Stop only for a real blocker, an approval-required
-data gate or promotion, a conflict with the source-of-truth docs, or a point
-where the next meaningful work requires missing product/design direction.
+working an autonomous arc. Treat source and application choices already
+documented in the approved architecture/tasks/handoff as standing approval.
+Stop only for a real blocker, genuinely missing information from the user, a
+conflict with the source-of-truth docs, or a point where the next meaningful
+work requires new product/design direction that cannot be inferred responsibly.
 ```

@@ -44,28 +44,41 @@ No long-running autonomous orchestrator for the POC. A solo builder gets more fr
 
 ## 3. Automated vs. human-reviewed
 
-| Fully automated | Human checkpoint |
+| Fully automated | Stop only when |
 |---|---|
-| Fetch/process/reduce for an *already-onboarded* layer | **New source onboarding:** agent drafts the layer manifest + sample stats + license/ToS note, then stops for approval before writing the module |
-| Validation checks, report generation | **Promote gate:** `gt promote` is always a human-issued command after reviewing the report + QA PNGs |
-| QA map rendering | **QA review:** human eyeballs the PNGs (seconds per layer; this is the old QGIS step, compressed) |
+| Draft manifest/source note/sample stats for sources already named in the approved spec, then fetch/process/reduce | The source/provider is new, ambiguous, paid, credentials-constrained, ToS-constrained, or conflicts with the approved spec |
+| Validation checks, report generation, QA map rendering | Validation is red/missing, QA artifacts are missing, or results are surprising enough to need interpretation |
+| Explicit `gt promote` from a promotable validation report for an approved layer | The report is not promotable, the layer is marked blocked, or the promote would violate phase order |
 | Geometry repair (`ST_MakeValid`) when count ≤ manifest threshold | Geometry repair above threshold → stop and show the broken features |
 | Cluster computation | **Archetype labels:** product copy — human approves before they ship |
 | Narrative generation (numeral-guard enforced) | Guard failures fall back to template + get logged for review |
 
-The pattern: automation owns *execution*, humans own *admission* (new sources, new copy) and *promotion* (data going live). Both gates are cheap — minutes, not hours — which is what keeps the pipeline fast without surrendering trust in the truth layer.
+The pattern: automation owns the normal build path once the source/application
+plan is in the approved docs. Humans are needed for genuinely new commitments
+or missing information, not routine yes/no re-approval. Trust still comes from
+the deterministic CLI: staging first, validation reports, QA artifacts, and an
+explicit promote command that can be replayed.
 
 ### The source-research protocol (what "onboarding" means concretely)
 
-Most layers in the spec are pre-researched national sources — for those, agents execute, they don't research. But the system has known research moments: county assessor tax data (the per-county precision upgrade over ACS), local LiDAR canopy swaps, regional GTFS feed discovery, and any future layer idea. When an agent hits one, it follows this protocol and stops at step 5:
+Most layers in the spec are pre-researched national sources — for those, agents
+execute instead of stopping for approval. But the system has known research
+moments: county assessor tax data (the per-county precision upgrade over ACS),
+local LiDAR canopy swaps, regional GTFS feed discovery, and any future layer
+idea. When an agent hits one, it follows this protocol:
 
 1. **Enumerate candidates** (web search + data portals: data.gov, state GIS clearinghouses, county open-data sites), preferring official/primary publishers over aggregators.
 2. **Evaluate each against fixed criteria:** license/ToS permits derived stored products; cost (free strongly preferred); coverage of target counties; native resolution vs. the grain we want to serve (honesty rule); vintage/update cadence; format sanity (machine-fetchable, documented CRS).
 3. **Pull a sample** for one county/tract and compute trial statistics — distribution, nulls, range — against physical expectations.
 4. **Draft the layer manifest** (source URL, vintage, allowed range, grains, reduction) plus a short comparison note: candidates considered, the one chosen, why, and what was rejected (this becomes the `metric_definitions.notes` provenance).
-5. **Stop for human approval.** Only after sign-off does the agent write the full ingestion module.
+5. **Decide whether this is already covered.** If the source/application is
+   covered by the approved architecture/tasks/handoff, continue into the full
+   ingestion module. If it is a new commitment or missing-information decision,
+   stop with the evidence packet and the specific question.
 
-The deliverable of agent research is therefore always a *manifest plus evidence*, never silently-loaded data — which keeps even the open-ended research work inside the staging/validate/promote trust model.
+The deliverable of agent research is always a *manifest plus evidence* before
+live data changes, never silently-loaded data — which keeps even open-ended
+research work inside the staging/validate/explicit-promote trust model.
 
 ## 4. Sequencing
 

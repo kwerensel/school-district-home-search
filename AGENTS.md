@@ -31,9 +31,11 @@ Work autonomously for as long as the build path remains stable. Do not stop
 after one checkpoint. Continue through multiple data, pipeline, and UI
 checkpoints when they are unblocked, using parallel investigation where it is
 safe. Commit and push each green checkpoint when the user has asked for
-autonomous arc work. Stop only for a real blocker, an approval-required data
-gate or promotion, a conflict with the source-of-truth docs, or a point where
-the next meaningful work requires missing product/design direction.
+autonomous arc work. Treat source and application choices already documented
+in the approved architecture/tasks/handoff as standing approval. Stop only for
+a real blocker, genuinely missing information from the user, a conflict with
+the source-of-truth docs, or a point where the next meaningful work requires
+new product/design direction that cannot be inferred responsibly.
 ```
 
 ## Product Shape
@@ -100,18 +102,30 @@ golden checks, QA artifacts, and tests pass.
 
 ## Data Gates
 
-New source onboarding gate:
+Source onboarding evidence:
 
-- Draft the layer manifest, source note, and sample stats first.
-- Stop for human approval before writing the ingestion module.
-- After approval, implement, stage, validate, and render QA maps in the same
-  session when feasible.
+- For sources already named or implied by `docs/architecture-spec.md`,
+  `docs/tasks.md`, or `docs/CODEX_HANDOFF.md`, prior planning counts as
+  standing approval. Draft or update the layer manifest, source note, and
+  sample stats as evidence, then continue into implementation without waiting
+  for a yes/no.
+- Stop only when the source choice is genuinely new, ambiguous, paid,
+  credentials/ToS constrained, or conflicts with the approved architecture.
+- If source evidence cannot be gathered because access is blocked, record the
+  blocker and continue to the next unblocked task.
 
-Promotion gate:
+Promotion evidence:
 
-- Do not promote a staged data layer without explicit human approval.
-- After approval, promote both project regions when applicable, refresh
+- Preserve staging -> validate -> explicit promote. A promote must be a
+  separate, intentional command against a validation report; never write live
+  tables directly from a layer run.
+- For approved layers, a `promotable: true` report plus generated QA artifacts
+  is sufficient authorization to run the explicit promote step during an
+  autonomous arc. Promote both project regions when applicable, refresh
   rollups, verify public counts/ranges, and run relevant tests.
+- Stop instead of promoting when validation is missing or red, QA artifacts are
+  missing, results violate the manifest/source expectations, or the layer is
+  explicitly marked blocked.
 
 Spatial QA gate:
 
@@ -123,9 +137,10 @@ Spatial QA gate:
 
 Blocked-source rule:
 
-- If a phase is blocked by external access or human review, work ahead only on
-  reversible, non-promoting tasks: source notes, manifests, tests, scaffolding,
-  docs, or isolated UI prototypes that do not imply live data availability.
+- If a phase is blocked by external access or missing information, work ahead
+  on the next responsible task: source notes, manifests, tests, scaffolding,
+  docs, isolated UI prototypes, or other phase-ordered work that does not
+  depend on the blocked data.
 - Explicit blockers must be recorded in `docs/CODEX_HANDOFF.md`.
 
 ## Autonomy
@@ -145,13 +160,16 @@ Do without asking:
 
 Ask first:
 
-- New data source approval after manifest + sample stats.
-- Any data promotion from staging to live tables.
+- A data source or provider choice that is not already covered by the approved
+  architecture/tasks/handoff.
+- A promote where validation/QA is incomplete, surprising, or not promotable.
 - Schema or migration changes that are not already in the approved task.
 - New dependencies, paid services, provider integrations, or credentials.
 - Broad product direction changes or UI behavior that changes the agreed user
   journey.
 - Destructive file or git operations.
+- Questions that are not yes/no approval questions and indicate genuinely
+  missing information from the user.
 
 Never:
 
@@ -170,11 +188,11 @@ Never:
   because one manifest, one layer, one test, or one commit is complete.
 - Follow `docs/tasks.md` phase order for live behavior and promotions, but work
   ahead on reversible scaffolding when a gate is blocked.
-- Use the rhythm `source gate -> implementation -> staged validation/QA ->
-  promotion approval -> promote/verify -> commit`.
-- After an approved layer is staged/validated/QA-rendered, stop for promotion
-  approval; after promotion approval, promote, verify, commit/push, then keep
-  moving to the next unblocked Phase 5/phase-ordered task.
+- Use the rhythm `source evidence -> implementation -> staged validation/QA ->
+  explicit promote -> verify -> commit`.
+- After an approved layer is staged/validated/QA-rendered with promotable
+  reports, promote, verify, commit/push, then keep moving to the next
+  unblocked phase-ordered task.
 - When a source is blocked, continue to the next reversible task allowed by the
   phase rules instead of ending the session.
 - Multiple commits in one session are expected when the user asks to power
@@ -190,9 +208,12 @@ Never:
 
 Stop conditions:
 
-- A human approval gate is reached: new source approval or staged-data
-  promotion approval.
-- A required credential/source access/design decision is missing.
+- A required credential, source access path, or non-yes/no product/design
+  decision is missing.
+- A new source/provider/paid integration is needed and is not already covered
+  by the approved source-of-truth docs.
+- A staged layer is not promotable, lacks QA evidence, or produces surprising
+  results that need interpretation rather than simple approval.
 - Verification is red and the failure cannot be responsibly fixed in the
   current arc.
 - The next meaningful work would violate phase order or wire blocked/later
