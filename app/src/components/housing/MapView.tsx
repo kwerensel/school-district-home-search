@@ -82,7 +82,7 @@ export function MapView({
       onEachFeature: (feature: ListingGeoFeature, layer: L.Layer) => {
         const props = feature.properties as ListingProps;
         const marker = layer as L.CircleMarker;
-        marker.setStyle(markerStyle(props, selectedListingId));
+        marker.setStyle(markerStyle(props, null));
         marker.on("click", () => onListingSelectRef.current(feature));
       },
     }).addTo(map);

@@ -99,7 +99,9 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
                 School District
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <p className="text-sm font-medium text-foreground">{listingProps.school_district}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {listingProps.school_district}
+                </p>
                 {listingProps.good_district ? <Badge variant="secondary">Good</Badge> : null}
               </div>
             </div>
@@ -142,7 +144,9 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
                       >
                         {metricIcon(metric)}
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">{metric.name}</p>
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {metric.name}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {grainLabel(metric.grain)} · {metric.nativeResolution ?? metric.vintage}
                           </p>

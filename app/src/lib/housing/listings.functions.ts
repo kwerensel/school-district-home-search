@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import { sql } from "@/server/db";
-import { DistrictQuerySchema, ListingMetricsQuerySchema, ListingQuerySchema } from "./server-queries";
+import {
+  DistrictQuerySchema,
+  ListingMetricsQuerySchema,
+  ListingQuerySchema,
+} from "./server-queries";
 import {
   fetchDistrictsGeoJson,
   fetchListingMetricsPayload,

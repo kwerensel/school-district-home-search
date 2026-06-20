@@ -5,7 +5,12 @@ import {
   EMPTY_FEATURE_COLLECTION,
 } from "./server-queries";
 import type { DistrictFC, ListingFC, ListingMetricItem, ListingMetricsPayload } from "./types";
-import type { DistrictQuery, ListingMetricsQuery, ListingQuery, SqlFragment } from "./server-queries";
+import type {
+  DistrictQuery,
+  ListingMetricsQuery,
+  ListingQuery,
+  SqlFragment,
+} from "./server-queries";
 
 export type QueryExecutor = (
   queryWithPlaceholders: string,
