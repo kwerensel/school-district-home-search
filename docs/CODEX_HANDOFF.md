@@ -37,6 +37,11 @@ Completed checkpoints:
   the filter sidebar includes minimum canopy and FEMA SFHA flag filters.
 - Follow-up lint/format repair was pushed at
   `6a99c54 Fix Explorer panel lint issues`.
+- Phase 6 `effective_tax_rate` source onboarding was drafted and pushed at
+  `617f0ab Draft effective tax rate onboarding`. Table metadata is verified
+  against official ACS 2024 5-year endpoints, but row-level sample stats are
+  blocked because the Census API returned `Missing Key` for county-subdivision
+  data requests in this environment.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -353,6 +358,9 @@ Uncommitted in the current worktree:
 
 Recently committed:
 
+- `617f0ab Draft effective tax rate onboarding`: ACS 2024 5-year manifest,
+  onboarding note, and manifest validation test for `effective_tax_rate`;
+  records the Census API key/bulk-file blocker before ingestion.
 - `6a99c54 Fix Explorer panel lint issues`: formats the Explorer panel/server
   function files, formats two pre-existing app files that lint was already
   flagging, and fixes the selected-marker hook warning.
@@ -402,7 +410,7 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `6a99c54 Fix Explorer panel lint issues`
+- Current local commit: `617f0ab Draft effective tax rate onboarding`
 - `main` is even with `origin/main` at that commit before this handoff edit.
 - Worktree has this uncommitted `docs/CODEX_HANDOFF.md` update.
 
@@ -418,6 +426,11 @@ Known caveats:
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
 - Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`. Explorer listing metrics panel/environmental filters are implemented. Blocked on source access: `light_pollution_radiance`. Remaining Phase 5 app work is follow-up polish/QA on the Explorer metrics surface and any missing environmental dimensions after blocked light pollution is resolved.
 - `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
+- `effective_tax_rate` source onboarding is intentionally stopped before
+  ingestion. ACS table metadata endpoints are reachable, but the row-level
+  county-subdivision Census API request returned `Missing Key`; implementation
+  needs either a Census API key in the local environment or an approved
+  official ACS bulk-file workflow.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
 - `flood_sfha` is promoted to public/live metric tables. The initial promote
@@ -476,6 +489,10 @@ Checks last run after repaired `flood_sfha` promotion:
   returned `HTTP/1.1 200`. In-app browser visual QA was attempted, but the
   browser connector failed before opening a session in this thread, so visual
   inspection is still a useful follow-up.
+- `effective_tax_rate` manifest validation passed with
+  `./.venv/bin/gt manifest validate layer manifests/layers/effective_tax_rate.yaml`.
+- Pipeline CLI test slice passed with `./.venv/bin/pytest tests/test_cli.py -q`:
+  `15 passed in 1.02s`.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
@@ -492,7 +509,11 @@ Next actions, in order:
 2. Continue Phase 5 app polish/QA: visually inspect the Explorer metrics panel
    in a browser, verify marker selection and mobile panel behavior, and tune
    any copy/layout issues found.
-3. Separately, `light_pollution_radiance` remains blocked until EOG-authenticated exact file verification and numeric sample stats are available.
+3. Resolve blocked source access:
+   - `light_pollution_radiance`: EOG-authenticated exact file verification and
+     numeric sample stats.
+   - `effective_tax_rate`: Census API key or official ACS bulk-file workflow
+     for county-subdivision row data and sample stats.
 4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
