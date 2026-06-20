@@ -54,6 +54,10 @@ Completed checkpoints:
   a Leaflet district choropleth driven by the new server function. It does not
   compare against median home values because the ZCTA/ZHVI reduction gate is
   still blocked.
+- Discovery/Explorer URL profile handoff is implemented in the current
+  checkpoint: Discovery persists monthly budget, down payment, credit band, and
+  region in search params, then links to Explorer with selected district and
+  max-price ceiling; Explorer initializes filters from those URL params.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -381,11 +385,20 @@ Uncommitted in the current worktree:
   rows.
 - `app/src/components/housing/HousingSearch.tsx`: adds a desktop header link
   from Explorer to Discovery.
+- `app/src/components/discovery/DiscoveryEngine.tsx`: now initializes budget
+  controls from URL params, keeps the URL profile current, and links selected
+  districts into Explorer.
+- `app/src/components/housing/HousingSearch.tsx`: now initializes listing
+  filters from incoming `district`, `maxPrice`, `minBeds`, `minBaths`, and
+  `goodOnly` URL params.
 - `docs/CODEX_HANDOFF.md`: records the new app checkpoint and updated
   median-value/source blockers.
 
 Recently committed:
 
+- `9da3a0c Add Discovery purchasing power view`: first `/discover` UI,
+  district purchasing-power choropleth, Explorer link, route tree, and district
+  GeoJSON metadata.
 - `89df754 Add district purchasing power server function`: server-side district
   purchasing-power query/function, mocked app tests, and handoff update.
 - `7c0bfab Implement effective tax layer`: implemented `effective_tax_rate`
@@ -448,11 +461,11 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `89df754 Add district purchasing power server function`
+- Current local commit: `9da3a0c Add Discovery purchasing power view`
 - `main` is even with `origin/main` at that commit before the current
-  Discovery UI checkpoint.
-- Worktree has uncommitted edits for the first `/discover` UI, district GeoJSON
-  metadata, generated route tree, and this handoff update.
+  URL-profile handoff checkpoint.
+- Worktree has uncommitted edits for Discovery URL search params, Explorer
+  filter initialization from URL params, and this handoff update.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -581,6 +594,13 @@ Checks last run after repaired `flood_sfha` promotion:
   - In-app browser visual QA was attempted, but the browser connector failed
     before opening a session in this thread, so a screenshot/manual browser pass
     is still useful.
+- App checks passed after adding URL-profile handoff:
+  - `npm test`: 3 test files, 14 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+  - Local dev server served `/discover?monthlyBudget=6500&downPayment=15&creditBand=fair&regionGroup=hudson-valley`
+    and `/?district=Lower%20Merion&maxPrice=800000&monthlyBudget=6500`
+    with `HTTP 200`.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 
@@ -591,7 +611,7 @@ committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Commit and push the first `/discover` UI checkpoint.
+1. Commit and push the URL-profile handoff checkpoint.
 2. Continue app visual QA when browser access is available: inspect
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
@@ -601,10 +621,10 @@ Next actions, in order:
      numeric sample stats.
    - `median_home_value`: use the restored local Zillow ZHVI CSV plus a
      verified official ZCTA geometry/crosswalk input before layer ingestion.
-4. Next unblocked app path is Discovery polish: URL-param profile persistence,
-   clearer selected-district state, and handoff from Discovery to Explorer.
-   Keep median-home-value comparisons disabled until the ZCTA layer gate is
-   resolved.
+4. Next unblocked app path is Discovery polish: clearer selected-district map
+   feedback, mobile visual QA, and profile-weight controls for promoted
+   environmental metrics. Keep median-home-value comparisons disabled until the
+   ZCTA layer gate is resolved.
 5. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

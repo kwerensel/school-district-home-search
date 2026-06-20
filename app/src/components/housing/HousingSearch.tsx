@@ -57,15 +57,31 @@ export function HousingSearch() {
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selectedListing, setSelectedListing] = useState<ListingFeature | null>(null);
+  const [filtersInitialized, setFiltersInitialized] = useState(false);
 
-  // Initialize maxPrice when data loads
   useEffect(() => {
-    if (allListings.features.length) {
-      setFilters((f) =>
-        f.maxPrice === DEFAULT_FILTERS.maxPrice ? { ...f, maxPrice: bounds.max } : f,
-      );
-    }
-  }, [allListings, bounds.max]);
+    if (!allListings.features.length || filtersInitialized) return;
+
+    const params =
+      typeof window === "undefined"
+        ? new URLSearchParams()
+        : new URLSearchParams(window.location.search);
+    const maxPrice = Number(params.get("maxPrice"));
+    const minBeds = Number(params.get("minBeds"));
+    const minBaths = Number(params.get("minBaths"));
+    const district = params.get("district");
+
+    setFilters((current) => ({
+      ...current,
+      maxPrice:
+        Number.isFinite(maxPrice) && maxPrice > 0 ? Math.min(maxPrice, bounds.max) : bounds.max,
+      minBeds: Number.isFinite(minBeds) && minBeds >= 0 ? minBeds : current.minBeds,
+      minBaths: Number.isFinite(minBaths) && minBaths >= 0 ? minBaths : current.minBaths,
+      goodOnly: params.get("goodOnly") === "true" || current.goodOnly,
+      district: district && districtList.includes(district) ? district : current.district,
+    }));
+    setFiltersInitialized(true);
+  }, [allListings.features.length, bounds.max, districtList, filtersInitialized]);
 
   const filtered = useMemo(() => applyFilters(allListings, filters), [allListings, filters]);
 

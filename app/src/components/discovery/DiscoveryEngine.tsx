@@ -1,5 +1,5 @@
-import { lazy, Suspense, useMemo, useState } from "react";
-import { ClientOnly, Link } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Calculator, Home, MapPinned, Search } from "lucide-react";
@@ -53,15 +53,36 @@ function parsePositiveNumber(value: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function initialNumberParam(name: string, fallback: number) {
+  if (typeof window === "undefined") return fallback;
+  return parsePositiveNumber(new URLSearchParams(window.location.search).get(name) ?? "", fallback);
+}
+
+function initialRegionParam(): RegionFilter {
+  if (typeof window === "undefined") return "all";
+  const value = new URLSearchParams(window.location.search).get("regionGroup");
+  return value === "pa-mainline" || value === "hudson-valley" ? value : "all";
+}
+
+function initialCreditParam(): CreditBand {
+  if (typeof window === "undefined") return "good";
+  const value = new URLSearchParams(window.location.search).get("creditBand");
+  return value === "excellent" || value === "fair" ? value : "good";
+}
+
 export function DiscoveryEngine() {
   const getToken = useServerFn(getMapboxToken);
   const getDistrictsFn = useServerFn(getDistricts);
   const getPurchasingPower = useServerFn(getDistrictPurchasingPower);
 
-  const [monthlyBudget, setMonthlyBudget] = useState(5500);
-  const [downPaymentFraction, setDownPaymentFraction] = useState(0.2);
-  const [creditBand, setCreditBand] = useState<CreditBand>("good");
-  const [regionGroup, setRegionGroup] = useState<RegionFilter>("all");
+  const [monthlyBudget, setMonthlyBudget] = useState(() =>
+    initialNumberParam("monthlyBudget", 5500),
+  );
+  const [downPaymentFraction, setDownPaymentFraction] = useState(
+    () => initialNumberParam("downPayment", 20) / 100,
+  );
+  const [creditBand, setCreditBand] = useState<CreditBand>(() => initialCreditParam());
+  const [regionGroup, setRegionGroup] = useState<RegionFilter>(() => initialRegionParam());
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
   const tokenQuery = useQuery({
@@ -118,6 +139,27 @@ export function DiscoveryEngine() {
       : 0;
   const isBooting =
     tokenQuery.isPending || districtsQuery.isPending || purchasingPowerQuery.isPending;
+  const profileSearch = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("monthlyBudget", String(monthlyBudget));
+    params.set("downPayment", String(Math.round(downPaymentFraction * 100)));
+    params.set("creditBand", creditBand);
+    if (regionGroup !== "all") params.set("regionGroup", regionGroup);
+    return params.toString();
+  }, [monthlyBudget, downPaymentFraction, creditBand, regionGroup]);
+  const explorerHref = useMemo(() => {
+    const params = new URLSearchParams(profileSearch);
+    if (selected) {
+      params.set("district", selected.districtName);
+      params.set("maxPrice", String(Math.floor(selected.maxPurchasePrice)));
+    }
+    const query = params.toString();
+    return `/${query ? `?${query}` : ""}`;
+  }, [profileSearch, selected]);
+
+  useEffect(() => {
+    window.history.replaceState(null, "", `${window.location.pathname}?${profileSearch}`);
+  }, [profileSearch]);
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
@@ -127,10 +169,10 @@ export function DiscoveryEngine() {
           <h1 className="text-base font-semibold text-foreground">Groundtruth Discovery</h1>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link to="/">
+          <a href={explorerHref}>
             <Search className="mr-2 h-4 w-4" />
             Explorer
-          </Link>
+          </a>
         </Button>
       </header>
 
@@ -240,6 +282,12 @@ export function DiscoveryEngine() {
                   />
                   <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
                 </div>
+                <Button asChild className="mt-4 w-full" size="sm">
+                  <a href={explorerHref}>
+                    <Home className="mr-2 h-4 w-4" />
+                    Search listings
+                  </a>
+                </Button>
               </section>
             ) : null}
 
