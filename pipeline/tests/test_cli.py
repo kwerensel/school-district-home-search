@@ -100,6 +100,21 @@ def test_flood_sfha_layer_manifest_validates() -> None:
     assert "flood_sfha" in result.output
 
 
+def test_effective_tax_rate_layer_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/effective_tax_rate.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "effective_tax_rate" in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(

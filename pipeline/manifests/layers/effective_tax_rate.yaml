@@ -1,0 +1,25 @@
+metric_key: effective_tax_rate
+name: Effective property tax rate
+source: U.S. Census Bureau ACS 5-year detailed tables
+source_urls:
+  - https://api.census.gov/data/2024/acs/acs5/groups/B25103.json
+  - https://api.census.gov/data/2024/acs/acs5/groups/B25077.json
+vintage: "2024-acs5"
+units: share
+direction: lower_better
+native_resolution: county subdivision / place
+allowed_range: [0, 0.1]
+reduction_method: area_weighted
+coverage_threshold: 0.99
+grains:
+  - tract
+listing_reductions: []
+notes: >
+  Effective property tax rate estimated from ACS 2024 5-year median real
+  estate taxes paid (B25103_001E) divided by median owner-occupied home value
+  (B25077_001E), computed at county-subdivision/place grain where available
+  and mapped to census tracts through local region overlap weights. This is a
+  Discovery purchasing-power input and neighborhood/regional context, not an
+  address-specific tax bill. Use as a Phase 6 approximation before any future
+  county assessor precision upgrade. Keep live values in share units, e.g.
+  0.025 = 2.5%.
