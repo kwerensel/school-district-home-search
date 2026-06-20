@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
+import math
 import time
 
 import geopandas as gpd
@@ -100,10 +101,14 @@ def run_flood_sfha(manifest_path: Path, region_slug: str, grain: str) -> tuple[V
     needs_tract = grain in {"tract", "both"}
     needs_listing = grain in {"listing", "both"}
     promotable = (
-        checks["range_min"] >= range_min
+        math.isfinite(checks["range_min"])
+        and math.isfinite(checks["range_max"])
+        and checks["range_min"] >= range_min
         and checks["range_max"] <= range_max
         and (not needs_tract or checks["tract_coverage"] >= 1.0)
         and (not needs_listing or checks["listing_point_coverage"] >= 1.0)
+        and checks["tract_nonfinite"] == 0
+        and checks["listing_point_nonfinite"] == 0
         and checks["source_features_fetched"] == checks["source_object_ids"]
     )
     report = ValidationReport(
@@ -355,6 +360,7 @@ def _compute_region_metrics(
             .clip(upper=1)
             .reindex(tracts_work["slug"], fill_value=0)
         )
+    shares = shares.fillna(0).clip(lower=0, upper=1)
 
     metrics = [
         RegionMetric(region_slug=str(slug), value=float(value))
@@ -489,6 +495,18 @@ def _validation_checks(
     tract_count, region_min, region_max = cur.fetchone()
     cur.execute(
         """
+        SELECT count(*)
+        FROM staging.layer_region_metrics
+        WHERE region_group = %s
+          AND metric_key = %s
+          AND vintage = %s
+          AND value::text = 'NaN'
+        """,
+        (region_slug, manifest.metric_key, manifest.vintage),
+    )
+    tract_nonfinite = int(cur.fetchone()[0])
+    cur.execute(
+        """
         SELECT count(*), coalesce(min(value), 0), coalesce(max(value), 0), coalesce(sum(value), 0)
         FROM staging.layer_listing_metrics
         WHERE region_group = %s
@@ -499,7 +517,21 @@ def _validation_checks(
         (region_slug, manifest.metric_key, manifest.vintage),
     )
     listing_count, listing_min, listing_max, listing_sum = cur.fetchone()
+    cur.execute(
+        """
+        SELECT count(*)
+        FROM staging.layer_listing_metrics
+        WHERE region_group = %s
+          AND metric_key = %s
+          AND vintage = %s
+          AND grain = 'point'
+          AND value::text = 'NaN'
+        """,
+        (region_slug, manifest.metric_key, manifest.vintage),
+    )
+    listing_nonfinite = int(cur.fetchone()[0])
     value_bounds = [float(region_min), float(region_max), float(listing_min), float(listing_max)]
+    finite_value_bounds = [value for value in value_bounds if math.isfinite(value)]
     return {
         "metric_key": manifest.metric_key,
         "region": region_slug,
@@ -507,17 +539,19 @@ def _validation_checks(
         "tracts_expected": expected_tracts,
         "tracts_computed": int(tract_count),
         "tract_coverage": int(tract_count) / expected_tracts if expected_tracts else 0,
+        "tract_nonfinite": tract_nonfinite,
         "listings_expected": expected_listings,
         "listing_point_computed": int(listing_count),
         "listing_point_coverage": int(listing_count) / expected_listings if expected_listings else 0,
+        "listing_point_nonfinite": listing_nonfinite,
         "listing_buffer_100m_computed": 0,
         "listing_buffer_100m_coverage": 0,
         "listing_buffer_500m_computed": 0,
         "listing_buffer_500m_coverage": 0,
         "listing_point_positive": int(listing_sum),
         "range_allowed": list(manifest.allowed_range),
-        "range_min": min(value_bounds),
-        "range_max": max(value_bounds),
+        "range_min": min(finite_value_bounds) if finite_value_bounds else float("nan"),
+        "range_max": max(finite_value_bounds) if finite_value_bounds else float("nan"),
         "source_object_ids": fetch_stats.object_ids,
         "source_features_fetched": fetch_stats.features,
         "source_chunks_read": fetch_stats.chunks_read,
