@@ -38,10 +38,8 @@ Completed checkpoints:
 - Follow-up lint/format repair was pushed at
   `6a99c54 Fix Explorer panel lint issues`.
 - Phase 6 `effective_tax_rate` source onboarding was drafted and pushed at
-  `617f0ab Draft effective tax rate onboarding`. Table metadata is verified
-  against official ACS 2024 5-year endpoints, but row-level sample stats are
-  blocked because the Census API returned `Missing Key` for county-subdivision
-  data requests in this environment.
+  `617f0ab Draft effective tax rate onboarding`, then implemented with the
+  official ACS table-based Summary File bulk workflow and promoted to Neon.
 - Phase 6 pure finance engine was implemented and pushed at
   `816b127 Add purchasing power finance engine`: closed-form purchasing power,
   credit-band spreads, PMI, insurance, optional DTI ceiling, and unit tests.
@@ -361,6 +359,9 @@ Uncommitted in the current worktree:
 
 Recently committed:
 
+- Pending current checkpoint: implemented `effective_tax_rate` layer runner
+  using ACS 2024 5-year table-based bulk files, staged/promoted both regions,
+  and updated onboarding provenance.
 - `816b127 Add purchasing power finance engine`: pure TypeScript purchasing
   power engine and unit tests for mortgage constant, credit spreads, PMI, DTI
   ceiling, and Hudson Valley/Lower Merion ordering under different tax rates.
@@ -418,9 +419,11 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `816b127 Add purchasing power finance engine`
-- `main` is even with `origin/main` at that commit before this handoff edit.
-- Worktree has this uncommitted `docs/CODEX_HANDOFF.md` update.
+- Current local commit: `1ee416e Update handoff after finance engine`
+- `main` is even with `origin/main` at that commit before the current
+  `effective_tax_rate` implementation/handoff edits.
+- Worktree has uncommitted edits for the effective tax implementation and this
+  handoff update.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -434,11 +437,10 @@ Known caveats:
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
 - Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`. Explorer listing metrics panel/environmental filters are implemented. Blocked on source access: `light_pollution_radiance`. Remaining Phase 5 app work is follow-up polish/QA on the Explorer metrics surface and any missing environmental dimensions after blocked light pollution is resolved.
 - `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
-- `effective_tax_rate` source onboarding is intentionally stopped before
-  ingestion. ACS table metadata endpoints are reachable, but the row-level
-  county-subdivision Census API request returned `Missing Key`; implementation
-  needs either a Census API key in the local environment or an approved
-  official ACS bulk-file workflow.
+- `effective_tax_rate` is promoted to public/live metric tables from official
+  ACS 2024 5-year table-based Summary File bulk downloads. It uses
+  county-subdivision rows only (`mun-cousub-*`) because including both county
+  subdivisions and places would double-count many tract overlaps.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
 - `flood_sfha` is promoted to public/live metric tables. The initial promote
@@ -501,6 +503,27 @@ Checks last run after repaired `flood_sfha` promotion:
   `./.venv/bin/gt manifest validate layer manifests/layers/effective_tax_rate.yaml`.
 - Pipeline CLI test slice passed with `./.venv/bin/pytest tests/test_cli.py -q`:
   `15 passed in 1.02s`.
+- After implementation, `effective_tax_rate` staged cleanly for both regions:
+  - `pa-mainline`: 184/184 source county subdivisions valid; 495/495 tracts;
+    range 0.00631-0.03437; mean 0.01551; `promotable: true`.
+  - `hudson-valley`: 60/60 source county subdivisions valid; 437/437 tracts;
+    range 0.00483-0.02962; mean 0.01746; `promotable: true`.
+- Generated QA maps:
+  - `data/reports/qa/effective_tax_rate_pa-mainline.png`
+  - `data/reports/qa/effective_tax_rate_hudson-valley.png`
+- Promoted both reports and verified live counts/ranges:
+  - `region_metrics`: 495 PA rows, 437 Hudson Valley rows.
+  - `district_metrics`: 61 PA rollups, range 0.00631-0.02738; 78 Hudson
+    Valley rollups, range 0.00550-0.02802.
+  - Lower Merion district rollup is 0.01228; this is below the rough
+    `docs/tasks.md` 1.5-2.5% anchor, but reflects ACS median tax divided by
+    ACS median value rather than statutory millage or assessor-derived rate.
+    Hudson Valley high-tax examples are in the expected 2-3% range.
+- Effective tax post-promote checks passed:
+  - `./.venv/bin/gt manifest validate layer manifests/layers/effective_tax_rate.yaml`
+  - `./.venv/bin/pytest tests/test_cli.py -q`: `16 passed`
+  - `./.venv/bin/pytest -k golden -q`: `11 passed, 16 deselected`
+  - `./.venv/bin/pytest -q`: `27 passed`
 - Finance/app tests passed after adding the finance engine with `npm test`:
   `2 passed`, `11 tests passed`.
 - App lint passed after adding the finance engine with `npm run lint`: 0
@@ -526,13 +549,11 @@ Next actions, in order:
 3. Resolve blocked source/data access:
    - `light_pollution_radiance`: EOG-authenticated exact file verification and
      numeric sample stats.
-   - `effective_tax_rate`: Census API key or official ACS bulk-file workflow
-     for county-subdivision row data and sample stats.
    - `median_home_value`: restore/fetch the ZHVI ZCTA CSV and implement the
      missing ZCTA -> district housing-unit crosswalk before layer ingestion.
-4. Next unblocked code path after source access is resolved: implement
-   `effective_tax_rate`, then wire `computePurchasingPower` to live tax/home
-   value data.
+4. Next unblocked code path after source access/crosswalk work is resolved:
+   implement `median_home_value`, then wire `computePurchasingPower` to live
+   tax/home value data.
 5. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

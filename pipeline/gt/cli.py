@@ -9,6 +9,7 @@ from gt.layers import (
     promote_layer,
     render_layer_qa,
     run_canopy_height,
+    run_effective_tax_rate,
     run_flood_sfha,
     run_risk_index,
     run_tree_canopy,
@@ -148,6 +149,7 @@ def layer_run(
         raise typer.BadParameter("grain must be tract, listing, or both")
     layer_runners = {
         "canopy_height_m": run_canopy_height,
+        "effective_tax_rate": run_effective_tax_rate,
         "flood_sfha": run_flood_sfha,
         "risk_index": run_risk_index,
         "tree_canopy_pct": run_tree_canopy,

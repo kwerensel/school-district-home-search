@@ -4,6 +4,8 @@ source: U.S. Census Bureau ACS 5-year detailed tables
 source_urls:
   - https://api.census.gov/data/2024/acs/acs5/groups/B25103.json
   - https://api.census.gov/data/2024/acs/acs5/groups/B25077.json
+  - https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b25103.dat
+  - https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b25077.dat
 vintage: "2024-acs5"
 units: share
 direction: lower_better
@@ -17,9 +19,10 @@ listing_reductions: []
 notes: >
   Effective property tax rate estimated from ACS 2024 5-year median real
   estate taxes paid (B25103_001E) divided by median owner-occupied home value
-  (B25077_001E), computed at county-subdivision/place grain where available
-  and mapped to census tracts through local region overlap weights. This is a
+  (B25077_001E), read from the official ACS table-based Summary File bulk
+  downloads and computed at county-subdivision grain. Map county subdivisions
+  to census tracts through local tract -> mun-cousub overlap weights. This is a
   Discovery purchasing-power input and neighborhood/regional context, not an
-  address-specific tax bill. Use as a Phase 6 approximation before any future
-  county assessor precision upgrade. Keep live values in share units, e.g.
-  0.025 = 2.5%.
+  address-specific tax bill or statutory millage rate. Use as a Phase 6
+  approximation before any future county assessor precision upgrade. Keep live
+  values in share units, e.g. 0.025 = 2.5%.
