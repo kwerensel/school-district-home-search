@@ -152,6 +152,17 @@ def test_layer_runner_accepts_walkability_key_before_database_work(monkeypatch) 
     assert "not implemented yet" not in result.output
 
 
+def test_layer_runner_accepts_flood_sfha_key_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    result = CliRunner().invoke(
+        app,
+        ["layer", "run", "flood_sfha", "--region", "hudson-valley", "--grain", "both"],
+    )
+
+    assert result.exit_code != 0
+    assert "not implemented yet" not in result.output
+
+
 def test_layer_manifest_validates(tmp_path) -> None:
     manifest = tmp_path / "light_pollution_radiance.yaml"
     manifest.write_text(

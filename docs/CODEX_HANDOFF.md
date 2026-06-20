@@ -27,14 +27,13 @@ Completed checkpoints:
 - `walkability_index` source onboarding was approved, implemented, staged for
   both regions, validated as promotable, QA maps were rendered, and it was
   promoted to Neon after explicit human approval.
-- `flood_sfha` source onboarding has been drafted as reversible,
-  non-promoting work-ahead. No ingestion module was written and no flood data
-  was staged or promoted.
+- `flood_sfha` source onboarding was approved, implemented, staged for both
+  regions, validated as promotable, and QA maps were rendered. It has not been
+  promoted yet.
 
-Important current gate: `flood_sfha` is now at the onboarding approval
-checkpoint only. Do not implement its ingestion module, stage data, or promote
-anything until the source packet is approved. `light_pollution_radiance`
-remains blocked and GVI must not start.
+Important current gate: `flood_sfha` is staged/validated/QA-rendered and is
+waiting for explicit human promotion approval. Do not promote until approved.
+`light_pollution_radiance` remains blocked and GVI must not start.
 
 Do not start GVI. `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation GVI is Phase 11.
 
@@ -302,36 +301,54 @@ Neon live `walkability_index` counts after promote:
   connection resets. The onboarding packet recommends a resumable object-ID
   chunk cache or official NFHL file geodatabase/state extract under
   `data/raw/flood_sfha/` for implementation.
-- No ingestion module was written; no staging, QA map, or promote was run.
+- Human approval was given on 2026-06-18 to implement FEMA NFHL using
+  `SFHA_TF='T'`, tract area-share reduction, and listing point-in-polygon
+  flags.
+- Added the ingestion module:
+  - `pipeline/gt/layers/flood_sfha.py`
+- Wired `flood_sfha` into the layer runner dispatch and package export.
+- Implemented a resumable source cache under `data/raw/flood_sfha/<region>/`
+  with bounded object IDs and small FEMA feature chunks, plus retry/backoff.
+- Staged both regions at tract + listing point-flag grains and wrote promotable
+  reports:
+  - `data/reports/layer_flood_sfha_pa-mainline_latest.json`
+  - `data/reports/layer_flood_sfha_hudson-valley_latest.json`
+- Rendered QA maps:
+  - `data/reports/qa/flood_sfha_pa-mainline.png`
+  - `data/reports/qa/flood_sfha_hudson-valley.png`
+- No promote was run.
+
+Staged validation:
+
+- `pa-mainline`: 495/495 tracts; 251/251 listings; 8 listing point flags
+  inside SFHA; 8,534 source features fetched; range 0.0-1.0; max tract share
+  0.70; `promotable: true`.
+- `hudson-valley`: 437/437 tracts; 4,254/4,254 listings; 113 listing point
+  flags inside SFHA; 15,974 source features fetched; range 0.0-1.0; max tract
+  share 0.92; `promotable: true`.
 
 ## 4. Recently Changed Files And Why
 
 Uncommitted in the current worktree:
 
-- `pipeline/manifests/layers/walkability_index.yaml`: draft EPA National
-  Walkability Index manifest for human approval; note now calls for
-  area-overlap weighting due source/local tract vintage mismatch.
-- `docs/layer-onboarding/walkability_index.md`: source comparison and sample
-  stats evidence from the EPA ArcGIS REST layer; intentionally stops before
-  ingestion.
-- `pipeline/gt/layers/walkability.py`: EPA NWI runner. Fetches approved
-  counties from the EPA ArcGIS REST layer, converts source block-group polygons,
-  reduces to local census tracts by housing-unit-weighted area overlap, stages
-  listing point-in-polygon values as neighborhood context, and emits validation
-  fields for fallback coverage and unmatched listing IDs.
+- `AGENTS.md`: revised Groundtruth agent instructions for longer autonomous
+  arcs, fewer chat boundaries, explicit stop conditions, and a short default
+  continuation prompt.
+- `pipeline/gt/layers/flood_sfha.py`: FEMA NFHL runner. Fetches bounded
+  `SFHA_TF='T'` object IDs, caches small geometry chunks with retry/backoff,
+  computes tract SFHA area share and listing point flags, stages complete zero
+  and positive rows, and writes validation reports.
 - `pipeline/gt/cli.py` and `pipeline/gt/layers/__init__.py`: register
-  `walkability_index` in the layer runner.
-- `pipeline/tests/test_cli.py`: validates the new draft manifest and confirms
-  the CLI recognizes the implemented layer key.
-- `pipeline/manifests/layers/flood_sfha.yaml`: draft FEMA NFHL manifest for
-  human approval.
-- `docs/layer-onboarding/flood_sfha.md`: source comparison and service/sample
-  stats evidence; intentionally stops before ingestion.
-- `pipeline/tests/test_cli.py`: also validates the new flood manifest.
-- `docs/CODEX_HANDOFF.md`: this handoff update.
+  `flood_sfha` in the layer runner.
+- `pipeline/tests/test_cli.py`: confirms the
+  CLI recognizes the implemented layer key.
+- `docs/CODEX_HANDOFF.md`: records the staged flood checkpoint and the updated
+  chat-continuity instructions.
 
 Recently committed:
 
+- `08f9196 Draft flood SFHA source onboarding`: draft FEMA NFHL manifest,
+  onboarding note, and manifest validation test.
 - `20922c9 Implement walkability layer`: EPA NWI source onboarding,
   implementation, staging/QA/promotion handoff updates, and CLI wiring/tests.
 - `58e7b1e Clarify blocked phase work-ahead rules`: updates `AGENTS.md` phase
@@ -364,10 +381,10 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `20922c9 Implement walkability layer`
+- Current local commit: `08f9196 Draft flood SFHA source onboarding`
 - `main` is even with `origin/main` before the current uncommitted flood
-  onboarding draft.
-- Worktree has uncommitted flood onboarding files, the CLI manifest test, and
+  implementation/staging work.
+- Worktree has uncommitted flood implementation files, CLI wiring/tests, and
   this handoff edit.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
@@ -380,16 +397,16 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, and `walkability_index`. Drafted for approval only: `light_pollution_radiance` and `flood_sfha`. Remaining after source gates: the Explorer listing detail panel/environmental filters.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, and `walkability_index`. Drafted for approval only: `light_pollution_radiance`. Staged/validated/QA-rendered but not promoted: `flood_sfha`. Remaining after source gates: the Explorer listing detail panel/environmental filters.
 - `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
-- `flood_sfha` source onboarding is intentionally stopped before ingestion.
-  Source sampling is partially complete; human approval is needed before module
-  implementation, staging, QA map generation, or promotion.
+- `flood_sfha` source onboarding is approved and the ingestion module is
+  implemented. Staging/validation/QA are complete; explicit human approval is
+  still required before promotion.
 - GVI/perceived green is not part of Phase 5. Per spec, `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation `gvi_streetlevel` is Phase 11.
 
-Checks last run after `walkability_index` staging:
+Checks last run after `flood_sfha` staging:
 
 - Manifest validation passed for `walkability_index` with `./.venv/bin/gt manifest validate layer manifests/layers/walkability_index.yaml`.
 - Python compile check passed for `gt/layers/walkability.py`, `gt/cli.py`, and
@@ -413,8 +430,17 @@ Checks last run after `walkability_index` staging:
   `walkability_index` promote.
 - Manifest validation passed for `flood_sfha` with
   `./.venv/bin/gt manifest validate layer manifests/layers/flood_sfha.yaml`.
-- CLI test slice passed after adding the flood manifest test with
-  `./.venv/bin/pytest tests/test_cli.py -q`: `13 passed in 0.84s`.
+- Python compile check passed for `gt/layers/flood_sfha.py`, `gt/cli.py`, and
+  `gt/layers/__init__.py`.
+- Flood reports validated with:
+  - `./.venv/bin/gt validate --report layer_flood_sfha_pa-mainline_latest.json`
+  - `./.venv/bin/gt validate --report layer_flood_sfha_hudson-valley_latest.json`
+- CLI test slice passed after adding the flood runner dispatch test with
+  `./.venv/bin/pytest tests/test_cli.py -q`: `14 passed in 0.60s`.
+- Required golden Neon checks passed with `./.venv/bin/pytest -k golden -q`:
+  `11 passed, 14 deselected in 11.60s`.
+- Full Neon-backed pipeline suite passed with `./.venv/bin/pytest -q`:
+  `25 passed in 11.60s`.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
@@ -422,39 +448,53 @@ Checks last run after `walkability_index` staging:
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean checkpoint:
-`flood_sfha` source onboarding is drafted and waiting for human approval. A
-fresh chat may help context, but it is not required if continuing immediately.
+`flood_sfha` is staged, validated, QA-rendered, and waiting for explicit
+promotion approval. A fresh chat may help context, but it is not required if
+continuing immediately.
 
 Next actions, in order:
 
-1. Human review: decide whether to approve `flood_sfha` implementation from
-   FEMA NFHL layer 28 using `SFHA_TF='T'`, tract area-share reduction, and
-   listing point-in-polygon flags. Decide whether implementation should use
-   resumable REST object-ID chunks or an official NFHL file geodatabase/state
-   extract.
-2. Separately, `light_pollution_radiance` remains blocked until EOG-authenticated exact file verification and numeric sample stats are available.
-3. After source approval, implement/stage/validate/QA `flood_sfha`, but do not
-   promote until separate explicit approval.
-4. Do not start GVI.
+1. Human review: inspect the `flood_sfha` validation summaries and QA maps.
+2. If approved, run explicit promotion separately:
+   `./.venv/bin/gt promote --report layer_flood_sfha_pa-mainline_latest.json`
+   and
+   `./.venv/bin/gt promote --report layer_flood_sfha_hudson-valley_latest.json`.
+3. After promotion, confirm public `region_metrics`, `listing_metrics`, and
+   `district_metrics` counts/ranges.
+4. Separately, `light_pollution_radiance` remains blocked until EOG-authenticated exact file verification and numeric sample stats are available.
+5. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 
-At the end of each substantial chat, Codex should recommend whether to start a new chat. Recommend a new chat when any of these checkpoints is reached:
+Prefer continuing in the current chat. Do not recommend a fresh chat after
+every commit, data gate, or mode change. Recommend a fresh chat only when:
 
-- A commit has been pushed.
-- A data layer reaches a gate: onboarding approval packet, staged/validated/QA-rendered, promoted, or rejected.
-- A phase gate in `docs/tasks.md` passes.
-- The conversation has accumulated enough tool output that a fresh context would reduce risk.
-- The next step changes mode, for example from implementation to human QA, from QA to promotion, or from one data source to another.
+- context is likely unreliable or too compressed to continue safely;
+- the next work is a substantially different arc and the user wants a clean
+  restart;
+- the user explicitly asks for a new chat/thread.
 
-When recommending a new chat, Codex should update `docs/CODEX_HANDOFF.md` before closing the session with:
+At meaningful checkpoints, update `docs/CODEX_HANDOFF.md` with:
 
 - Current branch, latest commit, and worktree status.
 - What changed and why.
 - Validation/test results.
 - Data staging/promotion status.
 - Remaining gates and explicit "do not do" constraints.
-- A copy-paste opening prompt for the next chat.
+
+Default continuation prompt:
+
+```text
+Read AGENTS.md and docs/CODEX_HANDOFF.md. Continue the next Groundtruth arc
+from the latest committed state.
+
+Work autonomously for as long as the build path remains stable. Do not stop
+after one checkpoint. Continue through multiple data, pipeline, and UI
+checkpoints when they are unblocked. Commit and push each green checkpoint when
+working an autonomous arc. Stop only for a real blocker, an approval-required
+data gate or promotion, a conflict with the source-of-truth docs, or a point
+where the next meaningful work requires missing product/design direction.
+```
 
 ## 9. Assumptions And Uncertainty
 
@@ -476,53 +516,13 @@ When recommending a new chat, Codex should update `docs/CODEX_HANDOFF.md` before
 ## 10. Suggested Prompt For Next Codex Chat
 
 ```text
-Continue Groundtruth Home Search App work in /Users/katherine/Dropbox/school-district-home-search.
+Read AGENTS.md and docs/CODEX_HANDOFF.md. Continue the next Groundtruth arc
+from the latest committed state.
 
-First read AGENTS.md, docs/tasks.md, docs/architecture-spec.md,
-docs/agentic-pipeline-plan.md, and docs/CODEX_HANDOFF.md.
-
-Do not redo Phase 3. Phase 4 and canopy_height_m are complete. Do not start
-GVI. Preserve hard rules: deterministic district truth via PostGIS only,
-RentCast frozen, no GreatSchools, all geometry EPSG:4326, staging -> validate
--> explicit promote.
-
-Current checkpoint: Phase 5 completed/promoted layers are canopy_height_m,
-tree_canopy_pct, risk_index, and walkability_index. light_pollution_radiance
-source onboarding was drafted only:
-pipeline/manifests/layers/light_pollution_radiance.yaml and
-docs/layer-onboarding/light_pollution_radiance.md. The manifest validates, but
-numeric sample stats and exact latest-year filename are pending EOG-authenticated
-source access because the official V2.2 directory redirects to sign-in.
-
-walkability_index source onboarding was approved and the ingestion module has
-been implemented, staged, validated, QA-rendered, and promoted:
-pipeline/manifests/layers/walkability_index.yaml and
-docs/layer-onboarding/walkability_index.md, with a manifest validation test in
-pipeline/tests/test_cli.py. EPA ArcGIS REST sampling showed area-overlap tract
-weighting fills all local tracts (495/495 PA Main Line, 437/437 Hudson Valley)
-and listing point-in-polygon coverage clears 99% (251/251 PA, 4,245/4,254 HV).
-The implementation is in pipeline/gt/layers/walkability.py and is wired into
-the CLI. Both regions were staged with promotable reports and QA maps:
-data/reports/layer_walkability_index_pa-mainline_latest.json,
-data/reports/layer_walkability_index_hudson-valley_latest.json,
-data/reports/qa/walkability_index_pa-mainline.png, and
-data/reports/qa/walkability_index_hudson-valley.png. Both reports were promoted
-to Neon after explicit human approval. Live counts were verified:
-932 region_metrics rows, 4,495 listing_metrics rows, and 139 district_metrics
-rollups.
-
-flood_sfha source onboarding has been drafted only:
-pipeline/manifests/layers/flood_sfha.yaml and
-docs/layer-onboarding/flood_sfha.md, with a manifest validation test in
-pipeline/tests/test_cli.py. FEMA NFHL layer 28 metadata and bounded counts were
-verified. Geometry-heavy REST pulls were flaky, so the packet recommends
-resumable REST object-ID chunks or an official NFHL file geodatabase/state
-extract. No ingestion module was written, and nothing was staged or promoted.
-
-app/.env.local contains the Neon DATABASE_URL; do not print or commit secrets.
-
-First inspect git status and latest validation state. Then wait for human
-approval on flood_sfha implementation and source-access strategy. Do not
-implement/stage/promote flood_sfha until approved. Do not stage/promote
-light_pollution_radiance, and do not start GVI.
+Work autonomously for as long as the build path remains stable. Do not stop
+after one checkpoint. Continue through multiple data, pipeline, and UI
+checkpoints when they are unblocked. Commit and push each green checkpoint when
+working an autonomous arc. Stop only for a real blocker, an approval-required
+data gate or promotion, a conflict with the source-of-truth docs, or a point
+where the next meaningful work requires missing product/design direction.
 ```
