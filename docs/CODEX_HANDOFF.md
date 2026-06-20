@@ -42,6 +42,9 @@ Completed checkpoints:
   against official ACS 2024 5-year endpoints, but row-level sample stats are
   blocked because the Census API returned `Missing Key` for county-subdivision
   data requests in this environment.
+- Phase 6 pure finance engine was implemented and pushed at
+  `816b127 Add purchasing power finance engine`: closed-form purchasing power,
+  credit-band spreads, PMI, insurance, optional DTI ceiling, and unit tests.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -358,6 +361,11 @@ Uncommitted in the current worktree:
 
 Recently committed:
 
+- `816b127 Add purchasing power finance engine`: pure TypeScript purchasing
+  power engine and unit tests for mortgage constant, credit spreads, PMI, DTI
+  ceiling, and Hudson Valley/Lower Merion ordering under different tax rates.
+- `e90d5a4 Update handoff after tax onboarding`: handoff update after
+  `effective_tax_rate` source onboarding.
 - `617f0ab Draft effective tax rate onboarding`: ACS 2024 5-year manifest,
   onboarding note, and manifest validation test for `effective_tax_rate`;
   records the Census API key/bulk-file blocker before ingestion.
@@ -410,7 +418,7 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `617f0ab Draft effective tax rate onboarding`
+- Current local commit: `816b127 Add purchasing power finance engine`
 - `main` is even with `origin/main` at that commit before this handoff edit.
 - Worktree has this uncommitted `docs/CODEX_HANDOFF.md` update.
 
@@ -493,6 +501,12 @@ Checks last run after repaired `flood_sfha` promotion:
   `./.venv/bin/gt manifest validate layer manifests/layers/effective_tax_rate.yaml`.
 - Pipeline CLI test slice passed with `./.venv/bin/pytest tests/test_cli.py -q`:
   `15 passed in 1.02s`.
+- Finance/app tests passed after adding the finance engine with `npm test`:
+  `2 passed`, `11 tests passed`.
+- App lint passed after adding the finance engine with `npm run lint`: 0
+  errors, 6 pre-existing shadcn fast-refresh warnings.
+- App production build passed with `npm run build` after the finance engine
+  change.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 - No app frontend build/test was run after the pipeline work because no frontend files were changed.
@@ -506,15 +520,20 @@ required if continuing immediately.
 Next actions, in order:
 
 1. Commit and push this handoff update.
-2. Continue Phase 5 app polish/QA: visually inspect the Explorer metrics panel
+2. Continue Phase 5 app polish/QA when browser access is available: visually inspect the Explorer metrics panel
    in a browser, verify marker selection and mobile panel behavior, and tune
    any copy/layout issues found.
-3. Resolve blocked source access:
+3. Resolve blocked source/data access:
    - `light_pollution_radiance`: EOG-authenticated exact file verification and
      numeric sample stats.
    - `effective_tax_rate`: Census API key or official ACS bulk-file workflow
      for county-subdivision row data and sample stats.
-4. Do not start GVI.
+   - `median_home_value`: restore/fetch the ZHVI ZCTA CSV and implement the
+     missing ZCTA -> district housing-unit crosswalk before layer ingestion.
+4. Next unblocked code path after source access is resolved: implement
+   `effective_tax_rate`, then wire `computePurchasingPower` to live tax/home
+   value data.
+5. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 
