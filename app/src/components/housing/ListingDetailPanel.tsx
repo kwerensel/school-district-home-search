@@ -49,6 +49,10 @@ function metricIcon(metric: ListingMetricItem) {
   return <MapPin className="h-4 w-4 text-slate-600" />;
 }
 
+function hasMetric(metrics: ListingMetricItem[], metricKey: string) {
+  return metrics.some((metric) => metric.metricKey === metricKey);
+}
+
 export function ListingDetailPanel({ listing, onClose }: Props) {
   const getMetrics = useServerFn(getListingMetrics);
   const listingId = listing?.properties.id ?? null;
@@ -65,6 +69,27 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
   const details = metricsQuery.data;
   const listingProps = details?.listing ?? listing.properties;
   const allMetrics = [...(details?.metrics ?? []), ...(details?.tractMetrics ?? [])];
+  const filterValues = [
+    typeof listingProps.canopy_height_m_100m === "number" &&
+    !hasMetric(allMetrics, "canopy_height_m")
+      ? {
+          key: "canopy-height",
+          label: "Canopy height",
+          detail: "100 m filter value",
+          value: `${listingProps.canopy_height_m_100m.toFixed(1)} m`,
+          icon: <Trees className="h-4 w-4 text-emerald-700" />,
+        }
+      : null,
+    typeof listingProps.flood_sfha === "number" && !hasMetric(allMetrics, "flood_sfha")
+      ? {
+          key: "flood-sfha",
+          label: "Mapped SFHA",
+          detail: "FEMA point filter value",
+          value: listingProps.flood_sfha >= 1 ? "Yes" : "No",
+          icon: <Waves className="h-4 w-4 text-sky-700" />,
+        }
+      : null,
+  ].filter((value): value is NonNullable<typeof value> => value !== null);
   const href = listingProps.url && listingProps.url !== "null" ? listingProps.url : null;
 
   return (
@@ -123,11 +148,35 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
             </div>
           ) : null}
 
-          {!metricsQuery.isPending && allMetrics.length === 0 ? (
+          {!metricsQuery.isPending && allMetrics.length === 0 && filterValues.length === 0 ? (
             <p className="py-4 text-sm text-muted-foreground">No promoted metrics found.</p>
           ) : null}
 
           <div className="space-y-5 pt-4">
+            {filterValues.length ? (
+              <section className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  Filter Values
+                </h3>
+                <div className="divide-y divide-border rounded-md border border-border">
+                  {filterValues.map((value) => (
+                    <div key={value.key} className="flex items-center gap-3 px-3 py-2.5">
+                      {value.icon}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {value.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{value.detail}</p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold text-foreground">
+                        {value.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {contextOrder.map((context) => {
               const metrics = allMetrics.filter((metric) => metric.context === context);
               if (!metrics.length) return null;

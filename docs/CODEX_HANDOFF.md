@@ -67,6 +67,10 @@ Completed checkpoints:
   dollar amount instead of a percentage, numeric fields can be edited without
   fighting controlled-input fallback behavior, and the generic Explorer header
   link is separate from the selected-district "Search listings" handoff.
+- Explorer UX follow-up is implemented in the current checkpoint: filtering no
+  longer refits/rezooms the map after initial load, and listing detail panels
+  show compact filter values such as 100 m canopy height and FEMA SFHA point
+  flag when those values explain why a listing remains in filtered results.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -635,6 +639,17 @@ Checks last run after repaired `flood_sfha` promotion:
   - Verified the top Explorer header link is plain `/`, while the selected
     district "Search listings" link carries `monthlyBudget`, dollar
     `downPayment`, `creditBand`, `regionGroup`, `district`, and `maxPrice`.
+  - `npm test`: 3 test files, 15 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+- Chrome visual QA after Explorer UX follow-up:
+  - Raised the Explorer min-canopy filter in Chrome; the listing count changed
+    while the map viewport stayed in place instead of refitting to the new
+    result bounds.
+  - Opened a filtered listing detail panel and confirmed canopy/flood context
+    renders in the panel, including the filter-relevant 100 m canopy value.
+  - Dev-server logs showed no new runtime errors beyond the existing TanStack
+    Start CSRF warning.
   - `npm test`: 3 test files, 15 tests passed.
   - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
   - `npm run build`: production client and SSR builds passed.

@@ -44,6 +44,7 @@ export function MapView({
   const listingsLayerRef = useRef<L.GeoJSON | null>(null);
   const districtsLayerRef = useRef<L.GeoJSON | null>(null);
   const onListingSelectRef = useRef(onListingSelect);
+  const hasFitListingsRef = useRef(false);
 
   useEffect(() => {
     onListingSelectRef.current = onListingSelect;
@@ -90,14 +91,13 @@ export function MapView({
     districtsLayerRef.current = L.geoJSON(undefined, {
       style: (feature?: DistrictGeoFeature) => {
         const isGood = Boolean(feature?.properties?.good_district);
-        const visible = !goodOnly || isGood;
 
         return {
           color: isGood ? "#15803d" : "#64748b",
           weight: 1,
           fillColor: isGood ? "#16a34a" : "#94a3b8",
-          fillOpacity: visible ? (isGood ? 0.16 : 0.08) : 0,
-          opacity: visible ? 1 : 0,
+          fillOpacity: isGood ? 0.16 : 0.08,
+          opacity: 1,
         };
       },
       interactive: false,
@@ -112,7 +112,7 @@ export function MapView({
       map.remove();
       mapRef.current = null;
     };
-  }, [token, goodOnly]);
+  }, [token]);
 
   useEffect(() => {
     const listingsLayer = listingsLayerRef.current;
@@ -133,7 +133,7 @@ export function MapView({
     listingsLayer.clearLayers();
     listingsLayer.addData(listings);
 
-    if (listings.features.length) {
+    if (listings.features.length && !hasFitListingsRef.current) {
       const bounds = L.latLngBounds(
         listings.features.map((feature) => [
           feature.geometry.coordinates[1],
@@ -141,6 +141,7 @@ export function MapView({
         ]),
       );
       map.fitBounds(bounds, { padding: [36, 36], maxZoom: 14 });
+      hasFitListingsRef.current = true;
     }
   }, [listings]);
 
