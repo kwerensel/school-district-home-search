@@ -81,6 +81,11 @@ Completed checkpoints:
   promoted environmental district metrics now feed deterministic match scoring
   alongside purchasing power, with URL-backed priority sliders for budget fit,
   green, walkability, lower risk, lower flood, and darker skies.
+- Discovery selected-district polish is implemented in the current checkpoint:
+  "buying ceiling" copy is clarified as max home price where appropriate, the
+  selected district panel now appears earlier in the sidebar with all known
+  promoted district values, and the map has a selected-district summary card,
+  hover tooltips, and clearer legend labels.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -728,6 +733,14 @@ Checks last run after repaired `flood_sfha` promotion:
   - Chrome QA loaded weighted `/discover` URL, verified priority sliders,
     match percentages, buying ceilings, clean URL hydration, and no console
     errors.
+- Discovery selected-district polish checks passed:
+  - `npm test`: 3 test files, 16 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+  - Chrome QA loaded the weighted `/discover` URL after a clean dev-server
+    restart, verified the selected sidebar panel, selected map card, legend,
+    known district values, and no recent console errors. True mobile emulation
+    was not available through the current Chrome connector.
 
 ## 7. Recommended Next Steps
 
@@ -743,10 +756,10 @@ Next actions, in order:
 2. Resolve the remaining median-home-value data input:
    - `median_home_value`: add the local housing-unit relationship/input needed
      for the approved ZCTA -> district weighted crosswalk before ingestion.
-3. Next unblocked app path is Discovery polish: clearer selected-district map
-   feedback and mobile visual QA. Profile-weight controls for promoted
-   environmental metrics are implemented. Keep median-home-value comparisons
-   disabled until the ZCTA layer gate is resolved.
+3. Next unblocked app path is continued Discovery/mobile polish and Explorer
+   metrics-panel QA. Profile-weight controls and selected-district feedback
+   for promoted environmental metrics are implemented. Keep median-home-value
+   comparisons disabled until the ZCTA layer gate is resolved.
 4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

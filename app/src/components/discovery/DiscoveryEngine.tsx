@@ -40,6 +40,10 @@ const wholeNumber = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+const oneDecimal = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 1,
+});
+
 type RegionFilter = "all" | "pa-mainline" | "hudson-valley";
 type WeightKey =
   | "affordability"
@@ -84,6 +88,14 @@ function parsePositiveNumber(value: string, fallback: number) {
 
 function currencyInputValue(value: number) {
   return String(Math.round(value));
+}
+
+function formatOptionalNumber(value: number | null, suffix = "") {
+  return value === null ? "-" : `${oneDecimal.format(value)}${suffix}`;
+}
+
+function formatOptionalPercent(value: number | null) {
+  return value === null ? "-" : percent.format(value);
 }
 
 export function DiscoveryEngine() {
@@ -325,6 +337,13 @@ export function DiscoveryEngine() {
               </div>
             </section>
 
+            {selected ? (
+              <SelectedDistrictPanel
+                selected={selected}
+                selectedExplorerHref={selectedExplorerHref}
+              />
+            ) : null}
+
             <section className="space-y-4">
               <h2 className="text-sm font-semibold text-foreground">Priorities</h2>
               <div className="space-y-4">
@@ -354,7 +373,7 @@ export function DiscoveryEngine() {
             <section className="grid grid-cols-2 gap-3">
               <MetricBox label="Districts" value={String(ranked.length)} />
               <MetricBox
-                label="Average buying ceiling"
+                label="Average max price"
                 value={averagePower ? formatCurrency(averagePower) : "-"}
               />
             </section>
@@ -362,36 +381,10 @@ export function DiscoveryEngine() {
             <section className="rounded-md border border-border p-4">
               <p className="text-sm font-semibold text-foreground">Map colors</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Districts are shaded by estimated purchase-price ceiling for the same budget. Cooler
-                colors mean the payment stretches farther; warmer colors mean less.
+                Districts are shaded by estimated max home price for the same budget. Cooler colors
+                mean the payment stretches farther; warmer colors mean less.
               </p>
             </section>
-
-            {selected ? (
-              <section className="rounded-md border border-border p-4">
-                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                  Selected District
-                </p>
-                <h2 className="mt-1 text-lg font-semibold text-foreground">
-                  {selected.districtName}
-                </h2>
-                <p className="text-sm text-muted-foreground">{regionLabel(selected.regionGroup)}</p>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <MetricBox
-                    label="Buying ceiling"
-                    value={formatCurrency(selected.maxPurchasePrice)}
-                  />
-                  <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
-                  <MetricBox label="Match" value={`${wholeNumber.format(selected.matchScore)}%`} />
-                </div>
-                <Button asChild className="mt-4 w-full" size="sm">
-                  <a href={selectedExplorerHref}>
-                    <Home className="mr-2 h-4 w-4" />
-                    Search listings
-                  </a>
-                </Button>
-              </section>
-            ) : null}
 
             <section className="space-y-2">
               <h2 className="text-sm font-semibold text-foreground">Ranked Districts</h2>
@@ -421,7 +414,7 @@ export function DiscoveryEngine() {
                       </p>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      {formatCurrency(district.maxPurchasePrice)} ceiling
+                      {formatCurrency(district.maxPurchasePrice)} max home price
                     </p>
                   </button>
                 ))}
@@ -451,6 +444,66 @@ export function DiscoveryEngine() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SelectedDistrictPanel({
+  selected,
+  selectedExplorerHref,
+}: {
+  selected: DistrictPurchasingPower;
+  selectedExplorerHref: string;
+}) {
+  return (
+    <section className="rounded-md border border-border p-4" data-testid="selected-district-panel">
+      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+        Selected District
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-foreground">{selected.districtName}</h2>
+      <p className="text-sm text-muted-foreground">{regionLabel(selected.regionGroup)}</p>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <MetricBox label="Max home price" value={formatCurrency(selected.maxPurchasePrice)} />
+        <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
+        <MetricBox label="Match" value={`${wholeNumber.format(selected.matchScore)}%`} />
+      </div>
+      <div className="mt-4 border-t border-border pt-4">
+        <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+          Known district values
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <MetricBox
+            label="Canopy height"
+            value={formatOptionalNumber(selected.environmentMetrics.canopyHeightM, " m")}
+          />
+          <MetricBox
+            label="Tree canopy"
+            value={formatOptionalNumber(selected.environmentMetrics.treeCanopyPct, "%")}
+          />
+          <MetricBox
+            label="Walkability"
+            value={formatOptionalNumber(selected.environmentMetrics.walkabilityIndex)}
+          />
+          <MetricBox
+            label="Risk index"
+            value={formatOptionalNumber(selected.environmentMetrics.riskIndex)}
+          />
+          <MetricBox
+            label="Flood share"
+            value={formatOptionalPercent(selected.environmentMetrics.floodSfha)}
+          />
+          <MetricBox
+            label="Night light"
+            value={formatOptionalNumber(selected.environmentMetrics.lightPollutionRadiance)}
+          />
+        </div>
+      </div>
+      <Button asChild className="mt-4 w-full" size="sm">
+        <a href={selectedExplorerHref}>
+          <Home className="mr-2 h-4 w-4" />
+          Search listings
+        </a>
+      </Button>
+    </section>
   );
 }
 

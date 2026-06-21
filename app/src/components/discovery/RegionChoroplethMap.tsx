@@ -17,6 +17,14 @@ type DistrictGeoFeature = Feature<Geometry, DistrictProps>;
 
 const DEFAULT_CENTER: L.LatLngTuple = [40.6, -74.4];
 const COLOR_STOPS = ["#b91c1c", "#f97316", "#eab308", "#22c55e", "#0284c7"];
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+});
+const wholeNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 
 function interpolateRank(value: number, min: number, max: number) {
   if (!Number.isFinite(value) || min === max) return 0.5;
@@ -28,6 +36,10 @@ function colorForValue(value: number | undefined, min: number, max: number) {
   const rank = interpolateRank(value, min, max);
   const index = Math.min(Math.floor(rank * COLOR_STOPS.length), COLOR_STOPS.length - 1);
   return COLOR_STOPS[index];
+}
+
+function formatCurrency(value: number) {
+  return currency.format(Math.round(value));
 }
 
 export function RegionChoroplethMap({
@@ -49,6 +61,7 @@ export function RegionChoroplethMap({
   const values = purchasingPower.map((district) => district.maxPurchasePrice);
   const min = values.length ? Math.min(...values) : 0;
   const max = values.length ? Math.max(...values) : 0;
+  const selected = selectedSlug ? powerBySlug.get(selectedSlug) : null;
 
   useEffect(() => {
     onDistrictSelectRef.current = onDistrictSelect;
@@ -113,21 +126,59 @@ export function RegionChoroplethMap({
       const slug = feature?.properties?.district_slug ?? null;
       const power = slug ? powerBySlug.get(slug) : undefined;
       const isSelected = slug === selectedSlug;
+      const path = districtLayer as L.Path;
 
-      (districtLayer as L.Path).setStyle({
+      path.setStyle({
         color: isSelected ? "#0f172a" : "#475569",
         weight: isSelected ? 3 : 1,
         fillColor: colorForValue(power?.maxPurchasePrice, min, max),
         fillOpacity: power ? 0.55 : 0.16,
         opacity: 1,
       });
+      if (power) {
+        const tooltip = `${power.districtName}: ${formatCurrency(
+          power.maxPurchasePrice,
+        )} ceiling, ${wholeNumber.format(power.matchScore)}% match`;
+        path.bindTooltip(tooltip, { sticky: true });
+      }
+      if (isSelected) path.bringToFront();
     });
   }, [powerBySlug, selectedSlug, min, max]);
 
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full" aria-label="Discovery map" />
-      <div className="absolute right-3 bottom-3 z-[500] rounded-md border border-border bg-background/95 p-3 shadow-sm">
+      {selected ? (
+        <div
+          className="absolute top-3 left-3 z-[500] max-w-[min(22rem,calc(100%-1.5rem))] rounded-md border border-border bg-background/95 p-3 shadow-sm"
+          data-testid="selected-district-map-card"
+        >
+          <p className="text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
+            Selected district
+          </p>
+          <p className="mt-1 truncate text-sm font-semibold text-foreground">
+            {selected.districtName}
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <p className="text-muted-foreground">Match</p>
+              <p className="font-semibold text-foreground">
+                {wholeNumber.format(selected.matchScore)}%
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Ceiling</p>
+              <p className="font-semibold text-foreground">
+                {formatCurrency(selected.maxPurchasePrice)}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <div
+        className="absolute right-3 bottom-3 z-[500] rounded-md border border-border bg-background/95 p-3 shadow-sm"
+        data-testid="buying-ceiling-legend"
+      >
         <p className="mb-2 text-xs font-medium text-foreground">Buying ceiling</p>
         <div className="flex items-center gap-1">
           {COLOR_STOPS.map((color) => (
@@ -140,8 +191,8 @@ export function RegionChoroplethMap({
           ))}
         </div>
         <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-          <span>Lower</span>
-          <span>Higher</span>
+          <span>Lower ceiling</span>
+          <span>Higher ceiling</span>
         </div>
       </div>
     </div>
