@@ -71,6 +71,9 @@ Completed checkpoints:
   longer refits/rezooms the map after initial load, and listing detail panels
   show compact filter values such as 100 m canopy height and FEMA SFHA point
   flag when those values explain why a listing remains in filtered results.
+- Explorer listing detail follow-up is implemented in the current checkpoint:
+  known compact listing values now always display alongside promoted metric
+  groups, so users can see all currently known values for the selected listing.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
