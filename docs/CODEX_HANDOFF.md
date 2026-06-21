@@ -786,6 +786,26 @@ Checks last run after repaired `flood_sfha` promotion:
   permitted`. No `median_home_value` staging, QA map, promotion, or live
   verification has run yet.
 
+### Discovery Copy/Input Polish Checkpoint
+
+- Discovery dollar text fields now commit numeric changes on blur or Enter
+  instead of updating the URL/query on every keystroke. This keeps the down
+  payment field as a dollar amount while making it easier to edit.
+- Down payment now accepts `$0` as a valid explicit fixed amount; monthly
+  payment still requires a positive amount.
+- Replaced user-facing "buying ceiling"/"ceiling" wording with "max home
+  price"/"max price" in the Discovery map card, legend, tooltip, and map color
+  explanation.
+- App verification passed:
+  - `npm test`: 3 test files, 16 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+- `curl -I http://localhost:8080/discover` returned HTTP 200 from the local dev
+  server.
+- Chrome connector QA was attempted but the connector hung on local navigation
+  and again on browser-session cleanup. Do not treat this as an app failure;
+  re-run visual QA when the browser connector is stable.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -803,7 +823,7 @@ Next actions, in order:
    promotable, refresh/verify `district_metrics`, then commit/push.
 3. Next unblocked app path is continued Discovery/mobile polish and Explorer
    metrics-panel QA. Profile-weight controls, selected-district feedback, and
-   Explorer map color explanations are implemented. Keep median-home-value
+   clearer max-home-price map explanations are implemented. Keep median-home-value
    comparisons disabled until the median layer is promoted and verified.
 4. Do not start GVI.
 

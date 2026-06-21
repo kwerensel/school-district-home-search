@@ -81,9 +81,10 @@ function regionLabel(regionGroup: string) {
   return regionGroup;
 }
 
-function parsePositiveNumber(value: string, fallback: number) {
+function parseDollarAmount(value: string, fallback: number, allowZero = false) {
   const parsed = Number(value.replace(/[$,\s]/g, ""));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  const isValid = Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0);
+  return isValid ? parsed : fallback;
 }
 
 function currencyInputValue(value: number) {
@@ -195,6 +196,16 @@ export function DiscoveryEngine() {
     const query = params.toString();
     return `/${query ? `?${query}` : ""}`;
   }, [profileSearch, selected]);
+  const commitMonthlyBudget = () => {
+    const nextMonthlyBudget = parseDollarAmount(monthlyBudgetText, monthlyBudget);
+    setMonthlyBudget(nextMonthlyBudget);
+    setMonthlyBudgetText(currencyInputValue(nextMonthlyBudget));
+  };
+  const commitDownPayment = () => {
+    const nextDownPayment = parseDollarAmount(downPaymentText, downPaymentAmount, true);
+    setDownPaymentAmount(nextDownPayment);
+    setDownPaymentText(currencyInputValue(nextDownPayment));
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -208,8 +219,8 @@ export function DiscoveryEngine() {
       if (Number.isFinite(value) && value >= 0 && value <= 10) nextWeights[control.key] = value;
     }
 
-    const nextMonthlyBudget = parsePositiveNumber(params.get("monthlyBudget") ?? "", 5500);
-    const nextDownPayment = parsePositiveNumber(params.get("downPayment") ?? "", 150000);
+    const nextMonthlyBudget = parseDollarAmount(params.get("monthlyBudget") ?? "", 5500);
+    const nextDownPayment = parseDollarAmount(params.get("downPayment") ?? "", 150000, true);
     setMonthlyBudget(nextMonthlyBudget);
     setMonthlyBudgetText(currencyInputValue(nextMonthlyBudget));
     setDownPaymentAmount(nextDownPayment);
@@ -275,11 +286,12 @@ export function DiscoveryEngine() {
                   inputMode="numeric"
                   aria-label="Monthly payment in dollars"
                   onChange={(event) => {
-                    const value = event.currentTarget.value;
-                    setMonthlyBudgetText(value);
-                    if (value.trim()) setMonthlyBudget(parsePositiveNumber(value, monthlyBudget));
+                    setMonthlyBudgetText(event.currentTarget.value);
                   }}
-                  onBlur={() => setMonthlyBudgetText(currencyInputValue(monthlyBudget))}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                  }}
+                  onBlur={commitMonthlyBudget}
                 />
               </div>
 
@@ -308,13 +320,12 @@ export function DiscoveryEngine() {
                     inputMode="numeric"
                     aria-label="Down payment in dollars"
                     onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      setDownPaymentText(value);
-                      if (value.trim()) {
-                        setDownPaymentAmount(parsePositiveNumber(value, downPaymentAmount));
-                      }
+                      setDownPaymentText(event.currentTarget.value);
                     }}
-                    onBlur={() => setDownPaymentText(currencyInputValue(downPaymentAmount))}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                    onBlur={commitDownPayment}
                   />
                 </div>
               </div>
@@ -381,8 +392,8 @@ export function DiscoveryEngine() {
             <section className="rounded-md border border-border p-4">
               <p className="text-sm font-semibold text-foreground">Map colors</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Districts are shaded by estimated max home price for the same budget. Cooler colors
-                mean the payment stretches farther; warmer colors mean less.
+                Districts are shaded by estimated max home price for the same budget. Blue means
+                higher purchasing power; red means lower purchasing power.
               </p>
             </section>
 

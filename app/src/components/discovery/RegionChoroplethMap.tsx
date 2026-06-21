@@ -138,7 +138,7 @@ export function RegionChoroplethMap({
       if (power) {
         const tooltip = `${power.districtName}: ${formatCurrency(
           power.maxPurchasePrice,
-        )} ceiling, ${wholeNumber.format(power.matchScore)}% match`;
+        )} max home price, ${wholeNumber.format(power.matchScore)}% match`;
         path.bindTooltip(tooltip, { sticky: true });
       }
       if (isSelected) path.bringToFront();
@@ -167,7 +167,7 @@ export function RegionChoroplethMap({
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Ceiling</p>
+              <p className="text-muted-foreground">Max price</p>
               <p className="font-semibold text-foreground">
                 {formatCurrency(selected.maxPurchasePrice)}
               </p>
@@ -179,7 +179,7 @@ export function RegionChoroplethMap({
         className="absolute right-3 bottom-3 z-[500] rounded-md border border-border bg-background/95 p-3 shadow-sm"
         data-testid="buying-ceiling-legend"
       >
-        <p className="mb-2 text-xs font-medium text-foreground">Buying ceiling</p>
+        <p className="mb-2 text-xs font-medium text-foreground">Max home price</p>
         <div className="flex items-center gap-1">
           {COLOR_STOPS.map((color) => (
             <span
@@ -191,8 +191,8 @@ export function RegionChoroplethMap({
           ))}
         </div>
         <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-          <span>Lower ceiling</span>
-          <span>Higher ceiling</span>
+          <span>Lower</span>
+          <span>Higher</span>
         </div>
       </div>
     </div>
