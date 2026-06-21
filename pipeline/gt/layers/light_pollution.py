@@ -10,6 +10,7 @@ import psycopg
 import rasterio
 from affine import Affine
 from rasterio.features import rasterize
+from rasterio.transform import rowcol
 from rasterio.windows import Window, from_bounds
 
 from gt.db.migrate import database_url, repo_root
@@ -157,11 +158,36 @@ def _compute_region_metrics(
     sums = np.bincount(flat_labels, weights=flat_values, minlength=len(tracts_src) + 1)
     counts = np.bincount(flat_labels, minlength=len(tracts_src) + 1)
     slugs = list(tracts_4326["slug"])
-    return [
-        RegionMetric(region_slug=str(slug), value=float(value_sum / count))
-        for slug, value_sum, count in zip(slugs, sums[1:], counts[1:], strict=True)
-        if count
-    ]
+    metrics: list[RegionMetric] = []
+    for index, (slug, value_sum, count) in enumerate(
+        zip(slugs, sums[1:], counts[1:], strict=True)
+    ):
+        if count:
+            metrics.append(RegionMetric(region_slug=str(slug), value=float(value_sum / count)))
+            continue
+        fallback = _representative_point_value(data, transform, tracts_src.iloc[index].geom, manifest)
+        if fallback is not None:
+            metrics.append(RegionMetric(region_slug=str(slug), value=fallback))
+    return metrics
+
+
+def _representative_point_value(
+    data: np.ma.MaskedArray,
+    transform: Affine,
+    geom: Any,
+    manifest: LayerManifest,
+) -> float | None:
+    point = geom.representative_point()
+    row, col = rowcol(transform, point.x, point.y)
+    if row < 0 or col < 0 or row >= data.shape[0] or col >= data.shape[1]:
+        return None
+    if np.ma.getmaskarray(data)[row, col]:
+        return None
+    value = float(data.data[row, col])
+    range_min, range_max = manifest.allowed_range
+    if not np.isfinite(value) or value < range_min or value > range_max:
+        return None
+    return value
 
 
 def _source_stats(

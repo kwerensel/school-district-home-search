@@ -25,7 +25,8 @@ Completed checkpoints:
 - `risk_index` source onboarding was approved, implemented, staged for both regions, validated as promotable, QA maps were rendered, and it was promoted to Neon after explicit human approval.
 - `light_pollution_radiance` source onboarding now uses the authenticated local
   EOG 2025 V2.2 median-masked raster, with exact filename and numeric sample
-  stats verified.
+  stats verified; it has been implemented, staged, QA-rendered, promoted, and
+  verified in Neon.
 - `walkability_index` source onboarding was approved, implemented, staged for
   both regions, validated as promotable, QA maps were rendered, and it was
   promoted to Neon after explicit human approval.
@@ -82,8 +83,7 @@ the approved architecture/tasks/handoff count as approved. Do not stop for
 routine yes/no source or promotion approval when validation is green; preserve
 staging -> validate -> explicit promote and keep moving. Stop only for genuinely
 missing information, surprising/red validation, a source-of-truth conflict, or a
-new unapproved source/provider/paid integration. `light_pollution_radiance`
-remains blocked and GVI must not start.
+new unapproved source/provider/paid integration. GVI must not start.
 
 Do not start GVI. `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation GVI is Phase 11.
 
@@ -255,8 +255,35 @@ Neon live `risk_index` counts after promote:
   - `pipeline/gt/layers/light_pollution.py`
 - Wired `light_pollution_radiance` into the layer runner dispatch and package
   export.
-- Staging/promotion has not run yet because this environment could not resolve
-  the Neon host during the staging attempt.
+- Initial staging hit sandbox DNS resolution for the Neon host; rerunning with
+  approved network access worked.
+- Added a representative-point fallback for tiny tracts that receive no raster
+  cells in the zonal pass, preserving the native ~500 m source resolution while
+  meeting tract coverage.
+- Staged both regions at tract grain and wrote promotable reports:
+  - `data/reports/layer_light_pollution_radiance_pa-mainline_latest.json`
+  - `data/reports/layer_light_pollution_radiance_hudson-valley_latest.json`
+- Rendered QA maps:
+  - `data/reports/qa/light_pollution_radiance_pa-mainline.png`
+  - `data/reports/qa/light_pollution_radiance_hudson-valley.png`
+- Promoted both reports to Neon and refreshed `district_metrics`.
+
+Staged validation:
+
+- `pa-mainline`: 495/495 tracts; range 0.680-77.168; source window p50 3.73,
+  p90 28.105; `promotable: true`.
+- `hudson-valley`: 437/437 tracts; range 0.259-100.720; source window p50
+  1.82, p90 14.775; `promotable: true`.
+
+Neon live `light_pollution_radiance` counts after promote:
+
+- `region_metrics`: 932 tract rows:
+  - `hudson-valley`: 437 census-tract rows, range 0.259-100.720.
+  - `pa-mainline`: 495 census-tract rows, range 0.680-77.168.
+- `listing_metrics`: 0 rows by design. VIIRS is neighborhood context only.
+- `district_metrics`: 139 district rollups:
+  - `hudson-valley`: 78 rollups, range 0.259-41.366.
+  - `pa-mainline`: 61 rollups, range 1.384-39.908.
 
 ### Phase 5 `walkability_index`
 
@@ -502,12 +529,11 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`,
-  `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`.
-  Explorer listing metrics panel/environmental filters are implemented.
-  `light_pollution_radiance` source access is resolved and its ingestion module
-  is added, but staging/promotion is blocked in this environment by Neon host
-  DNS/network resolution.
+- Phase 5 clean enrichment layers are promoted: `canopy_height_m`,
+  `tree_canopy_pct`, `risk_index`, `walkability_index`, `flood_sfha`, and
+  `light_pollution_radiance`. Explorer listing metrics panel/environmental
+  filters are implemented. Remaining work is app polish and later-phase data,
+  not a blocked Phase 5 source.
 - `light_pollution_radiance` uses the local authenticated EOG file
   `data/raw/eog/VNL_npp_2025_global_vcmslcfg_v2_c202604011200.median_masked.dat.tif.gz`.
   Raster verification passed: EPSG:4326, 86,401 x 33,601 pixels, one `float32`
@@ -675,32 +701,40 @@ Checks last run after repaired `flood_sfha` promotion:
   - `./.venv/bin/python -m compileall gt/layers/light_pollution.py gt/cli.py gt/layers/__init__.py`
   - `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`
   - `./.venv/bin/pytest tests/test_cli.py -q`: `18 passed in 0.87s`.
-- `light_pollution_radiance` staging attempts for both regions failed before
-  any staging writes because this environment could not resolve the Neon host
-  `ep-sweet-glade-atx14wzw-pooler.c-9.us-east-1.aws.neon.tech`.
+- `light_pollution_radiance` staged and validated for both regions:
+  - `pa-mainline`: 495/495 tracts, range 0.680-77.168, `promotable: true`.
+  - `hudson-valley`: 437/437 tracts, range 0.259-100.720,
+    `promotable: true`.
+- Light-pollution QA maps rendered:
+  - `data/reports/qa/light_pollution_radiance_pa-mainline.png`
+  - `data/reports/qa/light_pollution_radiance_hudson-valley.png`
+- Light-pollution promotion completed for both reports and live verification
+  confirmed 932 tract rows, 139 district rollups, and zero listing rows by
+  design.
+- Required golden Neon checks passed after promotion with
+  `./.venv/bin/pytest -k golden -q`: `11 passed, 18 deselected in 10.32s`.
+- Full local pipeline suite passed with `./.venv/bin/pytest -q`:
+  `18 passed, 11 skipped in 0.50s`.
 
 ## 7. Recommended Next Steps
 
-Recommended next chat boundary: optional. This is a clean app checkpoint once
+Recommended next chat boundary: optional. This is a clean data checkpoint once
 committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Commit and push the Chrome QA runtime-fix checkpoint.
-2. Continue app visual QA when browser access is available: inspect
+1. Continue app visual QA when browser access is available: inspect
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
    copy/layout issues found.
-3. Resolve blocked source/data access:
-   - `light_pollution_radiance`: rerun staging/promote when Neon DNS/network
-     access is available.
+2. Resolve the remaining median-home-value data input:
    - `median_home_value`: add the local housing-unit relationship/input needed
      for the approved ZCTA -> district weighted crosswalk before ingestion.
-4. Next unblocked app path is Discovery polish: clearer selected-district map
+3. Next unblocked app path is Discovery polish: clearer selected-district map
    feedback, mobile visual QA, and profile-weight controls for promoted
    environmental metrics. Keep median-home-value comparisons disabled until the
    ZCTA layer gate is resolved.
-5. Do not start GVI.
+4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 

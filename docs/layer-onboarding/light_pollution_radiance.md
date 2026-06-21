@@ -90,6 +90,9 @@ The authenticated local 2025 EOG V2.2 median-masked raster opened as EPSG:4326,
 ## Proposed reductions
 
 - `region_metrics`: census-tract zonal mean radiance.
+- Tiny tracts that receive no raster cells in the zonal pass use the raster
+  value at a representative point inside the tract. This is only a coverage
+  fallback for the native ~500 m grid; it is not used for listing-level output.
 - `district_metrics`: existing materialized-view rollup by tract/district
   overlap after promote.
 - `listing_metrics`: none. The native grid is about 500 m, so this is
