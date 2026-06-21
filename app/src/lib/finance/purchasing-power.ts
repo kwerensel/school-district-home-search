@@ -5,6 +5,7 @@ export interface PurchasingPowerInput {
   monthlyBudget: number;
   effectiveTaxRate: number;
   baseAnnualRate?: number;
+  downPaymentAmount?: number;
   downPaymentFraction?: number;
   insuranceAnnualRate?: number;
   pmiAnnualRate?: number;
@@ -51,10 +52,6 @@ export function monthlyMortgageConstant(annualRate: number, termMonths = 360): n
 export function computePurchasingPower(input: PurchasingPowerInput): PurchasingPowerResult {
   const monthlyBudget = requirePositive(input.monthlyBudget, "monthlyBudget");
   const effectiveTaxRate = requireNonNegative(input.effectiveTaxRate, "effectiveTaxRate");
-  const downPaymentFraction = input.downPaymentFraction ?? DEFAULT_DOWN_PAYMENT_FRACTION;
-  if (downPaymentFraction < 0 || downPaymentFraction >= 1) {
-    throw new Error("downPaymentFraction must be at least 0 and less than 1");
-  }
 
   const creditBand = input.creditBand ?? "good";
   const annualRate =
@@ -68,8 +65,49 @@ export function computePurchasingPower(input: PurchasingPowerInput): PurchasingP
     input.pmiAnnualRate ?? DEFAULT_PMI_ANNUAL_RATE,
     "pmiAnnualRate",
   );
+  const mortgageConstant = monthlyMortgageConstant(annualRate);
+  const dtiBudget = computeDtiHousingBudget(input);
 
-  const mortgageFactor = (1 - downPaymentFraction) * monthlyMortgageConstant(annualRate);
+  if (input.downPaymentAmount !== undefined) {
+    const downPaymentAmount = requireNonNegative(input.downPaymentAmount, "downPaymentAmount");
+    const monthlyCostAtPrice = (price: number) =>
+      monthlyCostForPrice({
+        price,
+        downPaymentAmount,
+        mortgageConstant,
+        effectiveTaxRate,
+        insuranceAnnualRate,
+        pmiAnnualRate,
+      });
+    const budgetLimitedPrice = solveMaxPrice(monthlyBudget, monthlyCostAtPrice);
+    const dtiLimitedPrice =
+      dtiBudget === null ? null : solveMaxPrice(dtiBudget, monthlyCostAtPrice);
+    const maxPurchasePrice =
+      dtiLimitedPrice === null ? budgetLimitedPrice : Math.min(budgetLimitedPrice, dtiLimitedPrice);
+
+    return {
+      maxPurchasePrice,
+      budgetLimitedPrice,
+      dtiLimitedPrice,
+      bindingBound:
+        dtiLimitedPrice !== null && dtiLimitedPrice < budgetLimitedPrice ? "dti" : "budget",
+      annualRate,
+      monthlyPrincipalInterestFactor: monthlyPrincipalInterestAtPrice(
+        maxPurchasePrice,
+        downPaymentAmount,
+        mortgageConstant,
+      ),
+      monthlyCostFactor:
+        maxPurchasePrice > 0 ? monthlyCostAtPrice(maxPurchasePrice) / maxPurchasePrice : 0,
+    };
+  }
+
+  const downPaymentFraction = input.downPaymentFraction ?? DEFAULT_DOWN_PAYMENT_FRACTION;
+  if (downPaymentFraction < 0 || downPaymentFraction >= 1) {
+    throw new Error("downPaymentFraction must be at least 0 and less than 1");
+  }
+
+  const mortgageFactor = (1 - downPaymentFraction) * mortgageConstant;
   const pmiFactor =
     downPaymentFraction < 0.2 ? ((1 - downPaymentFraction) * pmiAnnualRate) / 12 : 0;
   const monthlyCostFactor =
@@ -77,7 +115,6 @@ export function computePurchasingPower(input: PurchasingPowerInput): PurchasingP
   if (monthlyCostFactor <= 0) throw new Error("monthlyCostFactor must be positive");
 
   const budgetLimitedPrice = monthlyBudget / monthlyCostFactor;
-  const dtiBudget = computeDtiHousingBudget(input);
   const dtiLimitedPrice = dtiBudget === null ? null : dtiBudget / monthlyCostFactor;
   const maxPurchasePrice =
     dtiLimitedPrice === null ? budgetLimitedPrice : Math.min(budgetLimitedPrice, dtiLimitedPrice);
@@ -92,6 +129,61 @@ export function computePurchasingPower(input: PurchasingPowerInput): PurchasingP
     monthlyPrincipalInterestFactor: mortgageFactor,
     monthlyCostFactor,
   };
+}
+
+function monthlyCostForPrice({
+  price,
+  downPaymentAmount,
+  mortgageConstant,
+  effectiveTaxRate,
+  insuranceAnnualRate,
+  pmiAnnualRate,
+}: {
+  price: number;
+  downPaymentAmount: number;
+  mortgageConstant: number;
+  effectiveTaxRate: number;
+  insuranceAnnualRate: number;
+  pmiAnnualRate: number;
+}): number {
+  if (price <= 0) return 0;
+  const loanAmount = Math.max(price - downPaymentAmount, 0);
+  const principalInterest = loanAmount * mortgageConstant;
+  const taxAndInsurance = price * ((effectiveTaxRate + insuranceAnnualRate) / 12);
+  const pmi = downPaymentAmount / price < 0.2 ? loanAmount * (pmiAnnualRate / 12) : 0;
+  return principalInterest + taxAndInsurance + pmi;
+}
+
+function monthlyPrincipalInterestAtPrice(
+  price: number,
+  downPaymentAmount: number,
+  mortgageConstant: number,
+): number {
+  if (price <= 0) return 0;
+  return Math.max(price - downPaymentAmount, 0) * mortgageConstant;
+}
+
+function solveMaxPrice(
+  monthlyLimit: number,
+  monthlyCostAtPrice: (price: number) => number,
+): number {
+  if (monthlyLimit <= 0) return 0;
+  let low = 0;
+  let high = 250_000;
+  while (monthlyCostAtPrice(high) <= monthlyLimit && high < 100_000_000) {
+    low = high;
+    high *= 2;
+  }
+
+  for (let i = 0; i < 80; i += 1) {
+    const mid = (low + high) / 2;
+    if (monthlyCostAtPrice(mid) <= monthlyLimit) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  return low;
 }
 
 function computeDtiHousingBudget(input: PurchasingPowerInput): number | null {

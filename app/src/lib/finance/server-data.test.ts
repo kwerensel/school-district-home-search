@@ -33,6 +33,7 @@ describe("finance server data", () => {
     const payload = await fetchDistrictPurchasingPower(
       {
         monthlyBudget: 5500,
+        downPaymentAmount: 150000,
         baseAnnualRate: 0.065,
         creditBand: "good",
       },
@@ -66,6 +67,7 @@ describe("finance server data", () => {
     const payload = await fetchDistrictPurchasingPower(
       {
         monthlyBudget: 5500,
+        downPaymentAmount: 150000,
         grossMonthlyIncome: 11000,
         monthlyDebt: 900,
         maxDti: 0.36,

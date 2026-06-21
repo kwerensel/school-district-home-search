@@ -5,6 +5,7 @@ import type { BindingBound, CreditBand, PurchasingPowerInput } from "./purchasin
 export const PurchasingPowerQuerySchema = z.object({
   monthlyBudget: z.number().positive(),
   baseAnnualRate: z.number().min(0).optional(),
+  downPaymentAmount: z.number().min(0).optional(),
   downPaymentFraction: z.number().min(0).lt(1).optional(),
   insuranceAnnualRate: z.number().min(0).optional(),
   pmiAnnualRate: z.number().min(0).optional(),
@@ -97,6 +98,7 @@ function computeDistrictPurchasingPower(
     monthlyBudget: input.monthlyBudget,
     effectiveTaxRate,
     baseAnnualRate: input.baseAnnualRate,
+    downPaymentAmount: input.downPaymentAmount,
     downPaymentFraction: input.downPaymentFraction,
     insuranceAnnualRate: input.insuranceAnnualRate,
     pmiAnnualRate: input.pmiAnnualRate,

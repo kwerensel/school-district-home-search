@@ -62,6 +62,11 @@ Completed checkpoints:
   params now hydrate after mount to avoid SSR/client mismatch, and the
   choropleth uses Leaflet SVG rendering instead of canvas to avoid a runtime
   renderer error seen during local Chrome loading.
+- Discovery feedback pass is implemented in the current checkpoint: map colors
+  are explicitly labeled as district buying ceiling, down payment is now a
+  dollar amount instead of a percentage, numeric fields can be edited without
+  fighting controlled-input fallback behavior, and the generic Explorer header
+  link is separate from the selected-district "Search listings" handoff.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -618,8 +623,21 @@ Checks last run after repaired `flood_sfha` promotion:
     errors did not recur in the dev-server logs.
   - `npm test`, `npm run lint`, and `npm run build` passed again after the
     fixes.
-  - Visual screen inspection via Computer Use is still blocked until macOS
-    Accessibility/Screen Recording permissions finish being granted for Codex.
+  - Visual screen inspection via Computer Use is now working after macOS
+    permissions were granted.
+- Chrome visual QA after Discovery feedback pass:
+  - Loaded `/discover?monthlyBudget=6500&downPayment=180000&creditBand=fair&regionGroup=hudson-valley`
+    and confirmed the map paints, the legend reads "Buying ceiling", and the
+    explanatory copy states cooler colors mean the same payment stretches
+    farther.
+  - Edited the down payment field to `250000`; URL, average buying ceiling,
+    selected district buying ceiling, and ranking updated.
+  - Verified the top Explorer header link is plain `/`, while the selected
+    district "Search listings" link carries `monthlyBudget`, dollar
+    `downPayment`, `creditBand`, `regionGroup`, `district`, and `maxPrice`.
+  - `npm test`: 3 test files, 15 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 

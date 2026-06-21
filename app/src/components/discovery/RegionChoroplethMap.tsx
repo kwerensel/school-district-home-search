@@ -128,6 +128,7 @@ export function RegionChoroplethMap({
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full" aria-label="Discovery map" />
       <div className="absolute right-3 bottom-3 z-[500] rounded-md border border-border bg-background/95 p-3 shadow-sm">
+        <p className="mb-2 text-xs font-medium text-foreground">Buying ceiling</p>
         <div className="flex items-center gap-1">
           {COLOR_STOPS.map((color) => (
             <span

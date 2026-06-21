@@ -45,6 +45,24 @@ describe("purchasing power", () => {
     expect(tenDown.maxPurchasePrice).toBeLessThan(twentyDown.maxPurchasePrice);
   });
 
+  it("treats a fixed down payment amount as dollars, not a percentage", () => {
+    const smallDownPayment = computePurchasingPower({
+      monthlyBudget: 5500,
+      effectiveTaxRate: 0.02,
+      baseAnnualRate: 0.065,
+      downPaymentAmount: 50_000,
+    });
+    const largerDownPayment = computePurchasingPower({
+      monthlyBudget: 5500,
+      effectiveTaxRate: 0.02,
+      baseAnnualRate: 0.065,
+      downPaymentAmount: 200_000,
+    });
+
+    expect(largerDownPayment.maxPurchasePrice).toBeGreaterThan(smallDownPayment.maxPurchasePrice);
+    expect(largerDownPayment.monthlyCostFactor).toBeGreaterThan(0);
+  });
+
   it("uses DTI as a second ceiling when it is tighter than budget", () => {
     const result = computePurchasingPower({
       monthlyBudget: 5500,

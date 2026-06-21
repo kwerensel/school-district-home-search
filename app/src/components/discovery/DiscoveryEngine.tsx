@@ -49,8 +49,12 @@ function regionLabel(regionGroup: string) {
 }
 
 function parsePositiveNumber(value: string, fallback: number) {
-  const parsed = Number(value);
+  const parsed = Number(value.replace(/[$,\s]/g, ""));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function currencyInputValue(value: number) {
+  return String(Math.round(value));
 }
 
 export function DiscoveryEngine() {
@@ -59,7 +63,9 @@ export function DiscoveryEngine() {
   const getPurchasingPower = useServerFn(getDistrictPurchasingPower);
 
   const [monthlyBudget, setMonthlyBudget] = useState(5500);
-  const [downPaymentFraction, setDownPaymentFraction] = useState(0.2);
+  const [monthlyBudgetText, setMonthlyBudgetText] = useState(currencyInputValue(5500));
+  const [downPaymentAmount, setDownPaymentAmount] = useState(150000);
+  const [downPaymentText, setDownPaymentText] = useState(currencyInputValue(150000));
   const [creditBand, setCreditBand] = useState<CreditBand>("good");
   const [regionGroup, setRegionGroup] = useState<RegionFilter>("all");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -81,7 +87,7 @@ export function DiscoveryEngine() {
     queryKey: [
       "district-purchasing-power",
       monthlyBudget,
-      downPaymentFraction,
+      downPaymentAmount,
       creditBand,
       regionGroup,
     ],
@@ -89,7 +95,7 @@ export function DiscoveryEngine() {
       getPurchasingPower({
         data: {
           monthlyBudget,
-          downPaymentFraction,
+          downPaymentAmount,
           creditBand,
           ...(regionGroup === "all" ? {} : { regionGroup }),
         },
@@ -125,12 +131,12 @@ export function DiscoveryEngine() {
   const profileSearch = useMemo(() => {
     const params = new URLSearchParams();
     params.set("monthlyBudget", String(monthlyBudget));
-    params.set("downPayment", String(Math.round(downPaymentFraction * 100)));
+    params.set("downPayment", String(Math.round(downPaymentAmount)));
     params.set("creditBand", creditBand);
     if (regionGroup !== "all") params.set("regionGroup", regionGroup);
     return params.toString();
-  }, [monthlyBudget, downPaymentFraction, creditBand, regionGroup]);
-  const explorerHref = useMemo(() => {
+  }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup]);
+  const selectedExplorerHref = useMemo(() => {
     const params = new URLSearchParams(profileSearch);
     if (selected) {
       params.set("district", selected.districtName);
@@ -145,8 +151,12 @@ export function DiscoveryEngine() {
     const nextCredit = params.get("creditBand");
     const nextRegion = params.get("regionGroup");
 
-    setMonthlyBudget(parsePositiveNumber(params.get("monthlyBudget") ?? "", 5500));
-    setDownPaymentFraction(parsePositiveNumber(params.get("downPayment") ?? "", 20) / 100);
+    const nextMonthlyBudget = parsePositiveNumber(params.get("monthlyBudget") ?? "", 5500);
+    const nextDownPayment = parsePositiveNumber(params.get("downPayment") ?? "", 150000);
+    setMonthlyBudget(nextMonthlyBudget);
+    setMonthlyBudgetText(currencyInputValue(nextMonthlyBudget));
+    setDownPaymentAmount(nextDownPayment);
+    setDownPaymentText(currencyInputValue(nextDownPayment));
     setCreditBand(nextCredit === "excellent" || nextCredit === "fair" ? nextCredit : "good");
     setRegionGroup(
       nextRegion === "pa-mainline" || nextRegion === "hudson-valley" ? nextRegion : "all",
@@ -167,7 +177,7 @@ export function DiscoveryEngine() {
           <h1 className="text-base font-semibold text-foreground">Groundtruth Discovery</h1>
         </div>
         <Button asChild variant="outline" size="sm">
-          <a href={explorerHref}>
+          <a href="/">
             <Search className="mr-2 h-4 w-4" />
             Explorer
           </a>
@@ -196,14 +206,22 @@ export function DiscoveryEngine() {
                   max={12000}
                   step={250}
                   value={[monthlyBudget]}
-                  onValueChange={(value) => setMonthlyBudget(value[0])}
+                  onValueChange={(value) => {
+                    setMonthlyBudget(value[0]);
+                    setMonthlyBudgetText(currencyInputValue(value[0]));
+                  }}
                 />
                 <Input
-                  value={monthlyBudget}
+                  id="monthly-budget-input"
+                  value={monthlyBudgetText}
                   inputMode="numeric"
-                  onChange={(event) =>
-                    setMonthlyBudget(parsePositiveNumber(event.currentTarget.value, monthlyBudget))
-                  }
+                  aria-label="Monthly payment in dollars"
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    setMonthlyBudgetText(value);
+                    if (value.trim()) setMonthlyBudget(parsePositiveNumber(value, monthlyBudget));
+                  }}
+                  onBlur={() => setMonthlyBudgetText(currencyInputValue(monthlyBudget))}
                 />
               </div>
 
@@ -228,12 +246,17 @@ export function DiscoveryEngine() {
                   <Label htmlFor="down-payment">Down payment</Label>
                   <Input
                     id="down-payment"
-                    value={Math.round(downPaymentFraction * 100)}
+                    value={downPaymentText}
                     inputMode="numeric"
+                    aria-label="Down payment in dollars"
                     onChange={(event) => {
-                      const next = parsePositiveNumber(event.currentTarget.value, 20) / 100;
-                      setDownPaymentFraction(Math.min(Math.max(next, 0), 0.95));
+                      const value = event.currentTarget.value;
+                      setDownPaymentText(value);
+                      if (value.trim()) {
+                        setDownPaymentAmount(parsePositiveNumber(value, downPaymentAmount));
+                      }
                     }}
+                    onBlur={() => setDownPaymentText(currencyInputValue(downPaymentAmount))}
                   />
                 </div>
               </div>
@@ -259,9 +282,17 @@ export function DiscoveryEngine() {
             <section className="grid grid-cols-2 gap-3">
               <MetricBox label="Districts" value={String(ranked.length)} />
               <MetricBox
-                label="Average ceiling"
+                label="Average buying ceiling"
                 value={averagePower ? formatCurrency(averagePower) : "-"}
               />
+            </section>
+
+            <section className="rounded-md border border-border p-4">
+              <p className="text-sm font-semibold text-foreground">Map colors</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Districts are shaded by estimated purchase-price ceiling for the same budget. Cooler
+                colors mean the payment stretches farther; warmer colors mean less.
+              </p>
             </section>
 
             {selected ? (
@@ -275,13 +306,13 @@ export function DiscoveryEngine() {
                 <p className="text-sm text-muted-foreground">{regionLabel(selected.regionGroup)}</p>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <MetricBox
-                    label="Price ceiling"
+                    label="Buying ceiling"
                     value={formatCurrency(selected.maxPurchasePrice)}
                   />
                   <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
                 </div>
                 <Button asChild className="mt-4 w-full" size="sm">
-                  <a href={explorerHref}>
+                  <a href={selectedExplorerHref}>
                     <Home className="mr-2 h-4 w-4" />
                     Search listings
                   </a>
