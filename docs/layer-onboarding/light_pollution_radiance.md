@@ -1,6 +1,6 @@
 # light_pollution_radiance onboarding note
 
-Status: drafted for human approval before full ingestion module.
+Status: source verified from approved local EOG file; ingestion module added.
 
 ## Candidate source
 
@@ -11,8 +11,8 @@ median-masked composite.
 - V2.2 download directory: https://eogdata.mines.edu/nighttime_light/annual/v22/
 - Source publisher: Earth Observation Group, Payne Institute for Public Policy,
   Colorado School of Mines.
-- Citation vintage for this draft manifest: 2024, pending authenticated
-  verification of the newest complete annual V2.2 file before implementation.
+- Citation vintage: 2025, verified from the authenticated local EOG V2.2
+  median-masked file.
 
 Reason for choosing this source: the architecture spec names VIIRS VNL V2
 annual median from EOG for Phase 5 `light_pollution_radiance`. EOG's product
@@ -61,7 +61,7 @@ Source metadata verified from EOG documentation:
 | Field | Value |
 |---|---|
 | Product family | Annual VNL V2.2 |
-| Selected raster | median-masked annual GeoTIFF, exact filename pending EOG-authenticated directory check |
+| Selected raster | `VNL_npp_2025_global_vcmslcfg_v2_c202604011200.median_masked.dat.tif.gz` |
 | CRS | EPSG:4326 |
 | Pixel size | 15 arc-second, about 500 m at the equator |
 | Coverage | Global, 180W to 180E and 75N to 65S |
@@ -70,31 +70,22 @@ Source metadata verified from EOG documentation:
 | Metric field | raster cell radiance |
 | Allowed draft range | 0-1000 `nW/cm2/sr` |
 
-The pipeline should read the raster as a source artifact under
-`data/raw/light_pollution_radiance/`, reduce values to local census-tract
-geometries, and keep all stored vector geometries in EPSG:4326. Rasters should
-not enter Postgres.
+The pipeline reads the raster as a local source artifact under `data/raw/eog/`,
+reduces values to local census-tract geometries, and keeps all stored vector
+geometries in EPSG:4326. Rasters do not enter Postgres.
 
 ## Sample value checks
 
-The official V2.2 directory redirects to EOG sign-in from this environment, so
-no source pixels were downloaded for this approval packet. A one-off HEAD probe
-against a likely 2024 V2.2 median-masked filename returned an authentication
-redirect rather than file metadata, confirming that implementation will need an
-EOG-authenticated download or an approved local source file.
-
-Before writing the ingestion module, run authenticated windowed raster samples
-for these anchor areas and paste the measured values here:
+The authenticated local 2025 EOG V2.2 median-masked raster opened as EPSG:4326,
+86,401 x 33,601 pixels, one `float32` band, with global bounds approximately
+180W to 180E and 65S to 75N. Windowed source samples were measured on
+2026-06-20:
 
 | Region sample | Expected pattern | Pixels | Min | Mean | P50 | P90 | Max |
 |---|---|---:|---:|---:|---:|---:|---:|
-| PA Main Line / Center City-facing suburbs | Moderate to high radiance near Philadelphia, lower toward outer Chester County | pending | pending | pending | pending | pending | pending |
-| Hudson Valley / Yonkers and lower Westchester | Highest radiance in Manhattan-adjacent/lower Westchester tracts | pending | pending | pending | pending | pending | pending |
-| Hudson Valley / Putnam County | Lower radiance than lower Westchester | pending | pending | pending | pending | pending | pending |
-
-Approval question: is this source acceptable with authenticated sample stats as
-an implementation prerequisite, or should the source packet wait until the exact
-EOG file can be downloaded and sampled?
+| PA Main Line / Center City-facing suburbs | Moderate to high radiance near Philadelphia, lower toward outer Chester County | 6,912 | 0.000 | 23.137 | 13.372 | 53.230 | 269.330 |
+| Hudson Valley / Yonkers and lower Westchester | Highest radiance in Manhattan-adjacent/lower Westchester tracts | 3,600 | 0.000 | 18.845 | 11.352 | 44.818 | 137.320 |
+| Hudson Valley / Putnam County | Lower radiance than lower Westchester | 6,480 | 0.000 | 2.446 | 1.440 | 4.990 | 61.025 |
 
 ## Proposed reductions
 
@@ -115,11 +106,7 @@ EOG file can be downloaded and sampled?
 
 ## Implementation notes
 
-- Verify the newest complete Annual VNL V2.2 median-masked file before coding.
-  If a newer complete annual file than 2024 is available, update the manifest
-  vintage first.
-- Prefer an explicit local file path or authenticated download step over
-  guessing EOG filenames.
+- Use the verified local 2025 Annual VNL V2.2 median-masked file.
 - Use `rasterstats.zonal_stats` or rasterio windowed reads against the existing
   tract geometries; do not resample to a finer grid for listing-level output.
 - Treat NoData/background consistently with EOG product metadata. Valid

@@ -23,7 +23,9 @@ Completed checkpoints:
 - `tree_canopy_pct` implementation, staging run, validation, and QA map generation were committed and pushed on `main` at commit `133a59b Implement tree canopy layer staging`.
 - `tree_canopy_pct` was promoted to Neon for both `pa-mainline` and `hudson-valley` after explicit human approval in the follow-up session.
 - `risk_index` source onboarding was approved, implemented, staged for both regions, validated as promotable, QA maps were rendered, and it was promoted to Neon after explicit human approval.
-- `light_pollution_radiance` source onboarding was drafted and committed, but ingestion is blocked pending EOG-authenticated exact file verification and numeric sample stats.
+- `light_pollution_radiance` source onboarding now uses the authenticated local
+  EOG 2025 V2.2 median-masked raster, with exact filename and numeric sample
+  stats verified.
 - `walkability_index` source onboarding was approved, implemented, staged for
   both regions, validated as promotable, QA maps were rendered, and it was
   promoted to Neon after explicit human approval.
@@ -247,12 +249,14 @@ Neon live `risk_index` counts after promote:
   - `pipeline/manifests/layers/light_pollution_radiance.yaml`
 - Added onboarding note:
   - `docs/layer-onboarding/light_pollution_radiance.md`
-- This layer is intentionally stopped before ingestion. The official EOG V2.2
-  directory redirects to EOG sign-in from this environment, so exact latest-year
-  filename verification and numeric raster sample stats require authenticated
-  access or an approved local source file.
-- Do not stage or promote this layer until the source blocker is resolved and
-  approved.
+- Source access is resolved via the authenticated local 2025 EOG V2.2
+  median-masked GeoTIFF under `data/raw/eog/`.
+- Added the ingestion module:
+  - `pipeline/gt/layers/light_pollution.py`
+- Wired `light_pollution_radiance` into the layer runner dispatch and package
+  export.
+- Staging/promotion has not run yet because this environment could not resolve
+  the Neon host during the staging attempt.
 
 ### Phase 5 `walkability_index`
 
@@ -498,8 +502,18 @@ Known caveats:
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
 - README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
-- Phase 5 is not complete. Completed/promoted: `canopy_height_m`, `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`. Explorer listing metrics panel/environmental filters are implemented. Blocked on source access: `light_pollution_radiance`. Remaining Phase 5 app work is follow-up polish/QA on the Explorer metrics surface and any missing environmental dimensions after blocked light pollution is resolved.
-- `light_pollution_radiance` source onboarding is intentionally stopped before ingestion. The official EOG V2.2 download directory redirects to EOG sign-in from this environment, so exact filename/latest-year verification and numeric raster sample stats are pending authenticated source access or an approved local source file.
+- Phase 5 is not complete. Completed/promoted: `canopy_height_m`,
+  `tree_canopy_pct`, `risk_index`, `walkability_index`, and `flood_sfha`.
+  Explorer listing metrics panel/environmental filters are implemented.
+  `light_pollution_radiance` source access is resolved and its ingestion module
+  is added, but staging/promotion is blocked in this environment by Neon host
+  DNS/network resolution.
+- `light_pollution_radiance` uses the local authenticated EOG file
+  `data/raw/eog/VNL_npp_2025_global_vcmslcfg_v2_c202604011200.median_masked.dat.tif.gz`.
+  Raster verification passed: EPSG:4326, 86,401 x 33,601 pixels, one `float32`
+  band. Sample stats were plausible: PA Main Line/Philadelphia-facing sample
+  mean 23.137, lower Westchester/Yonkers mean 18.845, Putnam mean 2.446
+  `nW/cm2/sr`.
 - `effective_tax_rate` is promoted to public/live metric tables from official
   ACS 2024 5-year table-based Summary File bulk downloads. It uses
   county-subdivision rows only (`mun-cousub-*`) because including both county
@@ -509,10 +523,10 @@ Known caveats:
   observed is `2026-05-31`. This file is gitignored and is not enough by itself
   for promotion because the approved layer still needs a ZCTA geometry/source
   crosswalk to reduce ZIP/ZCTA values to districts.
-- `median_home_value` is blocked on the official ZCTA geometry/crosswalk input.
-  A `HEAD` probe against Census TIGER 2023 ZCTA succeeded, but the actual local
-  ZIP download failed from this environment with DNS resolution errors. No
-  median-value staging or promotion has been run.
+- `median_home_value` now has the local Zillow ZHVI CSV and Census TIGER 2023
+  ZCTA geometry ZIP, but the approved housing-unit-weighted ZCTA -> district
+  crosswalk still needs a local housing-unit relationship/input. Do not silently
+  substitute raw area weighting for this layer.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
 - `flood_sfha` is promoted to public/live metric tables. The initial promote
@@ -656,8 +670,14 @@ Checks last run after repaired `flood_sfha` promotion:
   - `npm test`: 3 test files, 15 tests passed.
   - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
   - `npm run build`: production client and SSR builds passed.
-- `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
-- A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
+- `light_pollution_radiance` compile/manifest/CLI checks passed after adding
+  the runner:
+  - `./.venv/bin/python -m compileall gt/layers/light_pollution.py gt/cli.py gt/layers/__init__.py`
+  - `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`
+  - `./.venv/bin/pytest tests/test_cli.py -q`: `18 passed in 0.87s`.
+- `light_pollution_radiance` staging attempts for both regions failed before
+  any staging writes because this environment could not resolve the Neon host
+  `ep-sweet-glade-atx14wzw-pooler.c-9.us-east-1.aws.neon.tech`.
 
 ## 7. Recommended Next Steps
 
@@ -672,10 +692,10 @@ Next actions, in order:
    selection, mobile layout, marker selection, and panel behavior, and tune any
    copy/layout issues found.
 3. Resolve blocked source/data access:
-   - `light_pollution_radiance`: EOG-authenticated exact file verification and
-     numeric sample stats.
-   - `median_home_value`: use the restored local Zillow ZHVI CSV plus a
-     verified official ZCTA geometry/crosswalk input before layer ingestion.
+   - `light_pollution_radiance`: rerun staging/promote when Neon DNS/network
+     access is available.
+   - `median_home_value`: add the local housing-unit relationship/input needed
+     for the approved ZCTA -> district weighted crosswalk before ingestion.
 4. Next unblocked app path is Discovery polish: clearer selected-district map
    feedback, mobile visual QA, and profile-weight controls for promoted
    environmental metrics. Keep median-home-value comparisons disabled until the
@@ -727,7 +747,7 @@ work requires new product/design direction that cannot be inferred responsibly.
 - `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 - `risk_index` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 - `walkability_index` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
-- `light_pollution_radiance` manifest uses draft vintage `2024`. This should be updated before implementation if EOG-authenticated listing shows a newer complete annual V2.2 median-masked product.
+- `light_pollution_radiance` manifest uses verified vintage `2025`.
 - `walkability_index` manifest uses citation vintage `2021` based on Data.gov
   metadata and EPA's 2021 Smart Location Database lineage. ArcGIS REST sampling
   verified the needed fields and score range; the ZIP members are still

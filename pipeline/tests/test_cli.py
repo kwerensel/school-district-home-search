@@ -115,6 +115,21 @@ def test_effective_tax_rate_layer_manifest_validates() -> None:
     assert "effective_tax_rate" in result.output
 
 
+def test_light_pollution_layer_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/light_pollution_radiance.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "light_pollution_radiance" in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(
@@ -183,6 +198,25 @@ def test_layer_runner_accepts_effective_tax_key_before_database_work(monkeypatch
     result = CliRunner().invoke(
         app,
         ["layer", "run", "effective_tax_rate", "--region", "hudson-valley", "--grain", "tract"],
+    )
+
+    assert result.exit_code != 0
+    assert "not implemented yet" not in result.output
+
+
+def test_layer_runner_accepts_light_pollution_key_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    result = CliRunner().invoke(
+        app,
+        [
+            "layer",
+            "run",
+            "light_pollution_radiance",
+            "--region",
+            "hudson-valley",
+            "--grain",
+            "tract",
+        ],
     )
 
     assert result.exit_code != 0
