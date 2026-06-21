@@ -77,6 +77,10 @@ Completed checkpoints:
 - Explorer listing detail follow-up is implemented in the current checkpoint:
   known compact listing values now always display alongside promoted metric
   groups, so users can see all currently known values for the selected listing.
+- Discovery profile scoring follow-up is implemented in the current checkpoint:
+  promoted environmental district metrics now feed deterministic match scoring
+  alongside purchasing power, with URL-backed priority sliders for budget fit,
+  green, walkability, lower risk, lower flood, and darker skies.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -715,6 +719,15 @@ Checks last run after repaired `flood_sfha` promotion:
   `./.venv/bin/pytest -k golden -q`: `11 passed, 18 deselected in 10.32s`.
 - Full local pipeline suite passed with `./.venv/bin/pytest -q`:
   `18 passed, 11 skipped in 0.50s`.
+- Discovery scoring app checks passed:
+  - `npm test`: 3 test files, 16 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+  - Live Neon smoke query confirmed 78 Hudson Valley and 61 PA districts have
+    the environmental metric inputs expected by Discovery scoring.
+  - Chrome QA loaded weighted `/discover` URL, verified priority sliders,
+    match percentages, buying ceilings, clean URL hydration, and no console
+    errors.
 
 ## 7. Recommended Next Steps
 
@@ -731,9 +744,9 @@ Next actions, in order:
    - `median_home_value`: add the local housing-unit relationship/input needed
      for the approved ZCTA -> district weighted crosswalk before ingestion.
 3. Next unblocked app path is Discovery polish: clearer selected-district map
-   feedback, mobile visual QA, and profile-weight controls for promoted
-   environmental metrics. Keep median-home-value comparisons disabled until the
-   ZCTA layer gate is resolved.
+   feedback and mobile visual QA. Profile-weight controls for promoted
+   environmental metrics are implemented. Keep median-home-value comparisons
+   disabled until the ZCTA layer gate is resolved.
 4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

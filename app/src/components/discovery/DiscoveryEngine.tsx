@@ -36,7 +36,36 @@ const percent = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+const wholeNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
+
 type RegionFilter = "all" | "pa-mainline" | "hudson-valley";
+type WeightKey =
+  | "affordability"
+  | "green"
+  | "walkability"
+  | "lowerRisk"
+  | "lowerFlood"
+  | "darkSkies";
+
+const DEFAULT_WEIGHTS: Record<WeightKey, number> = {
+  affordability: 5,
+  green: 2,
+  walkability: 2,
+  lowerRisk: 1,
+  lowerFlood: 1,
+  darkSkies: 1,
+};
+
+const weightControls: Array<{ key: WeightKey; label: string }> = [
+  { key: "affordability", label: "Budget fit" },
+  { key: "green", label: "Green" },
+  { key: "walkability", label: "Walkability" },
+  { key: "lowerRisk", label: "Lower risk" },
+  { key: "lowerFlood", label: "Lower flood" },
+  { key: "darkSkies", label: "Darker skies" },
+];
 
 function formatCurrency(value: number) {
   return currency.format(Math.round(value));
@@ -69,6 +98,7 @@ export function DiscoveryEngine() {
   const [creditBand, setCreditBand] = useState<CreditBand>("good");
   const [regionGroup, setRegionGroup] = useState<RegionFilter>("all");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [weights, setWeights] = useState<Record<WeightKey, number>>(DEFAULT_WEIGHTS);
   const [urlHydrated, setUrlHydrated] = useState(false);
 
   const tokenQuery = useQuery({
@@ -90,6 +120,7 @@ export function DiscoveryEngine() {
       downPaymentAmount,
       creditBand,
       regionGroup,
+      weights,
     ],
     queryFn: () =>
       getPurchasingPower({
@@ -97,6 +128,7 @@ export function DiscoveryEngine() {
           monthlyBudget,
           downPaymentAmount,
           creditBand,
+          environmentWeights: weights,
           ...(regionGroup === "all" ? {} : { regionGroup }),
         },
       }),
@@ -113,7 +145,9 @@ export function DiscoveryEngine() {
     () =>
       [...purchasingPower].sort(
         (a, b) =>
-          b.maxPurchasePrice - a.maxPurchasePrice || a.districtName.localeCompare(b.districtName),
+          b.matchScore - a.matchScore ||
+          b.maxPurchasePrice - a.maxPurchasePrice ||
+          a.districtName.localeCompare(b.districtName),
       ),
     [purchasingPower],
   );
@@ -134,8 +168,12 @@ export function DiscoveryEngine() {
     params.set("downPayment", String(Math.round(downPaymentAmount)));
     params.set("creditBand", creditBand);
     if (regionGroup !== "all") params.set("regionGroup", regionGroup);
+    for (const control of weightControls) {
+      const value = weights[control.key];
+      if (value !== DEFAULT_WEIGHTS[control.key]) params.set(control.key, String(value));
+    }
     return params.toString();
-  }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup]);
+  }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup, weights]);
   const selectedExplorerHref = useMemo(() => {
     const params = new URLSearchParams(profileSearch);
     if (selected) {
@@ -150,6 +188,13 @@ export function DiscoveryEngine() {
     const params = new URLSearchParams(window.location.search);
     const nextCredit = params.get("creditBand");
     const nextRegion = params.get("regionGroup");
+    const nextWeights = { ...DEFAULT_WEIGHTS };
+    for (const control of weightControls) {
+      const rawValue = params.get(control.key);
+      if (rawValue === null) continue;
+      const value = Number(rawValue);
+      if (Number.isFinite(value) && value >= 0 && value <= 10) nextWeights[control.key] = value;
+    }
 
     const nextMonthlyBudget = parsePositiveNumber(params.get("monthlyBudget") ?? "", 5500);
     const nextDownPayment = parsePositiveNumber(params.get("downPayment") ?? "", 150000);
@@ -161,6 +206,7 @@ export function DiscoveryEngine() {
     setRegionGroup(
       nextRegion === "pa-mainline" || nextRegion === "hudson-valley" ? nextRegion : "all",
     );
+    setWeights(nextWeights);
     setUrlHydrated(true);
   }, []);
 
@@ -279,6 +325,32 @@ export function DiscoveryEngine() {
               </div>
             </section>
 
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold text-foreground">Priorities</h2>
+              <div className="space-y-4">
+                {weightControls.map((control) => (
+                  <div key={control.key} className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label htmlFor={`weight-${control.key}`}>{control.label}</Label>
+                      <span className="w-6 text-right text-sm font-medium text-foreground">
+                        {weights[control.key]}
+                      </span>
+                    </div>
+                    <Slider
+                      id={`weight-${control.key}`}
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={[weights[control.key]]}
+                      onValueChange={(value) =>
+                        setWeights((current) => ({ ...current, [control.key]: value[0] }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+
             <section className="grid grid-cols-2 gap-3">
               <MetricBox label="Districts" value={String(ranked.length)} />
               <MetricBox
@@ -310,6 +382,7 @@ export function DiscoveryEngine() {
                     value={formatCurrency(selected.maxPurchasePrice)}
                   />
                   <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
+                  <MetricBox label="Match" value={`${wholeNumber.format(selected.matchScore)}%`} />
                 </div>
                 <Button asChild className="mt-4 w-full" size="sm">
                   <a href={selectedExplorerHref}>
@@ -344,9 +417,12 @@ export function DiscoveryEngine() {
                         </p>
                       </div>
                       <p className="shrink-0 text-sm font-semibold text-foreground">
-                        {formatCurrency(district.maxPurchasePrice)}
+                        {wholeNumber.format(district.matchScore)}%
                       </p>
                     </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {formatCurrency(district.maxPurchasePrice)} ceiling
+                    </p>
                   </button>
                 ))}
               </div>
