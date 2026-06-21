@@ -55,7 +55,6 @@ export function MapView({
 
     const map = L.map(containerRef.current, {
       zoomControl: false,
-      preferCanvas: true,
     }).setView(DEFAULT_CENTER, 11);
 
     L.control.zoom({ position: "topright" }).addTo(map);
@@ -166,5 +165,54 @@ export function MapView({
     });
   }, [districts, goodOnly]);
 
-  return <div ref={containerRef} className="absolute inset-0" aria-label="Map" />;
+  return (
+    <div className="absolute inset-0">
+      <div ref={containerRef} className="h-full w-full" aria-label="Map" />
+      <MapLegend goodOnly={goodOnly} />
+    </div>
+  );
+}
+
+function MapLegend({ goodOnly }: { goodOnly: boolean }) {
+  return (
+    <div
+      className="absolute right-3 bottom-3 z-[500] max-w-[min(18rem,calc(100%-1.5rem))] rounded-md border border-border bg-background/95 p-3 text-xs shadow-sm"
+      data-testid="explorer-map-legend"
+    >
+      <p className="mb-2 font-medium text-foreground">Map colors</p>
+      <div className="space-y-2">
+        <LegendRow color="#2563eb" label="Listing in a good district" shape="dot" />
+        <LegendRow color="#475569" label="Other listing" shape="dot" />
+        <LegendRow color="#16a34a" label="Good district boundary" shape="area" />
+        {!goodOnly ? (
+          <LegendRow color="#94a3b8" label="Other district boundary" shape="area" />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function LegendRow({
+  color,
+  label,
+  shape,
+}: {
+  color: string;
+  label: string;
+  shape: "area" | "dot";
+}) {
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      <span
+        className={shape === "dot" ? "h-3 w-3 rounded-full" : "h-3 w-5 rounded-sm border"}
+        style={{
+          backgroundColor: color,
+          borderColor: shape === "area" ? color : undefined,
+          opacity: shape === "area" ? 0.45 : 1,
+        }}
+        aria-hidden="true"
+      />
+      <span>{label}</span>
+    </div>
+  );
 }

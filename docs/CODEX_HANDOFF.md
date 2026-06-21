@@ -86,6 +86,10 @@ Completed checkpoints:
   selected district panel now appears earlier in the sidebar with all known
   promoted district values, and the map has a selected-district summary card,
   hover tooltips, and clearer legend labels.
+- Explorer map legend polish is implemented in the current checkpoint: the map
+  now explains listing/district colors, and Explorer uses Leaflet SVG rendering
+  instead of the canvas renderer that produced a local Chrome `clearRect`
+  runtime error.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -741,6 +745,12 @@ Checks last run after repaired `flood_sfha` promotion:
     restart, verified the selected sidebar panel, selected map card, legend,
     known district values, and no recent console errors. True mobile emulation
     was not available through the current Chrome connector.
+- Explorer map legend checks passed:
+  - `npm test`: 3 test files, 16 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+  - Chrome QA loaded `/`, verified 4,505 listings, the map legend text, and no
+    post-fix Leaflet console errors.
 
 ## 7. Recommended Next Steps
 
@@ -757,8 +767,8 @@ Next actions, in order:
    - `median_home_value`: add the local housing-unit relationship/input needed
      for the approved ZCTA -> district weighted crosswalk before ingestion.
 3. Next unblocked app path is continued Discovery/mobile polish and Explorer
-   metrics-panel QA. Profile-weight controls and selected-district feedback
-   for promoted environmental metrics are implemented. Keep median-home-value
+   metrics-panel QA. Profile-weight controls, selected-district feedback, and
+   Explorer map color explanations are implemented. Keep median-home-value
    comparisons disabled until the ZCTA layer gate is resolved.
 4. Do not start GVI.
 
