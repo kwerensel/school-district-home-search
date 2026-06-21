@@ -59,7 +59,6 @@ export function RegionChoroplethMap({
 
     const map = L.map(containerRef.current, {
       zoomControl: false,
-      preferCanvas: true,
     }).setView(DEFAULT_CENTER, 8);
 
     L.control.zoom({ position: "topright" }).addTo(map);

@@ -53,37 +53,17 @@ function parsePositiveNumber(value: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function initialNumberParam(name: string, fallback: number) {
-  if (typeof window === "undefined") return fallback;
-  return parsePositiveNumber(new URLSearchParams(window.location.search).get(name) ?? "", fallback);
-}
-
-function initialRegionParam(): RegionFilter {
-  if (typeof window === "undefined") return "all";
-  const value = new URLSearchParams(window.location.search).get("regionGroup");
-  return value === "pa-mainline" || value === "hudson-valley" ? value : "all";
-}
-
-function initialCreditParam(): CreditBand {
-  if (typeof window === "undefined") return "good";
-  const value = new URLSearchParams(window.location.search).get("creditBand");
-  return value === "excellent" || value === "fair" ? value : "good";
-}
-
 export function DiscoveryEngine() {
   const getToken = useServerFn(getMapboxToken);
   const getDistrictsFn = useServerFn(getDistricts);
   const getPurchasingPower = useServerFn(getDistrictPurchasingPower);
 
-  const [monthlyBudget, setMonthlyBudget] = useState(() =>
-    initialNumberParam("monthlyBudget", 5500),
-  );
-  const [downPaymentFraction, setDownPaymentFraction] = useState(
-    () => initialNumberParam("downPayment", 20) / 100,
-  );
-  const [creditBand, setCreditBand] = useState<CreditBand>(() => initialCreditParam());
-  const [regionGroup, setRegionGroup] = useState<RegionFilter>(() => initialRegionParam());
+  const [monthlyBudget, setMonthlyBudget] = useState(5500);
+  const [downPaymentFraction, setDownPaymentFraction] = useState(0.2);
+  const [creditBand, setCreditBand] = useState<CreditBand>("good");
+  const [regionGroup, setRegionGroup] = useState<RegionFilter>("all");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [urlHydrated, setUrlHydrated] = useState(false);
 
   const tokenQuery = useQuery({
     queryKey: ["mapbox-token"],
@@ -138,7 +118,10 @@ export function DiscoveryEngine() {
       ? ranked.reduce((sum, district) => sum + district.maxPurchasePrice, 0) / ranked.length
       : 0;
   const isBooting =
-    tokenQuery.isPending || districtsQuery.isPending || purchasingPowerQuery.isPending;
+    !urlHydrated ||
+    tokenQuery.isPending ||
+    districtsQuery.isPending ||
+    purchasingPowerQuery.isPending;
   const profileSearch = useMemo(() => {
     const params = new URLSearchParams();
     params.set("monthlyBudget", String(monthlyBudget));
@@ -158,8 +141,23 @@ export function DiscoveryEngine() {
   }, [profileSearch, selected]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nextCredit = params.get("creditBand");
+    const nextRegion = params.get("regionGroup");
+
+    setMonthlyBudget(parsePositiveNumber(params.get("monthlyBudget") ?? "", 5500));
+    setDownPaymentFraction(parsePositiveNumber(params.get("downPayment") ?? "", 20) / 100);
+    setCreditBand(nextCredit === "excellent" || nextCredit === "fair" ? nextCredit : "good");
+    setRegionGroup(
+      nextRegion === "pa-mainline" || nextRegion === "hudson-valley" ? nextRegion : "all",
+    );
+    setUrlHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!urlHydrated) return;
     window.history.replaceState(null, "", `${window.location.pathname}?${profileSearch}`);
-  }, [profileSearch]);
+  }, [profileSearch, urlHydrated]);
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">

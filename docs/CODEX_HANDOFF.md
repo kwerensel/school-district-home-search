@@ -58,6 +58,10 @@ Completed checkpoints:
   checkpoint: Discovery persists monthly budget, down payment, credit band, and
   region in search params, then links to Explorer with selected district and
   max-price ceiling; Explorer initializes filters from those URL params.
+- Chrome QA follow-up is implemented in the current checkpoint: Discovery URL
+  params now hydrate after mount to avoid SSR/client mismatch, and the
+  choropleth uses Leaflet SVG rendering instead of canvas to avoid a runtime
+  renderer error seen during local Chrome loading.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -388,6 +392,11 @@ Uncommitted in the current worktree:
 - `app/src/components/discovery/DiscoveryEngine.tsx`: now initializes budget
   controls from URL params, keeps the URL profile current, and links selected
   districts into Explorer.
+- `app/src/components/discovery/DiscoveryEngine.tsx`: follow-up fix moves URL
+  param reads out of initial render so SSR and client hydration match.
+- `app/src/components/discovery/RegionChoroplethMap.tsx`: follow-up fix removes
+  `preferCanvas` for the polygon choropleth after Chrome showed a Leaflet
+  canvas `clearRect` runtime error.
 - `app/src/components/housing/HousingSearch.tsx`: now initializes listing
   filters from incoming `district`, `maxPrice`, `minBeds`, `minBaths`, and
   `goodOnly` URL params.
@@ -601,6 +610,16 @@ Checks last run after repaired `flood_sfha` promotion:
   - Local dev server served `/discover?monthlyBudget=6500&downPayment=15&creditBand=fair&regionGroup=hudson-valley`
     and `/?district=Lower%20Merion&maxPrice=800000&monthlyBudget=6500`
     with `HTTP 200`.
+- Chrome/local QA follow-up:
+  - Opening `/discover?monthlyBudget=6500&downPayment=15&creditBand=fair&regionGroup=hudson-valley`
+    in Chrome initially exposed a hydration mismatch from client-only URL-param
+    initialization and a Leaflet canvas renderer error in the choropleth.
+  - Both issues were fixed; after reload, the prior hydration and Leaflet
+    errors did not recur in the dev-server logs.
+  - `npm test`, `npm run lint`, and `npm run build` passed again after the
+    fixes.
+  - Visual screen inspection via Computer Use is still blocked until macOS
+    Accessibility/Screen Recording permissions finish being granted for Codex.
 - `light_pollution_radiance` manifest validation passed with `./.venv/bin/gt manifest validate layer manifests/layers/light_pollution_radiance.yaml`.
 - A one-off `curl -I` probe against a likely EOG V2.2 2024 median-masked file returned an authentication redirect, not downloadable file metadata.
 
@@ -611,7 +630,7 @@ committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Commit and push the URL-profile handoff checkpoint.
+1. Commit and push the Chrome QA runtime-fix checkpoint.
 2. Continue app visual QA when browser access is available: inspect
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
