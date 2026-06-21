@@ -130,6 +130,21 @@ def test_light_pollution_layer_manifest_validates() -> None:
     assert "light_pollution_radiance" in result.output
 
 
+def test_median_home_value_layer_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/median_home_value.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "median_home_value" in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(
@@ -217,6 +232,17 @@ def test_layer_runner_accepts_light_pollution_key_before_database_work(monkeypat
             "--grain",
             "tract",
         ],
+    )
+
+    assert result.exit_code != 0
+    assert "not implemented yet" not in result.output
+
+
+def test_layer_runner_accepts_median_home_value_key_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    result = CliRunner().invoke(
+        app,
+        ["layer", "run", "median_home_value", "--region", "hudson-valley", "--grain", "tract"],
     )
 
     assert result.exit_code != 0

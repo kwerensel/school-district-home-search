@@ -60,12 +60,13 @@ def render_layer_qa(manifest_path: Path, region_slug: str) -> Path:
 
 
 def _promote_metric_definition(cur: psycopg.Cursor[Any], manifest: LayerManifest) -> None:
+    grain = "school_district" if manifest.metric_key == "median_home_value" else "census_tract"
     cur.execute(
         """
         INSERT INTO metric_definitions
           (metric_key, name, units, direction, source, grain, native_resolution, notes)
         VALUES
-          (%s, %s, %s, %s, %s, 'census_tract', %s, %s)
+          (%s, %s, %s, %s, %s, %s::region_type, %s, %s)
         ON CONFLICT (metric_key) DO UPDATE SET
           name = EXCLUDED.name,
           units = EXCLUDED.units,
@@ -81,6 +82,7 @@ def _promote_metric_definition(cur: psycopg.Cursor[Any], manifest: LayerManifest
             manifest.units,
             manifest.direction,
             f"{manifest.source} ({manifest.vintage})",
+            grain,
             manifest.native_resolution,
             manifest.notes,
         ),

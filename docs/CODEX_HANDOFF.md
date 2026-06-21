@@ -752,6 +752,40 @@ Checks last run after repaired `flood_sfha` promotion:
   - Chrome QA loaded `/`, verified 4,505 listings, the map legend text, and no
     post-fix Leaflet console errors.
 
+### Median Home Value Implementation Checkpoint
+
+- Local inputs are now present for the approved housing-unit-weighted
+  ZCTA-to-school-district median-home-value path:
+  - Zillow ZHVI ZIP file with latest local column `2026-05-31`.
+  - Census 2020 ZCTA-to-tabulation-block relationship TXT.
+  - PA and NY Census 2020 PL ZIPs.
+  - ACS 2024 B25077 ZCTA fallback value file.
+- Added `median_home_value` manifest and source-onboarding note.
+- Added a pipeline layer that:
+  - reads Zillow ZIP/ZCTA values and ACS fallback values;
+  - reads PL 2020 block housing-unit counts and block school-district codes;
+  - streams the Census ZCTA-to-block relationship file;
+  - allocates block housing units to `(ZCTA, school district)` by block-part
+    area share;
+  - stages direct school-district `region_metrics` rows with validation checks
+    for coverage, range, ZCTA count, Zillow/ACS/missing housing-unit shares,
+    and output distribution.
+- Added `004_direct_district_metrics.sql` so `district_metrics` includes both
+  tract rollups and direct school-district metrics, preferring direct metrics
+  where they exist for the same district/metric/vintage.
+- Wired `median_home_value` into the layer CLI and promotion metadata as a
+  `school_district`-grain metric.
+- Local verification passed:
+  - `./.venv/bin/python -m compileall gt/layers/median_home_value.py gt/layers/runner.py gt/layers/__init__.py gt/cli.py`
+  - `./.venv/bin/gt manifest validate layer manifests/layers/median_home_value.yaml`
+  - `./.venv/bin/pytest tests/test_median_home_value.py tests/test_cli.py -q`: 24 passed.
+  - `env -u DATABASE_URL ./.venv/bin/pytest -q`: 24 passed, 11 skipped.
+- Blocked before staging/promotion because the Codex sandbox cannot reach Neon:
+  DNS resolution failed for the Neon hostname; appending the resolved
+  `hostaddr` bypassed DNS but outbound TCP failed with `Operation not
+  permitted`. No `median_home_value` staging, QA map, promotion, or live
+  verification has run yet.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -763,13 +797,14 @@ Next actions, in order:
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
    copy/layout issues found.
-2. Resolve the remaining median-home-value data input:
-   - `median_home_value`: add the local housing-unit relationship/input needed
-     for the approved ZCTA -> district weighted crosswalk before ingestion.
+2. When database connectivity is available, finish `median_home_value`:
+   apply migrations, run the layer for `pa-mainline` and `hudson-valley`, render
+   QA maps, inspect validation reports, explicitly promote only if reports are
+   promotable, refresh/verify `district_metrics`, then commit/push.
 3. Next unblocked app path is continued Discovery/mobile polish and Explorer
    metrics-panel QA. Profile-weight controls, selected-district feedback, and
    Explorer map color explanations are implemented. Keep median-home-value
-   comparisons disabled until the ZCTA layer gate is resolved.
+   comparisons disabled until the median layer is promoted and verified.
 4. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
@@ -809,10 +844,11 @@ work requires new product/design direction that cannot be inferred responsibly.
 ## 9. Assumptions And Uncertainty
 
 - Assumed `app/.env.local` points to the intended Neon database; this was confirmed by listing counts and passing golden tests.
-- Region scaffolding currently handles tract -> district and tract ->
-  municipality overlaps. ZCTA -> district housing-unit overlaps are mentioned
-  in Phase 4 but not implemented yet; this will matter for `median_home_value`
-  in Phase 6.
+- Region scaffolding handles tract -> district and tract -> municipality
+  overlaps. `median_home_value` now implements its own streamed
+  ZCTA/block/housing-unit crosswalk and stages direct school-district metrics,
+  but it has not been staged/promoted because Neon was unreachable from the
+  Codex sandbox.
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
 - `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 - `risk_index` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.

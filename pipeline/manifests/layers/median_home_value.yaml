@@ -1,0 +1,28 @@
+metric_key: median_home_value
+name: Median home value
+source: Zillow ZHVI single-family ZIP plus Census 2020 PL and relationship files
+source_urls:
+  - https://www.zillow.com/research/data/
+  - https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_tabblock20_natl.txt
+  - https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File--PL_94-171/Pennsylvania/pa2020.pl.zip
+  - https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File--PL_94-171/New_York/ny2020.pl.zip
+  - https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b25077.dat
+vintage: "2026-05-31-zhvi"
+units: USD
+direction: neutral
+native_resolution: ZCTA / ZIP
+allowed_range: [10000, 10000000]
+reduction_method: housing_unit_weighted
+coverage_threshold: 0.99
+grains:
+  - tract
+listing_reductions: []
+notes: >
+  District-level median home value estimate from Zillow's single-family ZHVI ZIP
+  file, reduced from ZIP/ZCTA-like geography to official school-district regions
+  using Census 2020 ZCTA-to-tabulation-block relationships, PL 94-171 block
+  total housing-unit counts, and block school-district codes. ZCTAs missing
+  from Zillow fall back to ACS 2024 5-year B25077 ZCTA median owner-occupied
+  value when available, with fallback housing-unit share reported in validation.
+  This is a district context metric for Discovery affordability comparison, not
+  an address-level estimate or listing valuation.
