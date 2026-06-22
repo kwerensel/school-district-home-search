@@ -98,6 +98,8 @@ Completed checkpoints:
   computes budget fit as max purchase price divided by district median value
   when available, and Discovery displays median value plus fit ratio in ranked
   cards, selected district panel, and map tooltips.
+- Phase 7 `park_access` source onboarding is drafted in the current checkpoint
+  using approved OpenStreetMap plus USGS PAD-US Public Access sources.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -840,6 +842,33 @@ Checks last run after repaired `flood_sfha` promotion:
   - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
   - `npm run build`: production client and SSR builds passed.
 
+### Phase 7 `park_access` Source Onboarding Checkpoint
+
+- Added `pipeline/manifests/layers/park_access.yaml`.
+- Added `docs/layer-onboarding/park_access.md`.
+- Source packet uses:
+  - OpenStreetMap via `osmnx` for local park/open-space polygons.
+  - USGS PAD-US Public Access FeatureServer for nationally aggregated public
+    access/protected open-space polygons.
+- Evidence gathered from USGS/PAD-US:
+  - PAD-US is the official national inventory of protected areas and public
+    parks/open space.
+  - PAD-US 4.x citation DOI is `10.5066/P96WBCHS`.
+  - PAD-US web services expose a Public Access FeatureServer.
+  - Public access categories include `OA` open access, `RA` restricted access,
+    and `XA` closed access.
+  - PAD-US documentation notes local park data gaps and categorical public
+    access assignment, so OSM is included as a local-detail supplement.
+- Inclusion rule for implementation:
+  - Default metric includes PAD-US `OA` and public OSM park/open-space
+    polygons.
+  - Track PAD-US `RA` separately for QA; do not include restricted access in
+    the default metric unless the UI/product copy explicitly labels it.
+  - Exclude PAD-US `XA` and unknown/non-public access from the default metric.
+- Verification passed:
+  - `./.venv/bin/gt manifest validate layer manifests/layers/park_access.yaml`
+  - `./.venv/bin/pytest tests/test_cli.py -q`: 21 passed.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -851,9 +880,11 @@ Next actions, in order:
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
    copy/layout issues found.
-2. Next unblocked phase path is Phase 7 access-layer source onboarding and
-   implementation planning, unless app visual QA surfaces a higher-priority
-   usability issue.
+2. Next unblocked phase path is Phase 7 `park_access` implementation:
+   query/crop OSM + PAD-US by region bounds plus 800 m buffer, union/deduplicate
+   public access polygons, stage tract 800 m access share and listing nearest
+   park-edge distance, render QA maps, validate, promote if green, then wire
+   promoted access values into Explorer/Discovery.
 3. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

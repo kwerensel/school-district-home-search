@@ -1,0 +1,32 @@
+metric_key: park_access
+name: Park access
+source: OpenStreetMap parks and USGS PAD-US Public Access
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Map_features
+  - https://www.usgs.gov/programs/gap-analysis-project/science/protected-areas
+  - https://www.usgs.gov/programs/gap-analysis-project/science/pad-us-data-overview
+  - https://www.usgs.gov/programs/gap-analysis-project/science/pad-us-web-services
+  - https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/PADUS_Public_Access/FeatureServer
+vintage: "osm-live-padus-4.x"
+units: share
+direction: higher_better
+native_resolution: exact OSM/PAD-US polygons
+allowed_range: [0, 1]
+reduction_method: threshold_share
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - distance_to_nearest
+notes: >
+  Park access combines local OpenStreetMap recreation/open-space polygons with
+  the USGS PAD-US Public Access feature service. Use PAD-US Pub_Access='OA'
+  and optionally Pub_Access='RA' as a restricted-access QA comparison, but do
+  not count Pub_Access='XA' or unknown-access features as public park access.
+  OSM is used to improve local park and playground coverage where PAD-US notes
+  known local-government data gaps. Tract grain should measure the share of
+  tract residential/representative area within 800 m of an access polygon.
+  Listing grain should store distance to the nearest park/open-space polygon
+  edge in meters. Label results as access context, not a promise that every
+  entrance, trail, rule, season, or permit is available from the listing.

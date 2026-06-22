@@ -145,6 +145,21 @@ def test_median_home_value_layer_manifest_validates() -> None:
     assert "median_home_value" in result.output
 
 
+def test_park_access_layer_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/park_access.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "park_access" in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(
