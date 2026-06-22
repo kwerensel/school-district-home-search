@@ -95,7 +95,15 @@ function formatOptionalNumber(value: number | null, suffix = "") {
   return value === null ? "-" : `${oneDecimal.format(value)}${suffix}`;
 }
 
+function formatOptionalCurrency(value: number | null) {
+  return value === null ? "-" : formatCurrency(value);
+}
+
 function formatOptionalPercent(value: number | null) {
+  return value === null ? "-" : percent.format(value);
+}
+
+function formatOptionalRatio(value: number | null) {
   return value === null ? "-" : percent.format(value);
 }
 
@@ -426,6 +434,9 @@ export function DiscoveryEngine() {
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {formatCurrency(district.maxPurchasePrice)} max home price
+                      {district.affordabilityRatio !== null
+                        ? ` · ${formatOptionalRatio(district.affordabilityRatio)} of median`
+                        : ""}
                     </p>
                   </button>
                 ))}
@@ -474,6 +485,11 @@ function SelectedDistrictPanel({
       <p className="text-sm text-muted-foreground">{regionLabel(selected.regionGroup)}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <MetricBox label="Max home price" value={formatCurrency(selected.maxPurchasePrice)} />
+        <MetricBox
+          label="Median value"
+          value={formatOptionalCurrency(selected.environmentMetrics.medianHomeValue)}
+        />
+        <MetricBox label="Budget fit" value={formatOptionalRatio(selected.affordabilityRatio)} />
         <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
         <MetricBox label="Match" value={`${wholeNumber.format(selected.matchScore)}%`} />
       </div>

@@ -43,6 +43,7 @@ export type DistrictPurchasingPowerRow = {
   effective_tax_rate: number | string;
   canopy_height_m: number | string | null;
   tree_canopy_pct: number | string | null;
+  median_home_value: number | string | null;
   walkability_index: number | string | null;
   risk_index: number | string | null;
   flood_sfha: number | string | null;
@@ -52,6 +53,7 @@ export type DistrictPurchasingPowerRow = {
 export type DistrictEnvironmentMetrics = {
   canopyHeightM: number | null;
   treeCanopyPct: number | null;
+  medianHomeValue: number | null;
   walkabilityIndex: number | null;
   riskIndex: number | null;
   floodSfha: number | null;
@@ -66,6 +68,7 @@ export type DistrictPurchasingPower = {
   effectiveTaxRate: number;
   environmentMetrics: DistrictEnvironmentMetrics;
   matchScore: number;
+  affordabilityRatio: number | null;
   maxPurchasePrice: number;
   budgetLimitedPrice: number;
   dtiLimitedPrice: number | null;
@@ -86,6 +89,7 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
     "effective_tax_rate",
     "canopy_height_m",
     "tree_canopy_pct",
+    "median_home_value",
     "walkability_index",
     "risk_index",
     "flood_sfha",
@@ -109,6 +113,7 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(dm.value) FILTER (WHERE dm.metric_key = 'effective_tax_rate') AS effective_tax_rate,
         max(dm.value) FILTER (WHERE dm.metric_key = 'canopy_height_m') AS canopy_height_m,
         max(dm.value) FILTER (WHERE dm.metric_key = 'tree_canopy_pct') AS tree_canopy_pct,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'median_home_value') AS median_home_value,
         max(dm.value) FILTER (WHERE dm.metric_key = 'walkability_index') AS walkability_index,
         max(dm.value) FILTER (WHERE dm.metric_key = 'risk_index') AS risk_index,
         max(dm.value) FILTER (WHERE dm.metric_key = 'flood_sfha') AS flood_sfha,
@@ -156,6 +161,11 @@ function computeDistrictPurchasingPower(
     maxDti: input.maxDti,
   };
   const result = computePurchasingPower(financeInput);
+  const medianHomeValue = nullableNumber(row.median_home_value);
+  const affordabilityRatio =
+    medianHomeValue !== null && medianHomeValue > 0
+      ? result.maxPurchasePrice / medianHomeValue
+      : null;
 
   return {
     districtRegionId: Number(row.district_region_id),
@@ -166,12 +176,14 @@ function computeDistrictPurchasingPower(
     environmentMetrics: {
       canopyHeightM: nullableNumber(row.canopy_height_m),
       treeCanopyPct: nullableNumber(row.tree_canopy_pct),
+      medianHomeValue,
       walkabilityIndex: nullableNumber(row.walkability_index),
       riskIndex: nullableNumber(row.risk_index),
       floodSfha: nullableNumber(row.flood_sfha),
       lightPollutionRadiance: nullableNumber(row.light_pollution_radiance),
     },
     matchScore: 0,
+    affordabilityRatio,
     maxPurchasePrice: result.maxPurchasePrice,
     budgetLimitedPrice: result.budgetLimitedPrice,
     dtiLimitedPrice: result.dtiLimitedPrice,
@@ -201,7 +213,11 @@ function addMatchScores(
   } satisfies Required<ScoreKey>;
 
   const scoreInputs = {
-    affordability: districtScores(districts, (district) => district.maxPurchasePrice, "higher"),
+    affordability: districtScores(
+      districts,
+      (district) => district.affordabilityRatio ?? district.maxPurchasePrice,
+      "higher",
+    ),
     green: averagedScores([
       districtScores(districts, (district) => district.environmentMetrics.canopyHeightM, "higher"),
       districtScores(districts, (district) => district.environmentMetrics.treeCanopyPct, "higher"),
@@ -234,7 +250,7 @@ function addMatchScores(
     for (const key of Object.keys(normalizedWeights) as Array<keyof typeof normalizedWeights>) {
       const weight = normalizedWeights[key];
       const score = scoreInputs[key].get(district.districtSlug);
-      if (!score || weight <= 0) continue;
+      if (score === undefined || weight <= 0) continue;
       weightedTotal += score * weight;
       weightTotal += weight;
     }

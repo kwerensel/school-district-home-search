@@ -93,6 +93,11 @@ Completed checkpoints:
 - Phase 6 `median_home_value` is implemented, staged, QA-rendered, promoted,
   and verified in Neon using the approved Zillow ZHVI plus Census/ACS
   housing-unit-weighted ZCTA-to-school-district crosswalk.
+- Phase 6 median-value Discovery integration is implemented in the current
+  checkpoint: `getDistrictPurchasingPower` now fetches `median_home_value`,
+  computes budget fit as max purchase price divided by district median value
+  when available, and Discovery displays median value plus fit ratio in ranked
+  cards, selected district panel, and map tooltips.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -816,6 +821,25 @@ Checks last run after repaired `flood_sfha` promotion:
   and again on browser-session cleanup. Do not treat this as an app failure;
   re-run visual QA when the browser connector is stable.
 
+### Discovery Median Home Value Integration Checkpoint
+
+- Discovery now uses the promoted `median_home_value` district metric in the
+  purchasing-power server function.
+- The budget-fit score now prefers `maxPurchasePrice / medianHomeValue` when a
+  median value is present, falling back to raw `maxPurchasePrice` only when the
+  median value is unavailable.
+- Fixed a scoring bug where component scores of `0` were treated as missing
+  and skipped from weighted averages.
+- Discovery UI now shows:
+  - selected district median value;
+  - budget fit as percent of median value;
+  - ranked card fit context;
+  - map tooltip and selected map card fit context.
+- App verification passed:
+  - `npm test`: 3 test files, 17 tests passed.
+  - `npm run lint`: 0 errors, 6 pre-existing shadcn fast-refresh warnings.
+  - `npm run build`: production client and SSR builds passed.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -827,10 +851,9 @@ Next actions, in order:
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
    copy/layout issues found.
-2. Next unblocked app path is continued Discovery/mobile polish and Explorer
-   metrics-panel QA. Profile-weight controls, selected-district feedback, and
-   clearer max-home-price map explanations are implemented. Keep median-home-value
-   comparisons disabled until intentionally wired into Discovery scoring/UI.
+2. Next unblocked phase path is Phase 7 access-layer source onboarding and
+   implementation planning, unless app visual QA surfaces a higher-priority
+   usability issue.
 3. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction

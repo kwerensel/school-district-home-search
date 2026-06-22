@@ -25,6 +25,10 @@ const currency = new Intl.NumberFormat("en-US", {
 const wholeNumber = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
+const percent = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 0,
+});
 
 function interpolateRank(value: number, min: number, max: number) {
   if (!Number.isFinite(value) || min === max) return 0.5;
@@ -40,6 +44,10 @@ function colorForValue(value: number | undefined, min: number, max: number) {
 
 function formatCurrency(value: number) {
   return currency.format(Math.round(value));
+}
+
+function formatFit(value: number | null) {
+  return value === null ? "-" : percent.format(value);
 }
 
 export function RegionChoroplethMap({
@@ -138,7 +146,9 @@ export function RegionChoroplethMap({
       if (power) {
         const tooltip = `${power.districtName}: ${formatCurrency(
           power.maxPurchasePrice,
-        )} max home price, ${wholeNumber.format(power.matchScore)}% match`;
+        )} max home price, ${formatFit(power.affordabilityRatio)} of median, ${wholeNumber.format(
+          power.matchScore,
+        )}% match`;
         path.bindTooltip(tooltip, { sticky: true });
       }
       if (isSelected) path.bringToFront();
@@ -170,6 +180,12 @@ export function RegionChoroplethMap({
               <p className="text-muted-foreground">Max price</p>
               <p className="font-semibold text-foreground">
                 {formatCurrency(selected.maxPurchasePrice)}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Fit</p>
+              <p className="font-semibold text-foreground">
+                {formatFit(selected.affordabilityRatio)}
               </p>
             </div>
           </div>
