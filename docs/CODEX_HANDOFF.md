@@ -90,6 +90,9 @@ Completed checkpoints:
   now explains listing/district colors, and Explorer uses Leaflet SVG rendering
   instead of the canvas renderer that produced a local Chrome `clearRect`
   runtime error.
+- Phase 6 `median_home_value` is implemented, staged, QA-rendered, promoted,
+  and verified in Neon using the approved Zillow ZHVI plus Census/ACS
+  housing-unit-weighted ZCTA-to-school-district crosswalk.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -780,11 +783,18 @@ Checks last run after repaired `flood_sfha` promotion:
   - `./.venv/bin/gt manifest validate layer manifests/layers/median_home_value.yaml`
   - `./.venv/bin/pytest tests/test_median_home_value.py tests/test_cli.py -q`: 24 passed.
   - `env -u DATABASE_URL ./.venv/bin/pytest -q`: 24 passed, 11 skipped.
-- Blocked before staging/promotion because the Codex sandbox cannot reach Neon:
-  DNS resolution failed for the Neon hostname; appending the resolved
-  `hostaddr` bypassed DNS but outbound TCP failed with `Operation not
-  permitted`. No `median_home_value` staging, QA map, promotion, or live
-  verification has run yet.
+- User ran the database-backed stage/QA/promote commands locally because the
+  Codex sandbox could not connect to Neon. Validation and promotion succeeded:
+  - `pa-mainline`: 62/62 districts, range `$139,796-$1,034,863`, Zillow HU
+    share `99.84%`, ACS fallback HU share `0.09%`, missing HU share `0.07%`.
+  - `hudson-valley`: 78/78 districts, range `$323,783-$2,459,646`, Zillow HU
+    share `94.05%`, ACS fallback HU share `5.65%`, missing HU share `0.30%`.
+- QA maps generated locally:
+  - `data/reports/qa/median_home_value_pa-mainline.png`
+  - `data/reports/qa/median_home_value_hudson-valley.png`
+- Live `district_metrics` verification after promote:
+  - `hudson-valley`: 78 rows, range `323782.58814902324-2459645.916249137`.
+  - `pa-mainline`: 62 rows, range `139795.92632345334-1034862.5737386206`.
 
 ### Discovery Copy/Input Polish Checkpoint
 
@@ -817,15 +827,11 @@ Next actions, in order:
    `/discover` and the Explorer metrics panel in a browser, verify district
    selection, mobile layout, marker selection, and panel behavior, and tune any
    copy/layout issues found.
-2. When database connectivity is available, finish `median_home_value`:
-   apply migrations, run the layer for `pa-mainline` and `hudson-valley`, render
-   QA maps, inspect validation reports, explicitly promote only if reports are
-   promotable, refresh/verify `district_metrics`, then commit/push.
-3. Next unblocked app path is continued Discovery/mobile polish and Explorer
+2. Next unblocked app path is continued Discovery/mobile polish and Explorer
    metrics-panel QA. Profile-weight controls, selected-district feedback, and
    clearer max-home-price map explanations are implemented. Keep median-home-value
-   comparisons disabled until the median layer is promoted and verified.
-4. Do not start GVI.
+   comparisons disabled until intentionally wired into Discovery scoring/UI.
+3. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
 
@@ -866,9 +872,9 @@ work requires new product/design direction that cannot be inferred responsibly.
 - Assumed `app/.env.local` points to the intended Neon database; this was confirmed by listing counts and passing golden tests.
 - Region scaffolding handles tract -> district and tract -> municipality
   overlaps. `median_home_value` now implements its own streamed
-  ZCTA/block/housing-unit crosswalk and stages direct school-district metrics,
-  but it has not been staged/promoted because Neon was unreachable from the
-  Codex sandbox.
+  ZCTA/block/housing-unit crosswalk, stages direct school-district metrics, and
+  is promoted/verified in Neon. Codex sandbox database connectivity remains
+  unreliable; user Terminal can reach Neon.
 - Data/report artifacts under `data/` are gitignored. They exist locally and were used for QA, but they will not be part of a normal commit unless the ignore policy changes.
 - `tree_canopy_pct` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
 - `risk_index` is promoted to public/live metric tables. Staging rows may still exist as the last staged source of truth for the promote reports.
