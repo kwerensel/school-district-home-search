@@ -885,6 +885,13 @@ Next actions, in order:
    public access polygons, stage tract 800 m access share and listing nearest
    park-edge distance, render QA maps, validate, promote if green, then wire
    promoted access values into Explorer/Discovery.
+   Implementation note: the approved Phase 7 shape mixes units under
+   `park_access` (`share` for tract grain, meters for listing nearest-distance
+   grain), while the current metric schema has one `units`, one `direction`, and
+   one `allowed_range` per metric key. Before implementing listing grain, choose
+   either per-reduction units/ranges or a companion listing metric such as
+   `park_distance_m`; do not bury mixed-unit behavior under the existing metric
+   definition without an explicit model update.
 3. Do not start GVI.
 
 ## 8. Standing Chat-Continuity Instruction
