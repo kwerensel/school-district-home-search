@@ -1,0 +1,22 @@
+metric_key: transit_access
+name: Transit stop density
+source: Transitland v2 REST API active GTFS feeds
+source_urls:
+  - https://www.transit.land/documentation/rest-api
+  - https://www.transit.land/documentation/rest-api/stops
+  - https://transit.land/api/v2/rest/stops
+vintage: transitland-active-feed-version
+units: stops_per_sq_km
+direction: higher_better
+native_resolution: exact GTFS stop points from active feed versions
+allowed_range: [0, 1000]
+reduction_method: zonal_share
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  Count active Transitland GTFS stops within each census tract divided by tract
+  area in square kilometers. This measures mapped stop availability, not
+  frequency, span of service, reliability, accessibility, or useful routes.
+  Production ingestion requires TRANSITLAND_API_KEY and must cache the exact
+  paginated response/feed-version evidence before staging.

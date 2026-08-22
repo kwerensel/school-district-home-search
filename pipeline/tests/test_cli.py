@@ -175,6 +175,22 @@ def test_park_distance_layer_manifest_validates() -> None:
     assert "park_distance_m" in result.output
 
 
+def test_credential_gated_access_manifests_validate() -> None:
+    manifests = [
+        "transit_access.yaml",
+        "transit_distance_m.yaml",
+        "commute_minutes_center_city_philadelphia.yaml",
+        "commute_minutes_grand_central.yaml",
+    ]
+    for manifest in manifests:
+        result = CliRunner().invoke(
+            app,
+            ["manifest", "validate", "layer", f"manifests/layers/{manifest}"],
+        )
+
+        assert result.exit_code == 0, result.output
+
+
 def test_layer_runner_accepts_park_keys_before_database_work(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     for key in ("park_access", "park_distance_m"):

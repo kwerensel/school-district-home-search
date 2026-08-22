@@ -117,6 +117,11 @@ Completed checkpoints:
   failure/retry states, redacted error logging, server-function CSRF
   protection, a forced Cloudflare Nitro production bundle, deploy instructions,
   CI, and Dependabot configuration.
+- Remaining Phase 7 credential-gated layers now have truthful companion
+  manifests and onboarding packets: `transit_access` plus
+  `transit_distance_m`, and fixed-anchor commute metrics for Center City
+  Philadelphia and Grand Central. They are explicitly blocked from staging
+  until Transitland/ORS keys and quotas are configured.
 - August 2026 UX feedback is implemented in the current worktree: consumer UI
   no longer exposes the normalized overall match percentage or percent-of-
   median as "fit"; it shows `#x of N districts`, the named comparison area,
@@ -978,6 +983,17 @@ Checks last run after repaired `flood_sfha` promotion:
 - App verification: `29 passed`, lint with zero errors/six existing warnings,
   canonical-route HTTP 200 checks, and a successful Cloudflare Nitro bundle.
 
+### Credential-Gated Phase 7 Scaffolding Checkpoint
+
+- Added validated Transitland manifests for tract stop density and listing
+  stop distance as separate units/directions, with active-feed, pagination,
+  deduplication, and honesty requirements documented.
+- Added validated ORS fixed-anchor commute manifests for Center City
+  Philadelphia and Grand Central plus a route-matrix reduction type.
+- No runner is registered and no staging/promotion is attempted while
+  `TRANSITLAND_API_KEY` and `ORS_API_KEY` are missing. This is an intentional
+  fail-closed placeholder, not synthetic live data.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -985,10 +1001,9 @@ committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Continue Phase 7 with reversible `transit_access`/`transit_distance_m` and
-   `commute_minutes_<anchor>` scaffolding, fixtures, manifests, and tests.
-   Production staging is blocked until Transitland and ORS API keys are
-   configured; do not change providers without approval.
+1. Configure `TRANSITLAND_API_KEY` and `ORS_API_KEY`, then implement the
+   scaffolded reducers and preserve staging -> validation -> QA -> explicit
+   promotion. Do not change providers without approval.
 2. Close practical shipping gaps that are independent of those credentials:
    finish the typed/shareable Discovery profile model, then scaffold saved
    profiles/auth without gating the signed-out journey.

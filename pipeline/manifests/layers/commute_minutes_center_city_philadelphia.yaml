@@ -1,0 +1,20 @@
+metric_key: commute_minutes_center_city_philadelphia
+name: Drive time to Center City Philadelphia
+source: openrouteservice Matrix API
+source_urls:
+  - https://openrouteservice.org/dev/#/api-docs/v2/matrix
+  - https://api.openrouteservice.org/v2/matrix/driving-car
+vintage: ors-live-routing-graph
+units: min
+direction: lower_better
+native_resolution: routed population-weighted tract centroid to manifest anchor
+allowed_range: [0, 600]
+reduction_method: route_matrix
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  One-to-one routed driving duration from each PA Main Line tract's
+  population-weighted centroid to the approved Center City Philadelphia anchor
+  at 39.9526,-75.1652. Production ingestion requires ORS_API_KEY, exact request
+  caching, explicit null/unroutable accounting, and batched matrix requests.

@@ -1,0 +1,23 @@
+metric_key: transit_distance_m
+name: Distance to nearest mapped transit stop
+source: Transitland v2 REST API active GTFS feeds
+source_urls:
+  - https://www.transit.land/documentation/rest-api
+  - https://www.transit.land/documentation/rest-api/stops
+  - https://transit.land/api/v2/rest/stops
+vintage: transitland-active-feed-version
+units: m
+direction: lower_better
+native_resolution: exact GTFS stop points from active feed versions
+allowed_range: [0, 100000]
+reduction_method: nearest_distance
+coverage_threshold: 1.0
+grains:
+  - listing
+listing_reductions:
+  - distance_to_nearest
+notes: >
+  Straight-line distance from the frozen listing point to the nearest mapped
+  active-feed transit stop. This companion metric keeps meters separate from
+  tract stop density. It is not walking-network distance and does not promise
+  service frequency, hours, reliability, or an accessible path.

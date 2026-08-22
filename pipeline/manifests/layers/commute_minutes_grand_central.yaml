@@ -1,0 +1,20 @@
+metric_key: commute_minutes_grand_central
+name: Drive time to Grand Central
+source: openrouteservice Matrix API
+source_urls:
+  - https://openrouteservice.org/dev/#/api-docs/v2/matrix
+  - https://api.openrouteservice.org/v2/matrix/driving-car
+vintage: ors-live-routing-graph
+units: min
+direction: lower_better
+native_resolution: routed population-weighted tract centroid to manifest anchor
+allowed_range: [0, 600]
+reduction_method: route_matrix
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  One-to-one routed driving duration from each Hudson Valley tract's
+  population-weighted centroid to the approved Grand Central anchor at
+  40.7527,-73.9772. Production ingestion requires ORS_API_KEY, exact request
+  caching, explicit null/unroutable accounting, and batched matrix requests.

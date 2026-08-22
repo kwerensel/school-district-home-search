@@ -59,6 +59,7 @@ ReductionMethod = Literal[
     "area_weighted",
     "idw",
     "nearest_distance",
+    "route_matrix",
 ]
 Direction = Literal["higher_better", "lower_better", "neutral"]
 
