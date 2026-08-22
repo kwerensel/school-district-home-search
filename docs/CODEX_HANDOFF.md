@@ -107,6 +107,11 @@ Completed checkpoints:
   `park_distance_m` meters as separate metric definitions. Discovery now uses
   park access in deterministic scoring and district maps, and Explorer listing
   details show straight-line park distance with an honesty explainer.
+- Phase 6 mortgage-rate acceptance is closed: the purchasing-power server now
+  fetches the official Freddie Mac PMMS 30-year series through FRED, caches a
+  successful observation for 24 hours, and uses the documented constant only
+  when the source is unavailable. The UI identifies live, supplied, and
+  fallback rate assumptions.
 - August 2026 UX feedback is implemented in the current worktree: consumer UI
   no longer exposes the normalized overall match percentage or percent-of-
   median as "fit"; it shows `#x of N districts`, the named comparison area,
@@ -933,6 +938,19 @@ Checks last run after repaired `flood_sfha` promotion:
   `22 passed`; app lint has zero errors and six pre-existing shadcn warnings;
   production build passes.
 
+### Live PMMS Mortgage Rate Checkpoint
+
+- Added a server-only official FRED/PMMS CSV reader with strict latest-row
+  parsing, a 3-second timeout, a 24-hour in-process cache, and the existing
+  6.75% base-rate fallback.
+- Purchasing-power responses now include rate source/date provenance, and the
+  calculation explainer states whether the base came from PMMS, a caller, or
+  fallback before applying the selected credit spread.
+- The official feed returned the 2026-08-20 PMMS observation at 6.65% during
+  implementation verification.
+- App verification: `25 passed`, lint with zero errors/six existing warnings,
+  and production client/SSR build passed.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -945,9 +963,8 @@ Next actions, in order:
    Production staging is blocked until Transitland and ORS API keys are
    configured; do not change providers without approval.
 2. Close practical shipping gaps that are independent of those credentials:
-   live PMMS mortgage-rate fetch/cache with fallback, production branding and
-   deploy configuration, typed/shareable Discovery profile state, and explicit
-   request error/retry states.
+   production branding and deploy configuration, typed/shareable Discovery
+   profile state, and explicit request error/retry states.
 3. Do not start GVI before the planned phase.
 
 ## 8. Standing Chat-Continuity Instruction

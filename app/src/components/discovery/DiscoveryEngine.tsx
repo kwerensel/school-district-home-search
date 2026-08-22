@@ -202,6 +202,11 @@ export function DiscoveryEngine() {
     () => purchasingPowerQuery.data?.districts ?? [],
     [purchasingPowerQuery.data],
   );
+  const rateAssumption = purchasingPowerQuery.data?.rateAssumption ?? {
+    annualRate: 0.0675,
+    source: "fallback" as const,
+    observationDate: null,
+  };
   const ranked = useMemo(
     () =>
       [...purchasingPower].sort(
@@ -412,6 +417,8 @@ export function DiscoveryEngine() {
                 monthlyBudget={monthlyBudget}
                 downPaymentAmount={downPaymentAmount}
                 creditBand={creditBand}
+                rateSource={rateAssumption.source}
+                rateObservationDate={rateAssumption.observationDate}
                 mapMetric={mapMetric}
                 onMapMetricChange={setMapMetric}
               />
@@ -561,6 +568,8 @@ function SelectedDistrictPanel({
   monthlyBudget,
   downPaymentAmount,
   creditBand,
+  rateSource,
+  rateObservationDate,
   mapMetric,
   onMapMetricChange,
 }: {
@@ -572,6 +581,8 @@ function SelectedDistrictPanel({
   monthlyBudget: number;
   downPaymentAmount: number;
   creditBand: CreditBand;
+  rateSource: "pmms" | "fallback" | "user";
+  rateObservationDate: string | null;
   mapMetric: MapMetricKey;
   onMapMetricChange: (metric: MapMetricKey) => void;
 }) {
@@ -599,6 +610,8 @@ function SelectedDistrictPanel({
               monthlyBudget={monthlyBudget}
               downPaymentAmount={downPaymentAmount}
               creditBand={creditBand}
+              rateSource={rateSource}
+              rateObservationDate={rateObservationDate}
             />
           }
           active={mapMetric === "purchasingPower"}

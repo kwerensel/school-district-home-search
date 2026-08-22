@@ -4,6 +4,7 @@ import {
   type CreditBand,
 } from "@/lib/finance/purchasing-power";
 import { MetricExplainer } from "./MetricExplainer";
+import type { MortgageRateSource } from "@/lib/finance/rates";
 
 const percent = new Intl.NumberFormat("en-US", {
   style: "percent",
@@ -22,6 +23,8 @@ export function PurchasingPowerExplainer({
   monthlyBudget,
   downPaymentAmount,
   creditBand,
+  rateSource,
+  rateObservationDate,
   compact = false,
 }: {
   annualRate: number;
@@ -29,6 +32,8 @@ export function PurchasingPowerExplainer({
   monthlyBudget: number;
   downPaymentAmount: number;
   creditBand: CreditBand;
+  rateSource: MortgageRateSource;
+  rateObservationDate: string | null;
   compact?: boolean;
 }) {
   return (
@@ -57,8 +62,13 @@ export function PurchasingPowerExplainer({
       </dl>
       <p>
         Uses a 30-year mortgage. It excludes closing costs, HOA fees, utilities, maintenance, and
-        lender-specific underwriting. The rate shown is the app&apos;s current fallback assumption
-        plus the selected credit-band adjustment.
+        lender-specific underwriting. The rate shown uses
+        {rateSource === "pmms"
+          ? ` the Freddie Mac PMMS observation${rateObservationDate ? ` from ${rateObservationDate}` : ""}`
+          : rateSource === "user"
+            ? " the supplied base-rate assumption"
+            : " the app's fallback base-rate assumption"}
+        , plus the selected credit-band adjustment.
       </p>
     </MetricExplainer>
   );

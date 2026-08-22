@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { computePurchasingPower } from "./purchasing-power";
+import { DEFAULT_ANNUAL_RATE } from "./purchasing-power";
+import type { MortgageRateAssumption } from "./rates";
 import type { BindingBound, CreditBand, PurchasingPowerInput } from "./purchasing-power";
 
 export const PurchasingPowerQuerySchema = z.object({
@@ -86,6 +88,7 @@ export type DistrictPurchasingPower = {
 
 export type PurchasingPowerPayload = {
   districts: DistrictPurchasingPower[];
+  rateAssumption: MortgageRateAssumption;
 };
 
 type ScoreKey = NonNullable<PurchasingPowerQuery["environmentWeights"]>;
@@ -141,13 +144,24 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
 export async function fetchDistrictPurchasingPower(
   input: PurchasingPowerQuery,
   execute: QueryExecutor<DistrictPurchasingPowerRow>,
+  fetchedRate?: MortgageRateAssumption,
 ): Promise<PurchasingPowerPayload> {
-  const fragment = buildDistrictTaxRateSql(input);
+  const rateAssumption: MortgageRateAssumption =
+    input.baseAnnualRate !== undefined
+      ? { annualRate: input.baseAnnualRate, source: "user", observationDate: null }
+      : (fetchedRate ?? {
+          annualRate: DEFAULT_ANNUAL_RATE,
+          source: "fallback",
+          observationDate: null,
+        });
+  const resolvedInput = { ...input, baseAnnualRate: rateAssumption.annualRate };
+  const fragment = buildDistrictTaxRateSql(resolvedInput);
   const rows = await execute(fragment.text, fragment.values);
-  const districts = rows.map((row) => computeDistrictPurchasingPower(input, row));
+  const districts = rows.map((row) => computeDistrictPurchasingPower(resolvedInput, row));
 
   return {
-    districts: addMatchScores(districts, input.environmentWeights),
+    districts: addMatchScores(districts, resolvedInput.environmentWeights),
+    rateAssumption,
   };
 }
 
