@@ -42,7 +42,9 @@ The app value should be simple and legible:
 - Tract grain: share of tract area within 800 m of a public park/open-space
   polygon. This aligns with the Phase 7 task language.
 - Listing grain: distance in meters from the listing point to the nearest
-  park/open-space polygon edge.
+  park/open-space polygon edge, stored as the companion `park_distance_m`
+  metric. This keeps meters separate from the tract `park_access` share in the
+  one-units-per-metric schema.
 
 If later we add population-weighted or parcel/residential-mask weighting, keep
 the metric name stable only if the semantic remains "park access"; otherwise

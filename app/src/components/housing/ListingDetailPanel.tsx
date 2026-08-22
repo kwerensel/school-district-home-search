@@ -38,6 +38,11 @@ function formatMetricValue(metric: ListingMetricItem) {
     return `${lightPollutionCategory(metric.value)} · ${metric.value.toFixed(1)}`;
   }
   if (metric.metricKey === "walkability_index") return `${metric.value.toFixed(1)} / 20`;
+  if (metric.metricKey === "park_distance_m") {
+    return metric.value < 1000
+      ? `${Math.round(metric.value)} m`
+      : `${(metric.value / 1000).toFixed(1)} km`;
+  }
   if (metric.units === "percent" || metric.metricKey.endsWith("_pct")) {
     return `${metric.value.toFixed(1)}%`;
   }
@@ -58,6 +63,9 @@ function metricIcon(metric: ListingMetricItem) {
   if (metric.metricKey === "tree_canopy_pct") {
     return <Trees className="h-4 w-4 text-emerald-700" />;
   }
+  if (metric.metricKey === "park_distance_m") {
+    return <Trees className="h-4 w-4 text-green-700" />;
+  }
   if (metric.metricKey === "canopy_height_m") {
     return <Ruler className="h-4 w-4 text-emerald-800" />;
   }
@@ -73,11 +81,23 @@ function metricName(metric: ListingMetricItem) {
   if (metric.metricKey === "tree_canopy_pct") return "Tree coverage";
   if (metric.metricKey === "canopy_height_m") return "Average canopy height";
   if (metric.metricKey === "light_pollution_radiance") return "Light pollution";
+  if (metric.metricKey === "park_distance_m") return "Distance to mapped park or open space";
   return metric.name;
 }
 
 function metricHelp(metric: ListingMetricItem) {
   if (metric.metricKey === "walkability_index") return <WalkabilityExplainer compact />;
+  if (metric.metricKey === "park_distance_m") {
+    return (
+      <MetricExplainer compact label="How park distance works" title="Mapped park proximity">
+        <p>
+          Straight-line distance from the listing point to the nearest mapped public park or open
+          space polygon edge. Zero means the point falls inside a mapped polygon.
+        </p>
+        <p>It is not walking-route distance and does not confirm an accessible entrance.</p>
+      </MetricExplainer>
+    );
+  }
   if (metric.metricKey === "tree_canopy_pct") {
     return (
       <MetricExplainer compact label="How tree coverage works" title="Tree coverage">

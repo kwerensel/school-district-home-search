@@ -11,6 +11,7 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("d.region_group = $2");
     expect(fragment.text).toContain("median_home_value");
     expect(fragment.text).toContain("light_pollution_radiance");
+    expect(fragment.text).toContain("park_access");
     expect(fragment.text).toContain("GROUP BY d.id, d.slug, d.name, d.region_group");
     expect(fragment.text).toContain("ORDER BY d.region_group, d.name");
   });
@@ -30,6 +31,7 @@ describe("finance server data", () => {
         risk_index: "20",
         flood_sfha: "0.05",
         light_pollution_radiance: "8",
+        park_access: "0.82",
       },
       {
         district_region_id: 2,
@@ -44,6 +46,7 @@ describe("finance server data", () => {
         risk_index: "40",
         flood_sfha: "0.2",
         light_pollution_radiance: "15",
+        park_access: "0.44",
       },
     ]);
 
@@ -69,11 +72,13 @@ describe("finance server data", () => {
       canopyHeightM: 20,
       medianHomeValue: 650000,
       lightPollutionRadiance: 8,
+      parkAccess: 0.82,
     });
     expect(payload.districts[0].matchComponents).toMatchObject({
       affordability: expect.any(Number),
       green: expect.any(Number),
       walkability: expect.any(Number),
+      parkAccess: expect.any(Number),
     });
     expect(payload.districts[0].affordabilityRatio).toBeGreaterThan(1);
     expect(payload.districts[0].matchScore).toBeGreaterThan(payload.districts[1].matchScore);

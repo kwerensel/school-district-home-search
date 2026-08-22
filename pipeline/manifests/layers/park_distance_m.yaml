@@ -1,0 +1,24 @@
+metric_key: park_distance_m
+name: Distance to mapped public park or open space
+source: OpenStreetMap parks and USGS PAD-US Public Access
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Map_features
+  - https://services.arcgis.com/v01gqwM5QqNysAAi/arcgis/rest/services/PADUS_Public_Access/FeatureServer/0
+vintage: "osm-live-padus-4.x"
+units: m
+direction: lower_better
+native_resolution: exact OSM/PAD-US polygons
+allowed_range: [0, 50000]
+reduction_method: nearest_distance
+coverage_threshold: 1.0
+grains:
+  - listing
+listing_reductions:
+  - distance_to_nearest
+notes: >
+  Point-to-polygon distance in an equal-area projected CRS. Zero means the
+  listing point falls inside a mapped open-access polygon. This is a companion
+  to tract-level park_access so meters and shares retain separate definitions.
+  It describes proximity to mapped public open space, not entrance routing,
+  operating hours, amenities, seasonal rules, or walkable network distance.

@@ -24,4 +24,9 @@ describe("consumer metric presentation", () => {
     expect(colorForMetricValue("lightPollution", 0.3, 0.3, 100)).toBe("#24104f");
     expect(colorForMetricValue("lightPollution", 100, 0.3, 100)).toBe("#fde047");
   });
+
+  it("labels park access as an 800 m district-land share", () => {
+    expect(formatMapMetricValue("parkAccess", 0.625)).toContain("62.5%");
+    expect(formatMapMetricValue("parkAccess", 0.625)).toContain("within 800 m");
+  });
 });

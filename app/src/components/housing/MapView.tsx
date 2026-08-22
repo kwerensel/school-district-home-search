@@ -62,6 +62,7 @@ function districtMetricValue(props: DistrictProps, metric: ExplorerMapMetricKey)
   if (metric === "floodExposure") return props.flood_sfha ?? null;
   if (metric === "lightPollution") return props.light_pollution_radiance ?? null;
   if (metric === "walkability") return props.walkability_index ?? null;
+  if (metric === "parkAccess") return props.park_access ?? null;
   if (metric === "risk") return props.risk_index ?? null;
   return null;
 }

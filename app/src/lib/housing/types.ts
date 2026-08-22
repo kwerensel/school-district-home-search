@@ -29,6 +29,7 @@ export interface DistrictProps {
   risk_index?: number | null;
   flood_sfha?: number | null;
   light_pollution_radiance?: number | null;
+  park_access?: number | null;
 }
 
 export type ListingFeature = Feature<Point, ListingProps>;

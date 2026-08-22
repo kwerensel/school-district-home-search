@@ -56,7 +56,8 @@ type WeightKey =
   | "walkability"
   | "lowerRisk"
   | "lowerFlood"
-  | "darkSkies";
+  | "darkSkies"
+  | "parkAccess";
 
 const DEFAULT_WEIGHTS: Record<WeightKey, number> = {
   affordability: 5,
@@ -65,6 +66,7 @@ const DEFAULT_WEIGHTS: Record<WeightKey, number> = {
   lowerRisk: 1,
   lowerFlood: 1,
   darkSkies: 1,
+  parkAccess: 1,
 };
 
 const weightControls: Array<{ key: WeightKey; label: string }> = [
@@ -74,6 +76,7 @@ const weightControls: Array<{ key: WeightKey; label: string }> = [
   { key: "lowerRisk", label: "Lower risk" },
   { key: "lowerFlood", label: "Lower flood" },
   { key: "darkSkies", label: "Darker skies" },
+  { key: "parkAccess", label: "Park access" },
 ];
 
 function formatCurrency(value: number) {
@@ -120,6 +123,7 @@ const factorLabels: Record<WeightKey, string> = {
   lowerRisk: "lower hazard risk",
   lowerFlood: "lower flood exposure",
   darkSkies: "darker skies",
+  parkAccess: "park access",
 };
 
 function districtReasons(district: DistrictPurchasingPower, weights: Record<WeightKey, number>) {
@@ -669,6 +673,17 @@ function SelectedDistrictPanel({
             value={formatOptionalNumber(selected.environmentMetrics.canopyHeightM, " m")}
             help={<CanopyHeightExplainer />}
           />
+          <MetricBox
+            label="Park access"
+            value={
+              selected.environmentMetrics.parkAccess === null
+                ? "-"
+                : `${formatOptionalPercent(selected.environmentMetrics.parkAccess)} of district land within 800 m`
+            }
+            help={<ParkAccessExplainer />}
+            active={mapMetric === "parkAccess"}
+            onActivate={() => onMapMetricChange("parkAccess")}
+          />
         </div>
       </div>
       <Button asChild className="mt-4 w-full" size="sm">
@@ -711,6 +726,21 @@ function MetricBox({
         </button>
       ) : null}
     </div>
+  );
+}
+
+function ParkAccessExplainer() {
+  return (
+    <MetricExplainer label="What this means" title="Park access">
+      <p>
+        The share of district land within 800 m of mapped public parks and open space from
+        OpenStreetMap and USGS PAD-US.
+      </p>
+      <p>
+        This is proximity context, not a promise about entrances, walking routes, hours, permits,
+        safety, or amenities.
+      </p>
+    </MetricExplainer>
   );
 }
 

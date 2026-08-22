@@ -184,7 +184,8 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
           md.source,
           md.native_resolution,
           CASE
-            WHEN lm.metric_key = 'flood_sfha' AND lm.grain = 'point' THEN 'property'
+            WHEN lm.metric_key IN ('flood_sfha', 'park_distance_m') AND lm.grain = 'point'
+              THEN 'property'
             WHEN lm.grain IN ('buffer_100m', 'buffer_500m') THEN 'street'
             ELSE 'neighborhood'
           END AS context
@@ -270,7 +271,8 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
           dm.walkability_index,
           dm.risk_index,
           dm.flood_sfha,
-          dm.light_pollution_radiance
+          dm.light_pollution_radiance,
+          dm.park_access
         FROM school_districts d
         LEFT JOIN district_quality dq ON dq.district_id = d.id
         LEFT JOIN regions dr
@@ -285,7 +287,8 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
             max(value) FILTER (WHERE metric_key = 'flood_sfha') AS flood_sfha,
             max(value) FILTER (
               WHERE metric_key = 'light_pollution_radiance'
-            ) AS light_pollution_radiance
+            ) AS light_pollution_radiance,
+            max(value) FILTER (WHERE metric_key = 'park_access') AS park_access
           FROM district_metrics
           WHERE district_region_id = dr.id
         ) dm ON TRUE

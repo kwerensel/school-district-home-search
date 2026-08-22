@@ -13,10 +13,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
-Phases 0–6 are complete. The current checkpoint is a Phase 10 Discovery/
-Explorer UX feedback pass built on the promoted deterministic metrics. Phase 7
-`park_access` is the next approved data implementation arc; GVI remains out of
-scope until its planned phase.
+Phases 0–6 are complete. Phase 7 `park_access` and its listing-distance
+companion are implemented, promoted, and wired into Discovery/Explorer. The
+remaining Phase 7 access layers are next; GVI remains out of scope until its
+planned phase.
 
 Completed checkpoints:
 
@@ -102,6 +102,11 @@ Completed checkpoints:
   cards, selected district panel, and map tooltips.
 - Phase 7 `park_access` source onboarding is drafted in the current checkpoint
   using approved OpenStreetMap plus USGS PAD-US Public Access sources.
+- Phase 7 `park_access` is implemented and promoted for both regions. The
+  mixed-units design was resolved with tract `park_access` shares and listing
+  `park_distance_m` meters as separate metric definitions. Discovery now uses
+  park access in deterministic scoring and district maps, and Explorer listing
+  details show straight-line park distance with an honesty explainer.
 - August 2026 UX feedback is implemented in the current worktree: consumer UI
   no longer exposes the normalized overall match percentage or percent-of-
   median as "fit"; it shows `#x of N districts`, the named comparison area,
@@ -546,10 +551,10 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit before the UX commits: `5976258 Document park access metric modeling note`.
-- `main` is even with `origin/main` at that commit before this feedback pass.
-- Worktree contains the August 2026 README, UI, test, handoff, and screenshot
-  changes described above. Commit and push them after the final green check.
+- Current committed baseline before the Phase 7 park implementation:
+  `3e6013c Implement Discovery UI feedback pass`.
+- The August 2026 UX feedback pass is committed and pushed. The Phase 7 park
+  implementation described below is the active checkpoint to commit/push.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -906,6 +911,28 @@ Checks last run after repaired `flood_sfha` promotion:
     warnings.
   - `npm run build`: production client and SSR builds passed.
 
+### Phase 7 Park Access Implementation Checkpoint
+
+- Added a cached OpenStreetMap + USGS PAD-US reducer that includes PAD-US open
+  access (`OA`) and public OSM park/open-space polygons while excluding
+  explicit private-access OSM features.
+- Split the approved task into honest companion metrics:
+  - `park_access`: census-tract share within 800 m of mapped public open space.
+  - `park_distance_m`: listing-point distance to the nearest mapped public
+    park/open-space polygon edge.
+- Both regions staged with promotable reports and visually plausible QA maps,
+  then were explicitly promoted.
+- Live verification:
+  - `park_access`: 495 PA tracts and 437 Hudson Valley tracts; district rollups
+    for 61 active PA and 78 Hudson Valley districts.
+  - `park_distance_m`: all 251 PA and 4,254 Hudson Valley listings; PA median
+    181 m and Hudson Valley median 270 m.
+- App integration adds park-access scoring, URL-backed priority weight, map
+  layer, selected-district context, and listing park-distance explanations.
+- Post-promote checks: full Neon-backed pipeline suite `40 passed`; app tests
+  `22 passed`; app lint has zero errors and six pre-existing shadcn warnings;
+  production build passes.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -913,21 +940,14 @@ committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Next unblocked phase path is Phase 7 `park_access` implementation:
-   query/crop OSM + PAD-US by region bounds plus 800 m buffer, union/deduplicate
-   public access polygons, stage tract 800 m access share and listing nearest
-   park-edge distance, render QA maps, validate, promote if green, then wire
-   promoted access values into Explorer/Discovery.
-   Implementation note: the approved Phase 7 shape mixes units under
-   `park_access` (`share` for tract grain, meters for listing nearest-distance
-   grain), while the current metric schema has one `units`, one `direction`, and
-   one `allowed_range` per metric key. Before implementing listing grain, choose
-   either per-reduction units/ranges or a companion listing metric such as
-   `park_distance_m`; do not bury mixed-unit behavior under the existing metric
-   definition without an explicit model update.
-2. Continue through the remaining Phase 7 access layers in task order when
-   source access and credentials are available, preserving staging -> validate
-   -> QA -> explicit promote.
+1. Continue Phase 7 with reversible `transit_access`/`transit_distance_m` and
+   `commute_minutes_<anchor>` scaffolding, fixtures, manifests, and tests.
+   Production staging is blocked until Transitland and ORS API keys are
+   configured; do not change providers without approval.
+2. Close practical shipping gaps that are independent of those credentials:
+   live PMMS mortgage-rate fetch/cache with fallback, production branding and
+   deploy configuration, typed/shareable Discovery profile state, and explicit
+   request error/retry states.
 3. Do not start GVI before the planned phase.
 
 ## 8. Standing Chat-Continuity Instruction

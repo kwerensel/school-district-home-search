@@ -45,12 +45,45 @@ def render_layer_qa(manifest_path: Path, region_slug: str) -> Path:
             params=(region_slug, manifest.metric_key, manifest.vintage),
             geom_col="geom",
         )
-    if frame.empty:
-        raise RuntimeError(f"No staged {manifest.metric_key} tract metrics for {region_slug}")
+        listing_frame = gpd.GeoDataFrame()
+        if frame.empty:
+            listing_frame = gpd.read_postgis(
+                """
+                SELECT l.id, l.geom, s.value
+                FROM staging.layer_listing_metrics s
+                JOIN listings l ON l.id = s.listing_id
+                WHERE s.region_group = %s
+                  AND s.metric_key = %s
+                  AND s.vintage = %s
+                  AND s.grain = 'point'
+                """,
+                conn,
+                params=(region_slug, manifest.metric_key, manifest.vintage),
+                geom_col="geom",
+            )
+    if frame.empty and listing_frame.empty:
+        raise RuntimeError(f"No staged {manifest.metric_key} metrics for {region_slug}")
 
     path = qa_dir / f"{manifest.metric_key}_{region_slug}.png"
     fig, ax = plt.subplots(figsize=(10, 10))
-    frame.plot(column="value", ax=ax, legend=True, cmap="Greens", linewidth=0.1, edgecolor="#374151")
+    if not frame.empty:
+        frame.plot(
+            column="value",
+            ax=ax,
+            legend=True,
+            cmap="Greens",
+            linewidth=0.1,
+            edgecolor="#374151",
+        )
+    else:
+        listing_frame.plot(
+            column="value",
+            ax=ax,
+            legend=True,
+            cmap="viridis_r" if manifest.direction == "lower_better" else "viridis",
+            markersize=3,
+            alpha=0.8,
+        )
     ax.set_title(f"{region_slug}: {manifest.name} ({manifest.units or 'value'})")
     ax.set_axis_off()
     fig.tight_layout()

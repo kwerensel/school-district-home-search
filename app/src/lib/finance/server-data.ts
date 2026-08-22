@@ -22,6 +22,7 @@ export const PurchasingPowerQuerySchema = z.object({
       lowerRisk: z.number().min(0).max(10).optional(),
       lowerFlood: z.number().min(0).max(10).optional(),
       darkSkies: z.number().min(0).max(10).optional(),
+      parkAccess: z.number().min(0).max(10).optional(),
     })
     .optional(),
 });
@@ -48,6 +49,7 @@ export type DistrictPurchasingPowerRow = {
   risk_index: number | string | null;
   flood_sfha: number | string | null;
   light_pollution_radiance: number | string | null;
+  park_access: number | string | null;
 };
 
 export type DistrictEnvironmentMetrics = {
@@ -58,6 +60,7 @@ export type DistrictEnvironmentMetrics = {
   riskIndex: number | null;
   floodSfha: number | null;
   lightPollutionRadiance: number | null;
+  parkAccess: number | null;
 };
 
 export type DistrictPurchasingPower = {
@@ -98,6 +101,7 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
     "risk_index",
     "flood_sfha",
     "light_pollution_radiance",
+    "park_access",
   ];
   const where = [`dm.metric_key = ANY($1)`];
   values.push(metricKeys);
@@ -121,7 +125,8 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(dm.value) FILTER (WHERE dm.metric_key = 'walkability_index') AS walkability_index,
         max(dm.value) FILTER (WHERE dm.metric_key = 'risk_index') AS risk_index,
         max(dm.value) FILTER (WHERE dm.metric_key = 'flood_sfha') AS flood_sfha,
-        max(dm.value) FILTER (WHERE dm.metric_key = 'light_pollution_radiance') AS light_pollution_radiance
+        max(dm.value) FILTER (WHERE dm.metric_key = 'light_pollution_radiance') AS light_pollution_radiance,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'park_access') AS park_access
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
       WHERE ${where.join(" AND ")}
@@ -185,6 +190,7 @@ function computeDistrictPurchasingPower(
       riskIndex: nullableNumber(row.risk_index),
       floodSfha: nullableNumber(row.flood_sfha),
       lightPollutionRadiance: nullableNumber(row.light_pollution_radiance),
+      parkAccess: nullableNumber(row.park_access),
     },
     matchComponents: {
       affordability: null,
@@ -193,6 +199,7 @@ function computeDistrictPurchasingPower(
       lowerRisk: null,
       lowerFlood: null,
       darkSkies: null,
+      parkAccess: null,
     },
     matchScore: 0,
     affordabilityRatio,
@@ -222,6 +229,7 @@ function addMatchScores(
     lowerRisk: weights?.lowerRisk ?? 1,
     lowerFlood: weights?.lowerFlood ?? 1,
     darkSkies: weights?.darkSkies ?? 1,
+    parkAccess: weights?.parkAccess ?? 1,
   } satisfies Required<ScoreKey>;
 
   const scoreInputs = {
@@ -254,6 +262,11 @@ function addMatchScores(
       (district) => district.environmentMetrics.lightPollutionRadiance,
       "lower",
     ),
+    parkAccess: districtScores(
+      districts,
+      (district) => district.environmentMetrics.parkAccess,
+      "higher",
+    ),
   };
 
   return districts.map((district) => {
@@ -275,6 +288,7 @@ function addMatchScores(
         lowerRisk: scoreInputs.lowerRisk.get(district.districtSlug) ?? null,
         lowerFlood: scoreInputs.lowerFlood.get(district.districtSlug) ?? null,
         darkSkies: scoreInputs.darkSkies.get(district.districtSlug) ?? null,
+        parkAccess: scoreInputs.parkAccess.get(district.districtSlug) ?? null,
       },
       matchScore: weightTotal > 0 ? weightedTotal / weightTotal : 0,
     };
