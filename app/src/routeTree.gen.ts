@@ -9,9 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DiscoverResultsRouteImport } from './routes/discover.results'
 
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiscoverRoute = DiscoverRouteImport.update({
   id: '/discover',
   path: '/discover',
@@ -22,35 +29,54 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiscoverResultsRoute = DiscoverResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => DiscoverRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/discover': typeof DiscoverRoute
+  '/discover': typeof DiscoverRouteWithChildren
+  '/explore': typeof ExploreRoute
+  '/discover/results': typeof DiscoverResultsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/discover': typeof DiscoverRoute
+  '/discover': typeof DiscoverRouteWithChildren
+  '/explore': typeof ExploreRoute
+  '/discover/results': typeof DiscoverResultsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/discover': typeof DiscoverRoute
+  '/discover': typeof DiscoverRouteWithChildren
+  '/explore': typeof ExploreRoute
+  '/discover/results': typeof DiscoverResultsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/discover'
+  fullPaths: '/' | '/discover' | '/explore' | '/discover/results'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/discover'
-  id: '__root__' | '/' | '/discover'
+  to: '/' | '/discover' | '/explore' | '/discover/results'
+  id: '__root__' | '/' | '/discover' | '/explore' | '/discover/results'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DiscoverRoute: typeof DiscoverRoute
+  DiscoverRoute: typeof DiscoverRouteWithChildren
+  ExploreRoute: typeof ExploreRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/discover': {
       id: '/discover'
       path: '/discover'
@@ -65,12 +91,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/discover/results': {
+      id: '/discover/results'
+      path: '/results'
+      fullPath: '/discover/results'
+      preLoaderRoute: typeof DiscoverResultsRouteImport
+      parentRoute: typeof DiscoverRoute
+    }
   }
 }
 
+interface DiscoverRouteChildren {
+  DiscoverResultsRoute: typeof DiscoverResultsRoute
+}
+
+const DiscoverRouteChildren: DiscoverRouteChildren = {
+  DiscoverResultsRoute: DiscoverResultsRoute,
+}
+
+const DiscoverRouteWithChildren = DiscoverRoute._addFileChildren(
+  DiscoverRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DiscoverRoute: DiscoverRoute,
+  DiscoverRoute: DiscoverRouteWithChildren,
+  ExploreRoute: ExploreRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

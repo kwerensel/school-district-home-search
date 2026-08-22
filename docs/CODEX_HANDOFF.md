@@ -112,6 +112,11 @@ Completed checkpoints:
   successful observation for 24 hours, and uses the documented constant only
   when the source is unavailable. The UI identifies live, supplied, and
   fallback rate assumptions.
+- Release readiness now includes canonical `/explore` and
+  `/discover/results` routes, Groundtruth metadata/branding, explicit query
+  failure/retry states, redacted error logging, server-function CSRF
+  protection, a forced Cloudflare Nitro production bundle, deploy instructions,
+  CI, and Dependabot configuration.
 - August 2026 UX feedback is implemented in the current worktree: consumer UI
   no longer exposes the normalized overall match percentage or percent-of-
   median as "fit"; it shows `#x of N districts`, the named comparison area,
@@ -951,6 +956,28 @@ Checks last run after repaired `flood_sfha` promotion:
 - App verification: `25 passed`, lint with zero errors/six existing warnings,
   and production client/SSR build passed.
 
+### Release Readiness Checkpoint
+
+- Added canonical `/explore` and `/discover/results` routes while keeping the
+  original `/` and `/discover` routes for backward compatibility.
+- Replaced generated/Lovable consumer metadata and labels with Groundtruth
+  branding and added a secret-safe environment example.
+- Forced the Nitro `cloudflare-module` production build, named the Worker
+  `groundtruth-home-search`, added the generated-config deploy command, and
+  documented required secrets plus the signed-out production smoke journey.
+- Added app/pipeline GitHub Actions CI and weekly Dependabot checks.
+- Added request-specific retry states for Explorer and Discovery, removed raw
+  error logging from active server/client paths, added a financial-profile
+  leakage regression test, and enabled TanStack server-function CSRF
+  middleware.
+- Browser QA verified both canonical routes, live PMMS provenance, promoted
+  park access, the Discovery-to-Explorer URL handoff, all 139 ranked districts,
+  and a compact 390 x 844 layout. It also caught and fixed missing URL down
+  payment being coerced to zero; absent values now preserve the $150,000
+  default while explicit zero remains valid.
+- App verification: `29 passed`, lint with zero errors/six existing warnings,
+  canonical-route HTTP 200 checks, and a successful Cloudflare Nitro bundle.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -963,8 +990,8 @@ Next actions, in order:
    Production staging is blocked until Transitland and ORS API keys are
    configured; do not change providers without approval.
 2. Close practical shipping gaps that are independent of those credentials:
-   production branding and deploy configuration, typed/shareable Discovery
-   profile state, and explicit request error/retry states.
+   finish the typed/shareable Discovery profile model, then scaffold saved
+   profiles/auth without gating the signed-out journey.
 3. Do not start GVI before the planned phase.
 
 ## 8. Standing Chat-Continuity Instruction

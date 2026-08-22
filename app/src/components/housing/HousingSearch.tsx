@@ -130,11 +130,11 @@ export function HousingSearch() {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <div className="flex items-center gap-2">
           <Home className="h-5 w-5 text-primary" />
-          <h1 className="text-base font-semibold text-foreground">Housing Search</h1>
+          <h1 className="text-base font-semibold text-foreground">Groundtruth Explorer</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-            <Link to="/discover">
+            <Link to="/discover/results">
               <Compass className="mr-2 h-4 w-4" />
               Discover
             </Link>
@@ -163,6 +163,19 @@ export function HousingSearch() {
         <main className="relative min-h-0 flex-1">
           {isBooting ? (
             <div className="h-full w-full bg-muted" />
+          ) : tokenQuery.isError || listingsQuery.isError || districtsQuery.isError ? (
+            <EmptyState
+              title="Groundtruth data didn't load"
+              body="The request failed before the map could open. Check your connection and try again."
+              actionLabel="Try again"
+              onAction={() => {
+                void Promise.all([
+                  tokenQuery.refetch(),
+                  listingsQuery.refetch(),
+                  districtsQuery.refetch(),
+                ]);
+              }}
+            />
           ) : !token ? (
             <EmptyState
               title="Mapbox token missing"
@@ -213,12 +226,27 @@ export function HousingSearch() {
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
+function EmptyState({
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   return (
     <div className="flex h-full items-center justify-center p-6">
       <div className="max-w-md rounded-lg border border-dashed border-border bg-card p-6 text-center">
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+        {actionLabel && onAction ? (
+          <Button type="button" className="mt-4" size="sm" onClick={onAction}>
+            {actionLabel}
+          </Button>
+        ) : null}
       </div>
     </div>
   );

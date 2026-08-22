@@ -1,6 +1,8 @@
-# School District Home Search Prototype
+# Groundtruth
 
-A personal GIS/web-app prototype for browsing real estate listings using verified school district boundaries instead of relying only on listing-site school filters.
+A deterministic geospatial home-search platform for browsing frozen listings
+by verified school-district boundaries and comparing supported districts by
+budget and lifestyle context.
 
 ## Problem
 
@@ -73,8 +75,8 @@ requirements satisfied.
   score to consumers.
 - Allow one district-level map layer at a time for purchasing power, tree
   coverage, FEMA flood-zone exposure, light pollution, EPA walkability, and
-  natural-hazard risk. Every layer needs a plain-language legend and must state
-  its geographic grain.
+  natural-hazard risk, and mapped park access. Every layer needs a
+  plain-language legend and must state its geographic grain.
 - Describe district flood exposure as the share of district land in a mapped
   FEMA Special Flood Hazard Area. Keep that distinct from the Explorer property
   flag, which only says whether the listing point falls inside the mapped zone.

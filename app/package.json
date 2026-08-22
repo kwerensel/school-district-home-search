@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "deploy": "npm run build && wrangler deploy --config .output/server/wrangler.json",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "test": "vitest run",

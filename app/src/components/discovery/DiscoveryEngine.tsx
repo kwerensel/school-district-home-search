@@ -23,6 +23,7 @@ import { getDistrictPurchasingPower } from "@/lib/finance/purchasing-power.funct
 import type { DistrictFC } from "@/lib/housing/types";
 import type { CreditBand } from "@/lib/finance/purchasing-power";
 import type { DistrictPurchasingPower } from "@/lib/finance/server-data";
+import { parseDollarAmount } from "@/lib/discovery/profile";
 import {
   lightPollutionCategory,
   riskCategory,
@@ -87,12 +88,6 @@ function regionLabel(regionGroup: string) {
   if (regionGroup === "pa-mainline") return "PA Main Line";
   if (regionGroup === "hudson-valley") return "Hudson Valley";
   return regionGroup;
-}
-
-function parseDollarAmount(value: string, fallback: number, allowZero = false) {
-  const parsed = Number(value.replace(/[$,\s]/g, ""));
-  const isValid = Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0);
-  return isValid ? parsed : fallback;
 }
 
 function currencyInputValue(value: number) {
@@ -253,7 +248,7 @@ export function DiscoveryEngine() {
       params.set("maxPrice", String(Math.floor(selected.maxPurchasePrice)));
     }
     const query = params.toString();
-    return `/${query ? `?${query}` : ""}`;
+    return `/explore${query ? `?${query}` : ""}`;
   }, [profileSearch, selected]);
   const commitMonthlyBudget = () => {
     const nextMonthlyBudget = parseDollarAmount(monthlyBudgetText, monthlyBudget);
@@ -305,7 +300,7 @@ export function DiscoveryEngine() {
           <h1 className="text-base font-semibold text-foreground">Groundtruth Discovery</h1>
         </div>
         <Button asChild variant="outline" size="sm">
-          <a href="/">
+          <a href="/explore">
             <Search className="mr-2 h-4 w-4" />
             Explorer
           </a>
@@ -470,7 +465,7 @@ export function DiscoveryEngine() {
             <section className="space-y-2">
               <h2 className="text-sm font-semibold text-foreground">Ranked Districts</h2>
               <div className="space-y-2">
-                {ranked.slice(0, 18).map((district, index) => {
+                {ranked.map((district, index) => {
                   const reasons = districtReasons(district, weights);
                   return (
                     <button
@@ -535,6 +530,19 @@ export function DiscoveryEngine() {
         <main className="relative min-h-[420px] md:min-h-0">
           {isBooting ? (
             <div className="h-full w-full bg-muted" />
+          ) : tokenQuery.isError || districtsQuery.isError || purchasingPowerQuery.isError ? (
+            <EmptyMapState
+              title="Discovery data didn't load"
+              body="The district comparison request failed. Check your connection and try again."
+              actionLabel="Try again"
+              onAction={() => {
+                void Promise.all([
+                  tokenQuery.refetch(),
+                  districtsQuery.refetch(),
+                  purchasingPowerQuery.refetch(),
+                ]);
+              }}
+            />
           ) : !token ? (
             <EmptyMapState title="Mapbox token missing" />
           ) : (
@@ -814,12 +822,28 @@ function LightPollutionExplainer() {
   );
 }
 
-function EmptyMapState({ title }: { title: string }) {
+function EmptyMapState({
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  body?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   return (
     <div className="flex h-full items-center justify-center p-6">
       <div className="rounded-md border border-dashed border-border p-6 text-center">
         <Home className="mx-auto h-5 w-5 text-muted-foreground" />
         <p className="mt-2 text-sm font-medium text-foreground">{title}</p>
+        {body ? <p className="mt-2 text-sm text-muted-foreground">{body}</p> : null}
+        {actionLabel && onAction ? (
+          <Button type="button" className="mt-4" size="sm" onClick={onAction}>
+            {actionLabel}
+          </Button>
+        ) : null}
       </div>
     </div>
   );
