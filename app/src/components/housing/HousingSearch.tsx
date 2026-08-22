@@ -11,14 +11,9 @@ import { ListingDetailPanel } from "./ListingDetailPanel";
 const MapView = lazy(() => import("./MapView").then((m) => ({ default: m.MapView })));
 import { getDistricts, getListings } from "@/lib/housing/listings.functions";
 import { getMapboxToken } from "@/lib/housing/mapbox-token.functions";
-import {
-  applyFilters,
-  canopyHeightBounds,
-  DEFAULT_FILTERS,
-  priceBounds,
-  uniqueDistricts,
-} from "@/lib/housing/filters";
+import { applyFilters, DEFAULT_FILTERS, priceBounds, uniqueDistricts } from "@/lib/housing/filters";
 import type { DistrictFC, Filters, ListingFC, ListingFeature } from "@/lib/housing/types";
+import type { ExplorerMapMetricKey } from "@/lib/metrics/presentation";
 
 const EMPTY_LISTINGS: ListingFC = { type: "FeatureCollection", features: [] };
 
@@ -41,26 +36,30 @@ export function HousingSearch() {
 
   const districtsQuery = useQuery({
     queryKey: ["districts"],
-    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.001 } }),
+    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.001, representedOnly: true } }),
     staleTime: 60 * 60 * 1000,
   });
 
   const token = tokenQuery.data?.token ?? "";
   const listings = listingsQuery.data ?? EMPTY_LISTINGS;
   const districts = (districtsQuery.data ?? null) as DistrictFC | null;
-  const isBooting = tokenQuery.isPending || listingsQuery.isPending || districtsQuery.isPending;
 
   const allListings = listings;
   const bounds = useMemo(() => priceBounds(allListings), [allListings]);
-  const canopyBounds = useMemo(() => canopyHeightBounds(allListings), [allListings]);
   const districtList = useMemo(() => uniqueDistricts(allListings), [allListings]);
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selectedListing, setSelectedListing] = useState<ListingFeature | null>(null);
   const [filtersInitialized, setFiltersInitialized] = useState(false);
+  const [mapMetric, setMapMetric] = useState<ExplorerMapMetricKey>("schoolDistricts");
+  const [initialFocus, setInitialFocus] = useState<{
+    districtName: string | null;
+    districtSlug: string | null;
+    regionGroup: string | null;
+  }>({ districtName: null, districtSlug: null, regionGroup: null });
 
   useEffect(() => {
-    if (!allListings.features.length || filtersInitialized) return;
+    if (listingsQuery.isPending || filtersInitialized) return;
 
     const params =
       typeof window === "undefined"
@@ -70,6 +69,14 @@ export function HousingSearch() {
     const minBeds = Number(params.get("minBeds"));
     const minBaths = Number(params.get("minBaths"));
     const district = params.get("district");
+    const treeCover = params.get("treeCover");
+    const regionGroup = params.get("regionGroup");
+
+    setInitialFocus({
+      districtName: district,
+      districtSlug: params.get("districtSlug"),
+      regionGroup,
+    });
 
     setFilters((current) => ({
       ...current,
@@ -79,9 +86,20 @@ export function HousingSearch() {
       minBaths: Number.isFinite(minBaths) && minBaths >= 0 ? minBaths : current.minBaths,
       goodOnly: params.get("goodOnly") === "true" || current.goodOnly,
       district: district && districtList.includes(district) ? district : current.district,
+      treeCover:
+        treeCover === "some" || treeCover === "leafy" || treeCover === "very-leafy"
+          ? treeCover
+          : current.treeCover,
+      floodOnly: params.get("floodOnly") === "true" || current.floodOnly,
     }));
     setFiltersInitialized(true);
-  }, [allListings.features.length, bounds.max, districtList, filtersInitialized]);
+  }, [bounds.max, districtList, filtersInitialized, listingsQuery.isPending]);
+
+  const isBooting =
+    tokenQuery.isPending ||
+    listingsQuery.isPending ||
+    districtsQuery.isPending ||
+    !filtersInitialized;
 
   const filtered = useMemo(() => applyFilters(allListings, filters), [allListings, filters]);
 
@@ -100,7 +118,6 @@ export function HousingSearch() {
       setFilters={setFilters}
       districts={districtList}
       priceMax={Math.max(bounds.max, 100_000)}
-      canopyMax={canopyBounds.max}
       resultCount={filtered.features.length}
       totalCount={allListings.features.length}
     />
@@ -164,9 +181,25 @@ export function HousingSearch() {
                   listings={filtered}
                   districts={districts ?? null}
                   goodOnly={filters.goodOnly}
+                  mapMetric={mapMetric}
+                  onMapMetricChange={setMapMetric}
+                  initialDistrictName={initialFocus.districtName}
+                  initialDistrictSlug={initialFocus.districtSlug}
+                  initialRegionGroup={initialFocus.regionGroup}
                   selectedListingId={selectedListing?.properties.id ?? null}
                   onListingSelect={setSelectedListing}
                 />
+                {filtered.features.length === 0 ? (
+                  <div className="absolute top-32 left-3 z-[500] max-w-[min(24rem,calc(100%-1.5rem))] rounded-md border border-border bg-background/95 p-3 shadow-sm">
+                    <p className="text-sm font-semibold text-foreground">
+                      No listings match these filters
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      The map remains focused on the selected area. Adjust the price or other
+                      filters to see listings.
+                    </p>
+                  </div>
+                ) : null}
                 <ListingDetailPanel
                   listing={selectedListing}
                   onClose={() => setSelectedListing(null)}

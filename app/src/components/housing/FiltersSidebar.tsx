@@ -18,7 +18,6 @@ interface Props {
   setFilters: (f: Filters) => void;
   districts: string[];
   priceMax: number;
-  canopyMax: number;
   resultCount: number;
   totalCount: number;
 }
@@ -31,7 +30,6 @@ export function FiltersSidebar({
   setFilters,
   districts,
   priceMax,
-  canopyMax,
   resultCount,
   totalCount,
 }: Props) {
@@ -116,7 +114,7 @@ export function FiltersSidebar({
           <Label htmlFor="good-only" className="cursor-pointer">
             Good districts only
           </Label>
-          <p className="text-xs text-muted-foreground">Highly rated schools</p>
+          <p className="text-xs text-muted-foreground">Curated prototype placeholder</p>
         </div>
         <Switch
           id="good-only"
@@ -126,27 +124,40 @@ export function FiltersSidebar({
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label>Min canopy</Label>
-          <span className="text-sm font-medium text-foreground">
-            {Math.round(filters.minCanopyHeight)} m
-          </span>
-        </div>
-        <Slider
-          min={0}
-          max={Math.max(canopyMax, 1)}
-          step={1}
-          value={[Math.min(filters.minCanopyHeight, Math.max(canopyMax, 1))]}
-          onValueChange={(v) => update("minCanopyHeight", v[0])}
-        />
+        <Label>Nearby tree coverage</Label>
+        {mounted ? (
+          <Select
+            value={filters.treeCover}
+            onValueChange={(value) => update("treeCover", value as Filters["treeCover"])}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any coverage</SelectItem>
+              <SelectItem value="some">Some trees or more</SelectItem>
+              <SelectItem value="leafy">Leafy or more</SelectItem>
+              <SelectItem value="very-leafy">Very leafy</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="flex h-9 w-full items-center rounded-md border border-input px-3 text-sm">
+            Any coverage
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Based on the share of land covered by trees within 100 m.
+        </p>
       </div>
 
       <div className="flex items-center justify-between rounded-md border border-border p-3">
         <div>
           <Label htmlFor="flood-only" className="cursor-pointer">
-            In mapped SFHA
+            Inside FEMA high-risk flood zone
           </Label>
-          <p className="text-xs text-muted-foreground">FEMA point flag</p>
+          <p className="text-xs text-muted-foreground">
+            Property point falls inside the mapped zone
+          </p>
         </div>
         <Switch
           id="flood-only"

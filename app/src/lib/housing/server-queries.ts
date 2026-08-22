@@ -22,6 +22,7 @@ export const DistrictQuerySchema = z
     bbox: BboxSchema.optional(),
     state: z.enum(["PA", "NY"]).optional(),
     simplifyTolerance: z.number().min(0).max(0.1).default(0.001),
+    representedOnly: z.boolean().default(true),
   })
   .default({});
 
@@ -100,6 +101,7 @@ export function buildListingsSql(input: ListingQuery): SqlFragment {
           l.county AS county_name,
           COALESCE(dq.good_district, false) AS good_district,
           canopy.value AS canopy_height_m_100m,
+          tree_cover.value AS tree_canopy_pct_100m,
           flood.value AS flood_sfha
         FROM listings l
         JOIN school_districts d ON d.id = l.district_id
@@ -108,6 +110,10 @@ export function buildListingsSql(input: ListingQuery): SqlFragment {
           ON canopy.listing_id = l.id
          AND canopy.metric_key = 'canopy_height_m'
          AND canopy.grain = 'buffer_100m'
+        LEFT JOIN listing_metrics tree_cover
+          ON tree_cover.listing_id = l.id
+         AND tree_cover.metric_key = 'tree_canopy_pct'
+         AND tree_cover.grain = 'buffer_100m'
         LEFT JOIN listing_metrics flood
           ON flood.listing_id = l.id
          AND flood.metric_key = 'flood_sfha'
@@ -138,6 +144,7 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
           d.name_display AS school_district,
           COALESCE(dq.good_district, false) AS good_district,
           canopy.value AS canopy_height_m_100m,
+          tree_cover.value AS tree_canopy_pct_100m,
           flood.value AS flood_sfha
         FROM listings l
         JOIN school_districts d ON d.id = l.district_id
@@ -146,6 +153,10 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
           ON canopy.listing_id = l.id
          AND canopy.metric_key = 'canopy_height_m'
          AND canopy.grain = 'buffer_100m'
+        LEFT JOIN listing_metrics tree_cover
+          ON tree_cover.listing_id = l.id
+         AND tree_cover.metric_key = 'tree_canopy_pct'
+         AND tree_cover.grain = 'buffer_100m'
         LEFT JOIN listing_metrics flood
           ON flood.listing_id = l.id
          AND flood.metric_key = 'flood_sfha'
@@ -223,7 +234,9 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
 
 export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
   const values: unknown[] = [input.simplifyTolerance];
-  const where = ["EXISTS (SELECT 1 FROM listings l WHERE l.district_id = d.id)"];
+  const where = input.representedOnly
+    ? ["EXISTS (SELECT 1 FROM listings l WHERE l.district_id = d.id)"]
+    : ["dr.id IS NOT NULL"];
 
   if (input.bbox) {
     values.push(...input.bbox);
@@ -251,12 +264,31 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
           dr.slug AS district_slug,
           dr.region_group,
           d.name_display AS name,
-          COALESCE(dq.good_district, false) AS good_district
+          COALESCE(dq.good_district, false) AS good_district,
+          dm.canopy_height_m,
+          dm.tree_canopy_pct,
+          dm.walkability_index,
+          dm.risk_index,
+          dm.flood_sfha,
+          dm.light_pollution_radiance
         FROM school_districts d
         LEFT JOIN district_quality dq ON dq.district_id = d.id
         LEFT JOIN regions dr
           ON dr.district_id = d.id
          AND dr.region_type = 'school_district'
+        LEFT JOIN LATERAL (
+          SELECT
+            max(value) FILTER (WHERE metric_key = 'canopy_height_m') AS canopy_height_m,
+            max(value) FILTER (WHERE metric_key = 'tree_canopy_pct') AS tree_canopy_pct,
+            max(value) FILTER (WHERE metric_key = 'walkability_index') AS walkability_index,
+            max(value) FILTER (WHERE metric_key = 'risk_index') AS risk_index,
+            max(value) FILTER (WHERE metric_key = 'flood_sfha') AS flood_sfha,
+            max(value) FILTER (
+              WHERE metric_key = 'light_pollution_radiance'
+            ) AS light_pollution_radiance
+          FROM district_metrics
+          WHERE district_region_id = dr.id
+        ) dm ON TRUE
         WHERE ${where.join(" AND ")}
       ) row
     `,

@@ -27,6 +27,7 @@ describe("housing server data", () => {
     expect(fragment.text).toContain("COALESCE(dq.good_district, false) = true");
     expect(fragment.text).toContain("d.nces_geoid = $8");
     expect(fragment.text).toContain("canopy.metric_key = 'canopy_height_m'");
+    expect(fragment.text).toContain("tree_cover.metric_key = 'tree_canopy_pct'");
     expect(fragment.text).toContain("flood.metric_key = 'flood_sfha'");
   });
 
@@ -35,6 +36,7 @@ describe("housing server data", () => {
       bbox: [-76, 39, -73, 42],
       state: "NY",
       simplifyTolerance: 0.005,
+      representedOnly: true,
     });
 
     expect(fragment.values).toEqual([0.005, -76, 39, -73, 42, "NY"]);
@@ -44,6 +46,8 @@ describe("housing server data", () => {
     expect(fragment.text).toContain("d.state = $6");
     expect(fragment.text).toContain("dr.slug AS district_slug");
     expect(fragment.text).toContain("dr.region_group");
+    expect(fragment.text).toContain("FROM district_metrics");
+    expect(fragment.text).toContain("light_pollution_radiance");
   });
 
   it("builds listing metric detail SQL for listing and tract context", () => {
@@ -67,9 +71,9 @@ describe("housing server data", () => {
   it("fetches district GeoJSON with a mocked SQL executor", async () => {
     const execute = vi.fn().mockResolvedValue([{ geojson: emptyCollection }]);
 
-    await expect(fetchDistrictsGeoJson({ simplifyTolerance: 0.001 }, execute)).resolves.toEqual(
-      emptyCollection,
-    );
+    await expect(
+      fetchDistrictsGeoJson({ simplifyTolerance: 0.001, representedOnly: true }, execute),
+    ).resolves.toEqual(emptyCollection);
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0][0]).toContain("FROM school_districts d");
   });
@@ -91,6 +95,7 @@ describe("housing server data", () => {
             county_name: "Delaware",
             good_district: true,
             canopy_height_m_100m: 18.2,
+            tree_canopy_pct_100m: 62.1,
             flood_sfha: 0,
           },
           metrics: [

@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Home, MapPin, Trees, Waves, X } from "lucide-react";
+import { ExternalLink, Home, MapPin, Ruler, Trees, Waves, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WalkabilityExplainer } from "@/components/metrics/WalkabilityExplainer";
+import { MetricExplainer } from "@/components/metrics/MetricExplainer";
 import { getListingMetrics } from "@/lib/housing/listings.functions";
+import { lightPollutionCategory, treeCoverCategory } from "@/lib/metrics/presentation";
 import type { ListingFeature, ListingMetricContext, ListingMetricItem } from "@/lib/housing/types";
 
 interface Props {
@@ -28,6 +31,13 @@ function formatPrice(value: number) {
 
 function formatMetricValue(metric: ListingMetricItem) {
   if (metric.metricKey === "flood_sfha") return metric.value >= 1 ? "Yes" : "No";
+  if (metric.metricKey === "tree_canopy_pct") {
+    return `${treeCoverCategory(metric.value)} · ${metric.value.toFixed(0)}%`;
+  }
+  if (metric.metricKey === "light_pollution_radiance") {
+    return `${lightPollutionCategory(metric.value)} · ${metric.value.toFixed(1)}`;
+  }
+  if (metric.metricKey === "walkability_index") return `${metric.value.toFixed(1)} / 20`;
   if (metric.units === "percent" || metric.metricKey.endsWith("_pct")) {
     return `${metric.value.toFixed(1)}%`;
   }
@@ -45,8 +55,80 @@ function grainLabel(grain: string) {
 
 function metricIcon(metric: ListingMetricItem) {
   if (metric.metricKey.includes("flood")) return <Waves className="h-4 w-4 text-sky-700" />;
-  if (metric.metricKey.includes("canopy")) return <Trees className="h-4 w-4 text-emerald-700" />;
+  if (metric.metricKey === "tree_canopy_pct") {
+    return <Trees className="h-4 w-4 text-emerald-700" />;
+  }
+  if (metric.metricKey === "canopy_height_m") {
+    return <Ruler className="h-4 w-4 text-emerald-800" />;
+  }
   return <MapPin className="h-4 w-4 text-slate-600" />;
+}
+
+function metricName(metric: ListingMetricItem) {
+  if (metric.metricKey === "flood_sfha") {
+    return metric.grain === "point"
+      ? "Inside FEMA high-risk flood zone"
+      : "FEMA flood-zone exposure";
+  }
+  if (metric.metricKey === "tree_canopy_pct") return "Tree coverage";
+  if (metric.metricKey === "canopy_height_m") return "Average canopy height";
+  if (metric.metricKey === "light_pollution_radiance") return "Light pollution";
+  return metric.name;
+}
+
+function metricHelp(metric: ListingMetricItem) {
+  if (metric.metricKey === "walkability_index") return <WalkabilityExplainer compact />;
+  if (metric.metricKey === "tree_canopy_pct") {
+    return (
+      <MetricExplainer compact label="How tree coverage works" title="Tree coverage">
+        <p>
+          The share of land covered by tree canopy in this area. Consumer labels run from Sparse to
+          Very leafy; the percentage remains available as supporting detail.
+        </p>
+        <p>A 100 m value describes the nearby street context, not only this parcel.</p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "canopy_height_m") {
+    return (
+      <MetricExplainer compact label="How canopy height works" title="Average canopy height">
+        <p>
+          Mean mapped vegetation height across the stated area. It can help distinguish taller from
+          lower vegetation, but it does not measure tree age, old growth, or sidewalk shade.
+        </p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "light_pollution_radiance") {
+    return (
+      <MetricExplainer compact label="How light pollution works" title="Light pollution">
+        <p>
+          VIIRS satellite radiance measures upward nighttime light. Lower is darker. A raw value
+          such as 1 is not a 1-to-10 score; it is a radiance measurement used to assign the
+          plain-language darkness category.
+        </p>
+        <p>This is coarse neighborhood context, not an address-level reading.</p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "flood_sfha") {
+    return (
+      <MetricExplainer
+        compact
+        label="How FEMA flood-zone data works"
+        title="FEMA high-risk flood zone"
+        sourceHref="https://www.fema.gov/flood-maps/national-flood-hazard-layer"
+        sourceLabel="View FEMA National Flood Hazard Layer"
+      >
+        <p>
+          A property value says whether the listing point falls inside a mapped Special Flood Hazard
+          Area. A neighborhood or district value instead shows the share of land covered.
+        </p>
+        <p>It is screening context, not a parcel survey or insurance determination.</p>
+      </MetricExplainer>
+    );
+  }
+  return null;
 }
 
 export function ListingDetailPanel({ listing, onClose }: Props) {
@@ -66,20 +148,29 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
   const listingProps = details?.listing ?? listing.properties;
   const allMetrics = [...(details?.metrics ?? []), ...(details?.tractMetrics ?? [])];
   const knownValues = [
+    typeof listingProps.tree_canopy_pct_100m === "number"
+      ? {
+          key: "tree-cover",
+          label: "Nearby tree coverage",
+          detail: `${listingProps.tree_canopy_pct_100m.toFixed(0)}% within 100 m`,
+          value: treeCoverCategory(listingProps.tree_canopy_pct_100m),
+          icon: <Trees className="h-4 w-4 text-emerald-700" />,
+        }
+      : null,
     typeof listingProps.canopy_height_m_100m === "number"
       ? {
           key: "canopy-height",
-          label: "Canopy height",
-          detail: "100 m known value",
+          label: "Average canopy height",
+          detail: "Mapped vegetation within 100 m",
           value: `${listingProps.canopy_height_m_100m.toFixed(1)} m`,
-          icon: <Trees className="h-4 w-4 text-emerald-700" />,
+          icon: <Ruler className="h-4 w-4 text-emerald-800" />,
         }
       : null,
     typeof listingProps.flood_sfha === "number"
       ? {
           key: "flood-sfha",
-          label: "Mapped SFHA",
-          detail: "FEMA point known value",
+          label: "Inside FEMA high-risk flood zone",
+          detail: "Listing point in mapped SFHA",
           value: listingProps.flood_sfha >= 1 ? "Yes" : "No",
           icon: <Waves className="h-4 w-4 text-sky-700" />,
         }
@@ -122,7 +213,9 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
                 <p className="text-sm font-medium text-foreground">
                   {listingProps.school_district}
                 </p>
-                {listingProps.good_district ? <Badge variant="secondary">Good</Badge> : null}
+                {listingProps.good_district ? (
+                  <Badge variant="secondary">Prototype district flag</Badge>
+                ) : null}
               </div>
             </div>
             {href ? (
@@ -188,9 +281,12 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
                       >
                         {metricIcon(metric)}
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {metric.name}
-                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="truncate text-sm font-medium text-foreground">
+                              {metricName(metric)}
+                            </p>
+                            {metricHelp(metric)}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {grainLabel(metric.grain)} · {metric.nativeResolution ?? metric.vintage}
                           </p>

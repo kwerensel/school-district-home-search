@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,12 +14,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { WalkabilityExplainer } from "@/components/metrics/WalkabilityExplainer";
+import { MetricExplainer } from "@/components/metrics/MetricExplainer";
+import { PurchasingPowerExplainer } from "@/components/metrics/PurchasingPowerExplainer";
 import { getMapboxToken } from "@/lib/housing/mapbox-token.functions";
 import { getDistricts } from "@/lib/housing/listings.functions";
 import { getDistrictPurchasingPower } from "@/lib/finance/purchasing-power.functions";
 import type { DistrictFC } from "@/lib/housing/types";
 import type { CreditBand } from "@/lib/finance/purchasing-power";
 import type { DistrictPurchasingPower } from "@/lib/finance/server-data";
+import {
+  lightPollutionCategory,
+  riskCategory,
+  treeCoverCategory,
+  type MapMetricKey,
+} from "@/lib/metrics/presentation";
 
 const RegionChoroplethMap = lazy(() =>
   import("./RegionChoroplethMap").then((m) => ({ default: m.RegionChoroplethMap })),
@@ -34,10 +43,6 @@ const currency = new Intl.NumberFormat("en-US", {
 const percent = new Intl.NumberFormat("en-US", {
   style: "percent",
   maximumFractionDigits: 2,
-});
-
-const wholeNumber = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
 });
 
 const oneDecimal = new Intl.NumberFormat("en-US", {
@@ -63,9 +68,9 @@ const DEFAULT_WEIGHTS: Record<WeightKey, number> = {
 };
 
 const weightControls: Array<{ key: WeightKey; label: string }> = [
-  { key: "affordability", label: "Budget fit" },
-  { key: "green", label: "Green" },
-  { key: "walkability", label: "Walkability" },
+  { key: "affordability", label: "Local price reach" },
+  { key: "green", label: "Tree cover" },
+  { key: "walkability", label: "EPA walkability" },
   { key: "lowerRisk", label: "Lower risk" },
   { key: "lowerFlood", label: "Lower flood" },
   { key: "darkSkies", label: "Darker skies" },
@@ -103,8 +108,38 @@ function formatOptionalPercent(value: number | null) {
   return value === null ? "-" : percent.format(value);
 }
 
-function formatOptionalRatio(value: number | null) {
-  return value === null ? "-" : percent.format(value);
+function comparisonScopeLabel(regionGroup: RegionFilter) {
+  if (regionGroup === "all") return "both supported regions";
+  return regionLabel(regionGroup);
+}
+
+const factorLabels: Record<WeightKey, string> = {
+  affordability: "local price reach",
+  green: "tree cover",
+  walkability: "EPA walkability",
+  lowerRisk: "lower hazard risk",
+  lowerFlood: "lower flood exposure",
+  darkSkies: "darker skies",
+};
+
+function districtReasons(district: DistrictPurchasingPower, weights: Record<WeightKey, number>) {
+  const entries = (Object.keys(factorLabels) as WeightKey[])
+    .map((key) => ({ key, score: district.matchComponents[key] }))
+    .filter(
+      (entry): entry is { key: WeightKey; score: number } =>
+        entry.score !== null && weights[entry.key] > 0,
+    );
+  const strongest = [...entries].sort((a, b) => b.score - a.score);
+  const weakest = [...entries].sort((a, b) => a.score - b.score);
+  const strengths = strongest.filter((entry) => entry.score >= 60).slice(0, 2);
+  const tradeoffs = weakest.filter((entry) => entry.score <= 40).slice(0, 1);
+
+  return {
+    strengths: (strengths.length ? strengths : strongest.slice(0, 1)).map(
+      (entry) => factorLabels[entry.key],
+    ),
+    tradeoffs: tradeoffs.map((entry) => factorLabels[entry.key]),
+  };
 }
 
 export function DiscoveryEngine() {
@@ -120,6 +155,7 @@ export function DiscoveryEngine() {
   const [regionGroup, setRegionGroup] = useState<RegionFilter>("all");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [weights, setWeights] = useState<Record<WeightKey, number>>(DEFAULT_WEIGHTS);
+  const [mapMetric, setMapMetric] = useState<MapMetricKey>("purchasingPower");
   const [urlHydrated, setUrlHydrated] = useState(false);
 
   const tokenQuery = useQuery({
@@ -130,7 +166,7 @@ export function DiscoveryEngine() {
 
   const districtsQuery = useQuery({
     queryKey: ["districts", "discover"],
-    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.002 } }),
+    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.002, representedOnly: false } }),
     staleTime: 60 * 60 * 1000,
   });
 
@@ -174,6 +210,11 @@ export function DiscoveryEngine() {
   );
   const selected =
     ranked.find((district) => district.districtSlug === selectedSlug) ?? ranked[0] ?? null;
+  const rankBySlug = useMemo(
+    () => new Map(ranked.map((district, index) => [district.districtSlug, index + 1])),
+    [ranked],
+  );
+  const selectedRank = selected ? (rankBySlug.get(selected.districtSlug) ?? null) : null;
   const averagePower =
     ranked.length > 0
       ? ranked.reduce((sum, district) => sum + district.maxPurchasePrice, 0) / ranked.length
@@ -199,6 +240,7 @@ export function DiscoveryEngine() {
     const params = new URLSearchParams(profileSearch);
     if (selected) {
       params.set("district", selected.districtName);
+      params.set("districtSlug", selected.districtSlug);
       params.set("maxPrice", String(Math.floor(selected.maxPurchasePrice)));
     }
     const query = params.toString();
@@ -360,6 +402,14 @@ export function DiscoveryEngine() {
               <SelectedDistrictPanel
                 selected={selected}
                 selectedExplorerHref={selectedExplorerHref}
+                rank={selectedRank}
+                districtCount={ranked.length}
+                comparisonScope={comparisonScopeLabel(regionGroup)}
+                monthlyBudget={monthlyBudget}
+                downPaymentAmount={downPaymentAmount}
+                creditBand={creditBand}
+                mapMetric={mapMetric}
+                onMapMetricChange={setMapMetric}
               />
             ) : null}
 
@@ -398,48 +448,74 @@ export function DiscoveryEngine() {
             </section>
 
             <section className="rounded-md border border-border p-4">
-              <p className="text-sm font-semibold text-foreground">Map colors</p>
+              <p className="text-sm font-semibold text-foreground">How this ranking works</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Districts are shaded by estimated max home price for the same budget. Blue means
-                higher purchasing power; red means lower purchasing power.
+                Ranked among {ranked.length} districts in {comparisonScopeLabel(regionGroup)} using
+                the priorities above. A rank is comparative—it is not a probability or a percentage
+                of requirements satisfied.
               </p>
             </section>
 
             <section className="space-y-2">
               <h2 className="text-sm font-semibold text-foreground">Ranked Districts</h2>
               <div className="space-y-2">
-                {ranked.slice(0, 18).map((district) => (
-                  <button
-                    key={district.districtSlug}
-                    type="button"
-                    onClick={() => setSelectedSlug(district.districtSlug)}
-                    className={`w-full rounded-md border p-3 text-left transition-colors ${
-                      district.districtSlug === selected?.districtSlug
-                        ? "border-primary bg-accent"
-                        : "border-border bg-background hover:bg-accent"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {district.districtName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {regionLabel(district.regionGroup)}
+                {ranked.slice(0, 18).map((district, index) => {
+                  const reasons = districtReasons(district, weights);
+                  return (
+                    <button
+                      key={district.districtSlug}
+                      type="button"
+                      onClick={() => setSelectedSlug(district.districtSlug)}
+                      className={`w-full rounded-md border p-3 text-left transition-colors ${
+                        district.districtSlug === selected?.districtSlug
+                          ? "border-primary bg-accent"
+                          : "border-border bg-background hover:bg-accent"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {district.districtName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {regionLabel(district.regionGroup)}
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-xs font-semibold text-foreground">
+                          #{index + 1} of {ranked.length}
                         </p>
                       </div>
-                      <p className="shrink-0 text-sm font-semibold text-foreground">
-                        {wholeNumber.format(district.matchScore)}%
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatCurrency(district.maxPurchasePrice)} max home price
-                      {district.affordabilityRatio !== null
-                        ? ` · ${formatOptionalRatio(district.affordabilityRatio)} of median`
-                        : ""}
-                    </p>
-                  </button>
-                ))}
+                      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <p className="text-muted-foreground">Estimated max price</p>
+                          <p className="mt-0.5 font-semibold text-foreground">
+                            {formatCurrency(district.maxPurchasePrice)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">District median value</p>
+                          <p className="mt-0.5 font-semibold text-foreground">
+                            {formatOptionalCurrency(district.environmentMetrics.medianHomeValue)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                        {reasons.strengths.length ? (
+                          <p>
+                            <span className="font-medium text-foreground">Stronger here:</span>{" "}
+                            {reasons.strengths.join(", ")}
+                          </p>
+                        ) : null}
+                        {reasons.tradeoffs.length ? (
+                          <p>
+                            <span className="font-medium text-foreground">Tradeoff:</span>{" "}
+                            {reasons.tradeoffs.join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           </div>
@@ -458,6 +534,9 @@ export function DiscoveryEngine() {
                   districts={districts}
                   purchasingPower={ranked}
                   selectedSlug={selected?.districtSlug ?? null}
+                  rankBySlug={rankBySlug}
+                  activeMetric={mapMetric}
+                  onActiveMetricChange={setMapMetric}
                   onDistrictSelect={setSelectedSlug}
                 />
               </Suspense>
@@ -472,55 +551,123 @@ export function DiscoveryEngine() {
 function SelectedDistrictPanel({
   selected,
   selectedExplorerHref,
+  rank,
+  districtCount,
+  comparisonScope,
+  monthlyBudget,
+  downPaymentAmount,
+  creditBand,
+  mapMetric,
+  onMapMetricChange,
 }: {
   selected: DistrictPurchasingPower;
   selectedExplorerHref: string;
+  rank: number | null;
+  districtCount: number;
+  comparisonScope: string;
+  monthlyBudget: number;
+  downPaymentAmount: number;
+  creditBand: CreditBand;
+  mapMetric: MapMetricKey;
+  onMapMetricChange: (metric: MapMetricKey) => void;
 }) {
   return (
     <section className="rounded-md border border-border p-4" data-testid="selected-district-panel">
-      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-        Selected District
-      </p>
+      <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+        <p className="uppercase tracking-normal">Selected District</p>
+        <p>{rank ? `#${rank} of ${districtCount} districts` : `${districtCount} districts`}</p>
+      </div>
       <h2 className="mt-1 text-lg font-semibold text-foreground">{selected.districtName}</h2>
-      <p className="text-sm text-muted-foreground">{regionLabel(selected.regionGroup)}</p>
+      <p className="text-sm text-muted-foreground">
+        Compared within {comparisonScope}
+        {comparisonScope === regionLabel(selected.regionGroup)
+          ? ""
+          : ` · ${regionLabel(selected.regionGroup)}`}
+      </p>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <MetricBox label="Max home price" value={formatCurrency(selected.maxPurchasePrice)} />
         <MetricBox
-          label="Median value"
+          label="Estimated max home price"
+          value={formatCurrency(selected.maxPurchasePrice)}
+          help={
+            <PurchasingPowerExplainer
+              annualRate={selected.annualRate}
+              effectiveTaxRate={selected.effectiveTaxRate}
+              monthlyBudget={monthlyBudget}
+              downPaymentAmount={downPaymentAmount}
+              creditBand={creditBand}
+            />
+          }
+          active={mapMetric === "purchasingPower"}
+          onActivate={() => onMapMetricChange("purchasingPower")}
+        />
+        <MetricBox
+          label="District median home value"
           value={formatOptionalCurrency(selected.environmentMetrics.medianHomeValue)}
         />
-        <MetricBox label="Budget fit" value={formatOptionalRatio(selected.affordabilityRatio)} />
-        <MetricBox label="Tax rate" value={percent.format(selected.effectiveTaxRate)} />
-        <MetricBox label="Match" value={`${wholeNumber.format(selected.matchScore)}%`} />
+        <MetricBox
+          label="Effective property-tax rate"
+          value={percent.format(selected.effectiveTaxRate)}
+        />
       </div>
       <div className="mt-4 border-t border-border pt-4">
         <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-          Known district values
+          District-level context
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <MetricBox
-            label="Canopy height"
+            label="Tree coverage"
+            value={
+              selected.environmentMetrics.treeCanopyPct === null
+                ? "-"
+                : `${treeCoverCategory(selected.environmentMetrics.treeCanopyPct)} · ${oneDecimal.format(selected.environmentMetrics.treeCanopyPct)}%`
+            }
+            help={<TreeCoverageExplainer />}
+            active={mapMetric === "treeCanopy"}
+            onActivate={() => onMapMetricChange("treeCanopy")}
+          />
+          <MetricBox
+            label="EPA walkability"
+            value={formatOptionalNumber(selected.environmentMetrics.walkabilityIndex, " / 20")}
+            help={<WalkabilityExplainer />}
+            active={mapMetric === "walkability"}
+            onActivate={() => onMapMetricChange("walkability")}
+          />
+          <MetricBox
+            label="Natural-hazard risk"
+            value={
+              selected.environmentMetrics.riskIndex === null
+                ? "-"
+                : `${riskCategory(selected.environmentMetrics.riskIndex)} · ${oneDecimal.format(selected.environmentMetrics.riskIndex)} / 100`
+            }
+            active={mapMetric === "risk"}
+            onActivate={() => onMapMetricChange("risk")}
+          />
+          <MetricBox
+            label="FEMA flood-zone land"
+            value={
+              selected.environmentMetrics.floodSfha === null
+                ? "-"
+                : `${formatOptionalPercent(selected.environmentMetrics.floodSfha)} of district land`
+            }
+            help={<FloodExplainer />}
+            active={mapMetric === "floodExposure"}
+            onActivate={() => onMapMetricChange("floodExposure")}
+          />
+          <MetricBox
+            label="Light pollution"
+            value={
+              selected.environmentMetrics.lightPollutionRadiance === null
+                ? "-"
+                : `${lightPollutionCategory(selected.environmentMetrics.lightPollutionRadiance)} · ${oneDecimal.format(selected.environmentMetrics.lightPollutionRadiance)} radiance`
+            }
+            help={<LightPollutionExplainer />}
+            active={mapMetric === "lightPollution"}
+            onActivate={() => onMapMetricChange("lightPollution")}
+          />
+          <MetricBox
+            label="Average canopy height"
             value={formatOptionalNumber(selected.environmentMetrics.canopyHeightM, " m")}
-          />
-          <MetricBox
-            label="Tree canopy"
-            value={formatOptionalNumber(selected.environmentMetrics.treeCanopyPct, "%")}
-          />
-          <MetricBox
-            label="Walkability"
-            value={formatOptionalNumber(selected.environmentMetrics.walkabilityIndex)}
-          />
-          <MetricBox
-            label="Risk index"
-            value={formatOptionalNumber(selected.environmentMetrics.riskIndex)}
-          />
-          <MetricBox
-            label="Flood share"
-            value={formatOptionalPercent(selected.environmentMetrics.floodSfha)}
-          />
-          <MetricBox
-            label="Night light"
-            value={formatOptionalNumber(selected.environmentMetrics.lightPollutionRadiance)}
+            help={<CanopyHeightExplainer />}
           />
         </div>
       </div>
@@ -534,12 +681,93 @@ function SelectedDistrictPanel({
   );
 }
 
-function MetricBox({ label, value }: { label: string; value: string }) {
+function MetricBox({
+  label,
+  value,
+  help,
+  active = false,
+  onActivate,
+}: {
+  label: string;
+  value: string;
+  help?: ReactNode;
+  active?: boolean;
+  onActivate?: () => void;
+}) {
   return (
-    <div className="rounded-md border border-border p-3">
+    <div
+      className={`rounded-md border p-3 ${active ? "border-primary bg-accent" : "border-border"}`}
+    >
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+      {help ? <div className="mt-2">{help}</div> : null}
+      {onActivate ? (
+        <button
+          type="button"
+          onClick={onActivate}
+          className="mt-2 text-xs font-medium text-primary underline-offset-2 hover:underline"
+        >
+          {active ? "Shown on map" : "Show on map"}
+        </button>
+      ) : null}
     </div>
+  );
+}
+
+function TreeCoverageExplainer() {
+  return (
+    <MetricExplainer label="What this means" title="Tree coverage">
+      <p>
+        The share of district land covered by tree canopy. Groundtruth translates the raw percentage
+        into Sparse, Some trees, Leafy, or Very leafy so it is easier to compare.
+      </p>
+      <p>It describes coverage, not tree height, age, sidewalk shade, or walking comfort.</p>
+    </MetricExplainer>
+  );
+}
+
+function CanopyHeightExplainer() {
+  return (
+    <MetricExplainer label="What this means" title="Average canopy height">
+      <p>
+        Mean mapped vegetation height across the district. It can distinguish taller from lower
+        vegetation, but does not measure tree age, old growth, or how shaded a specific sidewalk
+        feels.
+      </p>
+    </MetricExplainer>
+  );
+}
+
+function FloodExplainer() {
+  return (
+    <MetricExplainer
+      label="What this means"
+      title="FEMA flood-zone exposure"
+      sourceHref="https://www.fema.gov/flood-maps/national-flood-hazard-layer"
+      sourceLabel="View FEMA National Flood Hazard Layer"
+    >
+      <p>
+        This is the percentage of district land inside a mapped Special Flood Hazard Area. It is not
+        the percentage of homes affected and not the probability that the district will flood.
+      </p>
+      <p>Use it as screening context, then check the official parcel map and insurance details.</p>
+    </MetricExplainer>
+  );
+}
+
+function LightPollutionExplainer() {
+  return (
+    <MetricExplainer label="What this means" title="Light pollution">
+      <p>
+        VIIRS satellite radiance measures upward nighttime light. Lower is darker. The observed
+        district values in this prototype run roughly from 0.26 to 100.7.
+      </p>
+      <p>
+        A value such as 1 is not a 1-to-10 score; it is a radiance measurement. Groundtruth uses it
+        to assign a plain-language category from Very dark to Very bright.
+      </p>
+      <p>This is coarse neighborhood context, not an address-level reading.</p>
+    </MetricExplainer>
   );
 }
 

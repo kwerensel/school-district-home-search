@@ -70,6 +70,11 @@ describe("finance server data", () => {
       medianHomeValue: 650000,
       lightPollutionRadiance: 8,
     });
+    expect(payload.districts[0].matchComponents).toMatchObject({
+      affordability: expect.any(Number),
+      green: expect.any(Number),
+      walkability: expect.any(Number),
+    });
     expect(payload.districts[0].affordabilityRatio).toBeGreaterThan(1);
     expect(payload.districts[0].matchScore).toBeGreaterThan(payload.districts[1].matchScore);
     expect(payload.districts[0].maxPurchasePrice).toBeGreaterThan(

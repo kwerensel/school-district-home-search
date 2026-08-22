@@ -6,8 +6,14 @@ export const DEFAULT_FILTERS: Filters = {
   minBaths: 0,
   goodOnly: false,
   district: "all",
-  minCanopyHeight: 0,
+  treeCover: "all",
   floodOnly: false,
+};
+
+const TREE_COVER_MINIMUMS: Record<Exclude<Filters["treeCover"], "all">, number> = {
+  some: 20,
+  leafy: 40,
+  "very-leafy": 60,
 };
 
 export function applyFilters(fc: ListingFC, f: Filters): ListingFC {
@@ -20,7 +26,10 @@ export function applyFilters(fc: ListingFC, f: Filters): ListingFC {
       if (p.baths < f.minBaths) return false;
       if (f.goodOnly && !p.good_district) return false;
       if (f.district !== "all" && p.school_district !== f.district) return false;
-      if (f.minCanopyHeight > 0 && (p.canopy_height_m_100m ?? -Infinity) < f.minCanopyHeight)
+      if (
+        f.treeCover !== "all" &&
+        (p.tree_canopy_pct_100m ?? -Infinity) < TREE_COVER_MINIMUMS[f.treeCover]
+      )
         return false;
       if (f.floodOnly && (p.flood_sfha ?? 0) < 1) return false;
       return true;
@@ -45,15 +54,4 @@ export function priceBounds(fc: ListingFC): { min: number; max: number } {
     if (p > max) max = p;
   }
   return { min: Math.floor(min), max: Math.ceil(max) };
-}
-
-export function canopyHeightBounds(fc: ListingFC): { min: number; max: number } {
-  const values = fc.features
-    .map((f) => f.properties.canopy_height_m_100m)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  if (!values.length) return { min: 0, max: 0 };
-  return {
-    min: Math.floor(Math.min(...values)),
-    max: Math.ceil(Math.max(...values)),
-  };
 }

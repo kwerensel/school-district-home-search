@@ -67,6 +67,10 @@ export type DistrictPurchasingPower = {
   regionGroup: string;
   effectiveTaxRate: number;
   environmentMetrics: DistrictEnvironmentMetrics;
+  matchComponents: Record<
+    keyof Required<NonNullable<PurchasingPowerQuery["environmentWeights"]>>,
+    number | null
+  >;
   matchScore: number;
   affordabilityRatio: number | null;
   maxPurchasePrice: number;
@@ -182,6 +186,14 @@ function computeDistrictPurchasingPower(
       floodSfha: nullableNumber(row.flood_sfha),
       lightPollutionRadiance: nullableNumber(row.light_pollution_radiance),
     },
+    matchComponents: {
+      affordability: null,
+      green: null,
+      walkability: null,
+      lowerRisk: null,
+      lowerFlood: null,
+      darkSkies: null,
+    },
     matchScore: 0,
     affordabilityRatio,
     maxPurchasePrice: result.maxPurchasePrice,
@@ -256,6 +268,14 @@ function addMatchScores(
     }
     return {
       ...district,
+      matchComponents: {
+        affordability: scoreInputs.affordability.get(district.districtSlug) ?? null,
+        green: scoreInputs.green.get(district.districtSlug) ?? null,
+        walkability: scoreInputs.walkability.get(district.districtSlug) ?? null,
+        lowerRisk: scoreInputs.lowerRisk.get(district.districtSlug) ?? null,
+        lowerFlood: scoreInputs.lowerFlood.get(district.districtSlug) ?? null,
+        darkSkies: scoreInputs.darkSkies.get(district.districtSlug) ?? null,
+      },
       matchScore: weightTotal > 0 ? weightedTotal / weightTotal : 0,
     };
   });

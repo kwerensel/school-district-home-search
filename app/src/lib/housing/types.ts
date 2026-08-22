@@ -13,6 +13,7 @@ export interface ListingProps {
   county_name?: string | null;
   good_district: boolean;
   canopy_height_m_100m?: number | null;
+  tree_canopy_pct_100m?: number | null;
   flood_sfha?: number | null;
 }
 
@@ -22,6 +23,12 @@ export interface DistrictProps {
   region_group?: string | null;
   name: string;
   good_district?: boolean;
+  canopy_height_m?: number | null;
+  tree_canopy_pct?: number | null;
+  walkability_index?: number | null;
+  risk_index?: number | null;
+  flood_sfha?: number | null;
+  light_pollution_radiance?: number | null;
 }
 
 export type ListingFeature = Feature<Point, ListingProps>;
@@ -35,7 +42,7 @@ export interface Filters {
   minBaths: number;
   goodOnly: boolean;
   district: string; // "all" or a school_district name
-  minCanopyHeight: number;
+  treeCover: "all" | "some" | "leafy" | "very-leafy";
   floodOnly: boolean;
 }
 

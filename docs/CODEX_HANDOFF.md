@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Generated: 2026-06-20, America/New_York.
+Generated: 2026-08-22, America/New_York.
 
 ## 1. Project Goal
 
@@ -13,7 +13,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
-Current work is in Phase 5, first clean enrichment layers.
+Phases 0–6 are complete. The current checkpoint is a Phase 10 Discovery/
+Explorer UX feedback pass built on the promoted deterministic metrics. Phase 7
+`park_access` is the next approved data implementation arc; GVI remains out of
+scope until its planned phase.
 
 Completed checkpoints:
 
@@ -52,11 +55,10 @@ Completed checkpoints:
   checkpoint: `getDistrictPurchasingPower` validates user budget inputs,
   reads promoted district `effective_tax_rate` rows, and maps them through the
   pure TypeScript finance engine without logging profile contents.
-- First Phase 6 Discovery surface is implemented in the current checkpoint:
+- First Phase 6 Discovery surface was implemented as an earlier checkpoint:
   `/discover` provides budget controls, district purchasing-power ranking, and
-  a Leaflet district choropleth driven by the new server function. It does not
-  compare against median home values because the ZCTA/ZHVI reduction gate is
-  still blocked.
+  a Leaflet district choropleth driven by the new server function. Promoted
+  median home values were integrated in a later checkpoint below.
 - Discovery/Explorer URL profile handoff is implemented in the current
   checkpoint: Discovery persists monthly budget, down payment, credit band, and
   region in search params, then links to Explorer with selected district and
@@ -100,6 +102,14 @@ Completed checkpoints:
   cards, selected district panel, and map tooltips.
 - Phase 7 `park_access` source onboarding is drafted in the current checkpoint
   using approved OpenStreetMap plus USGS PAD-US Public Access sources.
+- August 2026 UX feedback is implemented in the current worktree: consumer UI
+  no longer exposes the normalized overall match percentage or percent-of-
+  median as "fit"; it shows `#x of N districts`, the named comparison area,
+  factor strengths/tradeoffs, purchasing-power assumptions, plain-language
+  canopy/flood/light-pollution explanations, selectable district choropleths,
+  a category-based Explorer tree-cover filter, and a Discovery -> Explorer
+  district-focus handoff. Before/after screenshots are under
+  `docs/screenshots/`.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -536,11 +546,10 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current local commit: `9da3a0c Add Discovery purchasing power view`
-- `main` is even with `origin/main` at that commit before the current
-  URL-profile handoff checkpoint.
-- Worktree has uncommitted edits for Discovery URL search params, Explorer
-  filter initialization from URL params, and this handoff update.
+- Current local commit before the UX commits: `5976258 Document park access metric modeling note`.
+- `main` is even with `origin/main` at that commit before this feedback pass.
+- Worktree contains the August 2026 README, UI, test, handoff, and screenshot
+  changes described above. Commit and push them after the final green check.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -551,7 +560,9 @@ Known caveats:
 - The `canopy_height_m` source native resolution is about 1.2 m, but the current POC reducer uses a 4096 x 4096 overview grid per zoom-10 tile, roughly 9.6 m working resolution, for practical remote COG reads. This is recorded in the manifest and metric notes. It is appropriate for tract means and 100 m listing buffers, but not a final house-to-house pixel-level QA pass.
 - The `tree_canopy_pct` reducer reads the public NLCD TCC ZIP-backed GeoTIFF remotely rather than caching the full 3.6 GB archive locally.
 - GeoPandas emits warnings about direct psycopg connections not being SQLAlchemy connectables. These are warnings, not failures.
-- README is stale relative to the current architecture; it still describes the older static GeoJSON prototype.
+- README still begins with the original prototype overview, but now records the
+  active Discovery ranking/map conventions plus the approved future hard-
+  constraint and walking-access design so those decisions are not lost.
 - Phase 5 clean enrichment layers are promoted: `canopy_height_m`,
   `tree_canopy_pct`, `risk_index`, `walkability_index`, `flood_sfha`, and
   `light_pollution_radiance`. Explorer listing metrics panel/environmental
@@ -567,15 +578,9 @@ Known caveats:
   ACS 2024 5-year table-based Summary File bulk downloads. It uses
   county-subdivision rows only (`mun-cousub-*`) because including both county
   subdivisions and places would double-count many tract overlaps.
-- The Zillow ZHVI single-family ZIP file is restored locally at
-  `data/raw/Zip_zhvi_uc_sfr_tier_0.33_0.67_sm_sa_month.csv`; latest date column
-  observed is `2026-05-31`. This file is gitignored and is not enough by itself
-  for promotion because the approved layer still needs a ZCTA geometry/source
-  crosswalk to reduce ZIP/ZCTA values to districts.
-- `median_home_value` now has the local Zillow ZHVI CSV and Census TIGER 2023
-  ZCTA geometry ZIP, but the approved housing-unit-weighted ZCTA -> district
-  crosswalk still needs a local housing-unit relationship/input. Do not silently
-  substitute raw area weighting for this layer.
+- `median_home_value` is promoted for both regions through the approved Zillow
+  plus Census/ACS housing-unit-weighted path. The large local source files
+  remain gitignored.
 - `walkability_index` is promoted to public/live metric tables. Staging rows
   may still exist as the last staged source of truth for the promote reports.
 - `flood_sfha` is promoted to public/live metric tables. The initial promote
@@ -869,6 +874,38 @@ Checks last run after repaired `flood_sfha` promotion:
   - `./.venv/bin/gt manifest validate layer manifests/layers/park_access.yaml`
   - `./.venv/bin/pytest tests/test_cli.py -q`: 21 passed.
 
+### August 2026 UX Feedback Checkpoint
+
+- Discovery ranks by the existing deterministic internal score but exposes only
+  an explicit ordinal such as `#1 of 78 districts`, the named comparison area,
+  and factor-level strengths/tradeoffs.
+- Purchasing power now shows an estimated max home price separately from the
+  district median value, with the rate, credit, tax, insurance, PMI, 30-year
+  term, and exclusions available in the UI.
+- Discovery and Explorer can shade one district-level context layer at a time:
+  purchasing power (Discovery), tree coverage, FEMA flood-zone exposure, light
+  pollution, EPA walkability, or natural-hazard risk. Legends and tooltips use
+  plain language and state the geographic grain.
+- Explorer now carries the listing `tree_canopy_pct` 100 m value in compact
+  GeoJSON, filters with consumer tree-cover categories, and presents raw canopy
+  height only as supporting detail.
+- Discovery handoff adds the district slug; Explorer performs its initial fit
+  against that district geometry before preserving the user-controlled map
+  viewport. The Port Jervis QA profile landed on Port Jervis with 71 listings
+  under the estimated max-price filter.
+- Browser QA confirmed all 78 Hudson Valley ranked districts render, map layer
+  switching works, listing markers remain selectable above district shading,
+  the purchasing-power and EPA/flood/canopy/light explainers render, and the
+  compact/mobile filter sheet uses the new tree-cover and FEMA language.
+- Durable before/after images and capture notes are under:
+  - `docs/screenshots/before-ui-feedback-2026-08-21/`
+  - `docs/screenshots/after-ui-feedback-2026-08-22/`
+- Final app verification passed:
+  - `npm test`: 5 test files, 21 tests passed.
+  - `npm run lint`: 0 errors and the same 6 pre-existing shadcn fast-refresh
+    warnings.
+  - `npm run build`: production client and SSR builds passed.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -876,11 +913,7 @@ committed/pushed; a fresh chat is not required if continuing immediately.
 
 Next actions, in order:
 
-1. Continue app visual QA when browser access is available: inspect
-   `/discover` and the Explorer metrics panel in a browser, verify district
-   selection, mobile layout, marker selection, and panel behavior, and tune any
-   copy/layout issues found.
-2. Next unblocked phase path is Phase 7 `park_access` implementation:
+1. Next unblocked phase path is Phase 7 `park_access` implementation:
    query/crop OSM + PAD-US by region bounds plus 800 m buffer, union/deduplicate
    public access polygons, stage tract 800 m access share and listing nearest
    park-edge distance, render QA maps, validate, promote if green, then wire
@@ -892,7 +925,10 @@ Next actions, in order:
    either per-reduction units/ranges or a companion listing metric such as
    `park_distance_m`; do not bury mixed-unit behavior under the existing metric
    definition without an explicit model update.
-3. Do not start GVI.
+2. Continue through the remaining Phase 7 access layers in task order when
+   source access and credentials are available, preserving staging -> validate
+   -> QA -> explicit promote.
+3. Do not start GVI before the planned phase.
 
 ## 8. Standing Chat-Continuity Instruction
 
