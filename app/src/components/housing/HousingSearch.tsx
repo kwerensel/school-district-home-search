@@ -11,7 +11,13 @@ import { ListingDetailPanel } from "./ListingDetailPanel";
 const MapView = lazy(() => import("./MapView").then((m) => ({ default: m.MapView })));
 import { getDistricts, getListings } from "@/lib/housing/listings.functions";
 import { getMapboxToken } from "@/lib/housing/mapbox-token.functions";
-import { applyFilters, DEFAULT_FILTERS, priceBounds, uniqueDistricts } from "@/lib/housing/filters";
+import {
+  applyFilters,
+  DEFAULT_FILTERS,
+  priceBounds,
+  serializeExplorerFilters,
+  uniqueDistricts,
+} from "@/lib/housing/filters";
 import type { DistrictFC, Filters, ListingFC, ListingFeature } from "@/lib/housing/types";
 import type { ExplorerMapMetricKey } from "@/lib/metrics/presentation";
 
@@ -94,6 +100,13 @@ export function HousingSearch() {
     }));
     setFiltersInitialized(true);
   }, [bounds.max, districtList, filtersInitialized, listingsQuery.isPending]);
+
+  useEffect(() => {
+    if (!filtersInitialized || typeof window === "undefined") return;
+    const params = serializeExplorerFilters(new URLSearchParams(window.location.search), filters);
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [filters, filtersInitialized]);
 
   const isBooting =
     tokenQuery.isPending ||

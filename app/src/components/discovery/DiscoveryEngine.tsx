@@ -23,7 +23,14 @@ import { getDistrictPurchasingPower } from "@/lib/finance/purchasing-power.funct
 import type { DistrictFC } from "@/lib/housing/types";
 import type { CreditBand } from "@/lib/finance/purchasing-power";
 import type { DistrictPurchasingPower } from "@/lib/finance/server-data";
-import { parseDollarAmount } from "@/lib/discovery/profile";
+import {
+  DEFAULT_WEIGHTS,
+  parseDiscoveryProfile,
+  parseDollarAmount,
+  serializeDiscoveryProfile,
+  type RegionFilter,
+  type WeightKey,
+} from "@/lib/discovery/profile";
 import {
   lightPollutionCategory,
   riskCategory,
@@ -49,26 +56,6 @@ const percent = new Intl.NumberFormat("en-US", {
 const oneDecimal = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
-
-type RegionFilter = "all" | "pa-mainline" | "hudson-valley";
-type WeightKey =
-  | "affordability"
-  | "green"
-  | "walkability"
-  | "lowerRisk"
-  | "lowerFlood"
-  | "darkSkies"
-  | "parkAccess";
-
-const DEFAULT_WEIGHTS: Record<WeightKey, number> = {
-  affordability: 5,
-  green: 2,
-  walkability: 2,
-  lowerRisk: 1,
-  lowerFlood: 1,
-  darkSkies: 1,
-  parkAccess: 1,
-};
 
 const weightControls: Array<{ key: WeightKey; label: string }> = [
   { key: "affordability", label: "Local price reach" },
@@ -229,16 +216,13 @@ export function DiscoveryEngine() {
     districtsQuery.isPending ||
     purchasingPowerQuery.isPending;
   const profileSearch = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("monthlyBudget", String(monthlyBudget));
-    params.set("downPayment", String(Math.round(downPaymentAmount)));
-    params.set("creditBand", creditBand);
-    if (regionGroup !== "all") params.set("regionGroup", regionGroup);
-    for (const control of weightControls) {
-      const value = weights[control.key];
-      if (value !== DEFAULT_WEIGHTS[control.key]) params.set(control.key, String(value));
-    }
-    return params.toString();
+    return serializeDiscoveryProfile({
+      monthlyBudget,
+      downPayment: downPaymentAmount,
+      creditBand,
+      regionGroup,
+      weights,
+    }).toString();
   }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup, weights]);
   const selectedExplorerHref = useMemo(() => {
     const params = new URLSearchParams(profileSearch);
@@ -262,28 +246,14 @@ export function DiscoveryEngine() {
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const nextCredit = params.get("creditBand");
-    const nextRegion = params.get("regionGroup");
-    const nextWeights = { ...DEFAULT_WEIGHTS };
-    for (const control of weightControls) {
-      const rawValue = params.get(control.key);
-      if (rawValue === null) continue;
-      const value = Number(rawValue);
-      if (Number.isFinite(value) && value >= 0 && value <= 10) nextWeights[control.key] = value;
-    }
-
-    const nextMonthlyBudget = parseDollarAmount(params.get("monthlyBudget") ?? "", 5500);
-    const nextDownPayment = parseDollarAmount(params.get("downPayment") ?? "", 150000, true);
-    setMonthlyBudget(nextMonthlyBudget);
-    setMonthlyBudgetText(currencyInputValue(nextMonthlyBudget));
-    setDownPaymentAmount(nextDownPayment);
-    setDownPaymentText(currencyInputValue(nextDownPayment));
-    setCreditBand(nextCredit === "excellent" || nextCredit === "fair" ? nextCredit : "good");
-    setRegionGroup(
-      nextRegion === "pa-mainline" || nextRegion === "hudson-valley" ? nextRegion : "all",
-    );
-    setWeights(nextWeights);
+    const profile = parseDiscoveryProfile(new URLSearchParams(window.location.search));
+    setMonthlyBudget(profile.monthlyBudget);
+    setMonthlyBudgetText(currencyInputValue(profile.monthlyBudget));
+    setDownPaymentAmount(profile.downPayment);
+    setDownPaymentText(currencyInputValue(profile.downPayment));
+    setCreditBand(profile.creditBand);
+    setRegionGroup(profile.regionGroup);
+    setWeights(profile.weights);
     setUrlHydrated(true);
   }, []);
 

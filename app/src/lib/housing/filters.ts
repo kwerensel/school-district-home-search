@@ -55,3 +55,35 @@ export function priceBounds(fc: ListingFC): { min: number; max: number } {
   }
   return { min: Math.floor(min), max: Math.ceil(max) };
 }
+
+export function serializeExplorerFilters(current: URLSearchParams, filters: Filters) {
+  const params = new URLSearchParams(current);
+  params.set("maxPrice", String(Math.round(filters.maxPrice)));
+  setOptionalNumber(params, "minBeds", filters.minBeds);
+  setOptionalNumber(params, "minBaths", filters.minBaths);
+  setOptionalBoolean(params, "goodOnly", filters.goodOnly);
+  setOptionalValue(params, "district", filters.district, "all");
+  setOptionalValue(params, "treeCover", filters.treeCover, "all");
+  setOptionalBoolean(params, "floodOnly", filters.floodOnly);
+  return params;
+}
+
+function setOptionalNumber(params: URLSearchParams, key: string, value: number) {
+  if (value > 0) params.set(key, String(value));
+  else params.delete(key);
+}
+
+function setOptionalBoolean(params: URLSearchParams, key: string, value: boolean) {
+  if (value) params.set(key, "true");
+  else params.delete(key);
+}
+
+function setOptionalValue(
+  params: URLSearchParams,
+  key: string,
+  value: string,
+  defaultValue: string,
+) {
+  if (value !== defaultValue) params.set(key, value);
+  else params.delete(key);
+}

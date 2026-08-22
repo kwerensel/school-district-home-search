@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFilters, DEFAULT_FILTERS } from "./filters";
+import { applyFilters, DEFAULT_FILTERS, serializeExplorerFilters } from "./filters";
 import type { ListingFC } from "./types";
 
 const listings: ListingFC = {
@@ -51,5 +51,26 @@ describe("listing filters", () => {
     });
 
     expect(result.features.map((feature) => feature.properties.id)).toEqual([1]);
+  });
+
+  it("serializes filters without dropping the Discovery profile", () => {
+    const params = serializeExplorerFilters(
+      new URLSearchParams("monthlyBudget=5500&creditBand=good&districtSlug=example"),
+      {
+        ...DEFAULT_FILTERS,
+        maxPrice: 875000,
+        minBeds: 3,
+        district: "Example",
+        treeCover: "leafy",
+      },
+    );
+
+    expect(params.get("monthlyBudget")).toBe("5500");
+    expect(params.get("districtSlug")).toBe("example");
+    expect(params.get("maxPrice")).toBe("875000");
+    expect(params.get("minBeds")).toBe("3");
+    expect(params.get("minBaths")).toBeNull();
+    expect(params.get("district")).toBe("Example");
+    expect(params.get("treeCover")).toBe("leafy");
   });
 });

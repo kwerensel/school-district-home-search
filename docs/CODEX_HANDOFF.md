@@ -15,8 +15,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 Phases 0–6 are complete. Phase 7 `park_access` and its listing-distance
 companion are implemented, promoted, and wired into Discovery/Explorer. The
-remaining Phase 7 access layers are next; GVI remains out of scope until its
-planned phase.
+remaining Phase 7 access layers are credential-gated with validated source
+packets and manifests. The unblocked Phase 10 URL-profile slice is complete;
+GVI remains out of scope until its planned phase.
 
 Completed checkpoints:
 
@@ -122,6 +123,11 @@ Completed checkpoints:
   `transit_distance_m`, and fixed-anchor commute metrics for Center City
   Philadelphia and Grand Central. They are explicitly blocked from staging
   until Transitland/ORS keys and quotas are configured.
+- Discovery now has a typed canonical profile parser/serializer for budget,
+  down payment, credit band, region, and all seven scoring weights. Invalid or
+  absent URL values fall back per field, customized profiles round-trip, and
+  Explorer filter changes remain shareable without dropping the originating
+  Discovery profile or selected-district context.
 - August 2026 UX feedback is implemented in the current worktree: consumer UI
   no longer exposes the normalized overall match percentage or percent-of-
   median as "fit"; it shows `#x of N districts`, the named comparison area,
@@ -566,10 +572,9 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Current committed baseline before the Phase 7 park implementation:
-  `3e6013c Implement Discovery UI feedback pass`.
-- The August 2026 UX feedback pass is committed and pushed. The Phase 7 park
-  implementation described below is the active checkpoint to commit/push.
+- Latest checkpoint: the typed/shareable profile changes described below,
+  following `def5285 Scaffold remaining Phase 7 access layers`.
+- Expected handoff state after the checkpoint commit: clean and pushed.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
 
@@ -994,6 +999,18 @@ Checks last run after repaired `flood_sfha` promotion:
   `TRANSITLAND_API_KEY` and `ORS_API_KEY` are missing. This is an intentional
   fail-closed placeholder, not synthetic live data.
 
+### Typed Shareable Profile Checkpoint
+
+- Centralized Discovery URL defaults, types, parsing, and serialization in a
+  pure module shared by the UI and tests.
+- Invalid URL values now fall back independently instead of corrupting the
+  whole profile; zero down payment remains an intentional supported value.
+- Explorer filter edits update the current URL while preserving budget,
+  credit, scoring weights, region, and district-focus context from Discovery.
+- App verification: `32 passed`; lint has zero errors and the same six
+  pre-existing shadcn fast-refresh warnings; the Cloudflare Nitro production
+  bundle passes.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
@@ -1004,10 +1021,13 @@ Next actions, in order:
 1. Configure `TRANSITLAND_API_KEY` and `ORS_API_KEY`, then implement the
    scaffolded reducers and preserve staging -> validation -> QA -> explicit
    promotion. Do not change providers without approval.
-2. Close practical shipping gaps that are independent of those credentials:
-   finish the typed/shareable Discovery profile model, then scaffold saved
-   profiles/auth without gating the signed-out journey.
-3. Do not start GVI before the planned phase.
+2. Configure the intended Cloudflare account, production secrets, and domain,
+   then run the documented production smoke journey. This is an external-state
+   release action, not a local implementation gap.
+3. Select/configure the Phase 12 auth and email providers before adding new
+   dependencies; accounts must remain an optional save layer and never gate
+   the signed-out journey.
+4. Do not start GVI before the planned phase.
 
 ## 8. Standing Chat-Continuity Instruction
 
