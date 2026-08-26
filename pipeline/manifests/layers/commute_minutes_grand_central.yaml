@@ -3,18 +3,20 @@ name: Drive time to Grand Central
 source: openrouteservice Matrix API
 source_urls:
   - https://openrouteservice.org/dev/#/api-docs/v2/matrix
-  - https://api.openrouteservice.org/v2/matrix/driving-car
+  - https://api.heigit.org/openrouteservice/v2/matrix/driving-car
+  - https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b01003.dat
+  - https://www2.census.gov/geo/tiger/TIGER2024/BG/
 vintage: ors-live-routing-graph
 units: min
 direction: lower_better
-native_resolution: routed population-weighted tract centroid to manifest anchor
+native_resolution: routed ACS block-group-population-weighted tract origin to manifest anchor
 allowed_range: [0, 600]
 reduction_method: route_matrix
 coverage_threshold: 0.99
 grains:
   - tract
 notes: >
-  One-to-one routed driving duration from each Hudson Valley tract's
-  population-weighted centroid to the approved Grand Central anchor at
+  One-to-one routed driving duration from each Hudson Valley tract's ACS 2024
+  block-group-population-weighted TIGER representative point to the approved Grand Central anchor at
   40.7527,-73.9772. Production ingestion requires ORS_API_KEY, exact request
   caching, explicit null/unroutable accounting, and batched matrix requests.

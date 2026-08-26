@@ -9,6 +9,7 @@ from gt.layers import (
     promote_layer,
     render_layer_qa,
     run_canopy_height,
+    run_commute_minutes,
     run_effective_tax_rate,
     run_flood_sfha,
     run_light_pollution,
@@ -16,6 +17,7 @@ from gt.layers import (
     run_park_access,
     run_risk_index,
     run_tree_canopy,
+    run_transit_access,
     run_walkability,
 )
 from gt.manifests import LayerManifest, RegionManifest, load_manifest
@@ -152,6 +154,8 @@ def layer_run(
         raise typer.BadParameter("grain must be tract, listing, or both")
     layer_runners = {
         "canopy_height_m": run_canopy_height,
+        "commute_minutes_center_city_philadelphia": run_commute_minutes,
+        "commute_minutes_grand_central": run_commute_minutes,
         "effective_tax_rate": run_effective_tax_rate,
         "flood_sfha": run_flood_sfha,
         "light_pollution_radiance": run_light_pollution,
@@ -160,6 +164,8 @@ def layer_run(
         "park_distance_m": run_park_access,
         "risk_index": run_risk_index,
         "tree_canopy_pct": run_tree_canopy,
+        "transit_access": run_transit_access,
+        "transit_distance_m": run_transit_access,
         "walkability_index": run_walkability,
     }
     runner = layer_runners.get(key)

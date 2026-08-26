@@ -77,6 +77,10 @@ function regionLabel(regionGroup: string) {
   return regionGroup;
 }
 
+function commuteAnchorLabel(regionGroup: string) {
+  return regionGroup === "pa-mainline" ? "Center City Philadelphia" : "Grand Central Terminal";
+}
+
 function currencyInputValue(value: number) {
   return String(Math.round(value));
 }
@@ -674,6 +678,44 @@ function SelectedDistrictPanel({
             help={<ParkAccessExplainer />}
             active={mapMetric === "parkAccess"}
             onActivate={() => onMapMetricChange("parkAccess")}
+          />
+          <MetricBox
+            label="Transit-stop density"
+            value={
+              selected.environmentMetrics.transitAccess === null
+                ? "-"
+                : `${oneDecimal.format(selected.environmentMetrics.transitAccess)} mapped stops / km²`
+            }
+            help={
+              <MetricExplainer
+                compact
+                label="How transit access works"
+                title="Mapped transit-stop density"
+              >
+                <p>
+                  Active GTFS stops mapped by Transitland per square kilometer, averaged across the
+                  district from census-tract data.
+                </p>
+                <p>It does not measure service frequency, reliability, or walking access.</p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "transitAccess"}
+            onActivate={() => onMapMetricChange("transitAccess")}
+          />
+          <MetricBox
+            label={`Drive time to ${commuteAnchorLabel(selected.regionGroup)}`}
+            value={formatOptionalNumber(selected.environmentMetrics.commuteMinutes, " min")}
+            help={
+              <MetricExplainer compact label="How drive time works" title="Regional drive time">
+                <p>
+                  Population-weighted district context derived from routed census-tract origins to
+                  the named city anchor under the routing engine's standard driving assumptions.
+                </p>
+                <p>It is not live traffic and is not a promise for a specific address or hour.</p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "commuteMinutes"}
+            onActivate={() => onMapMetricChange("commuteMinutes")}
           />
         </div>
       </div>

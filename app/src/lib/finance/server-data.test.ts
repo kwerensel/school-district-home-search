@@ -12,6 +12,9 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("median_home_value");
     expect(fragment.text).toContain("light_pollution_radiance");
     expect(fragment.text).toContain("park_access");
+    expect(fragment.text).toContain("transit_access");
+    expect(fragment.text).toContain("commute_minutes_center_city_philadelphia");
+    expect(fragment.text).toContain("commute_minutes_grand_central");
     expect(fragment.text).toContain("GROUP BY d.id, d.slug, d.name, d.region_group");
     expect(fragment.text).toContain("ORDER BY d.region_group, d.name");
   });
@@ -32,6 +35,8 @@ describe("finance server data", () => {
         flood_sfha: "0.05",
         light_pollution_radiance: "8",
         park_access: "0.82",
+        transit_access: "4.2",
+        commute_minutes: "55.5",
       },
       {
         district_region_id: 2,
@@ -47,6 +52,8 @@ describe("finance server data", () => {
         flood_sfha: "0.2",
         light_pollution_radiance: "15",
         park_access: "0.44",
+        transit_access: "11.8",
+        commute_minutes: "37.2",
       },
     ]);
 
@@ -73,6 +80,8 @@ describe("finance server data", () => {
       medianHomeValue: 650000,
       lightPollutionRadiance: 8,
       parkAccess: 0.82,
+      transitAccess: 4.2,
+      commuteMinutes: 55.5,
     });
     expect(payload.districts[0].matchComponents).toMatchObject({
       affordability: expect.any(Number),

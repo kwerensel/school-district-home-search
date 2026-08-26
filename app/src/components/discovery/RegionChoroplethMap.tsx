@@ -40,6 +40,8 @@ function metricValue(district: DistrictPurchasingPower, metric: MapMetricKey) {
   if (metric === "lightPollution") return district.environmentMetrics.lightPollutionRadiance;
   if (metric === "walkability") return district.environmentMetrics.walkabilityIndex;
   if (metric === "parkAccess") return district.environmentMetrics.parkAccess;
+  if (metric === "transitAccess") return district.environmentMetrics.transitAccess;
+  if (metric === "commuteMinutes") return district.environmentMetrics.commuteMinutes;
   return district.environmentMetrics.riskIndex;
 }
 

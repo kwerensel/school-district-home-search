@@ -29,4 +29,9 @@ describe("consumer metric presentation", () => {
     expect(formatMapMetricValue("parkAccess", 0.625)).toContain("62.5%");
     expect(formatMapMetricValue("parkAccess", 0.625)).toContain("within 800 m");
   });
+
+  it("formats transit density and regional drive time with honest units", () => {
+    expect(formatMapMetricValue("transitAccess", 6.25)).toBe("6.3 mapped stops / km²");
+    expect(formatMapMetricValue("commuteMinutes", 54.6)).toBe("55 min by car");
+  });
 });

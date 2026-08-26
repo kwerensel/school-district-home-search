@@ -203,6 +203,26 @@ def test_layer_runner_accepts_park_keys_before_database_work(monkeypatch) -> Non
         assert "not implemented yet" not in result.output
 
 
+def test_layer_runner_accepts_transit_and_commute_keys_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("TRANSITLAND_API_KEY", "test")
+    monkeypatch.setenv("ORS_API_KEY", "test")
+    cases = [
+        ("transit_access", "pa-mainline"),
+        ("transit_distance_m", "hudson-valley"),
+        ("commute_minutes_center_city_philadelphia", "pa-mainline"),
+        ("commute_minutes_grand_central", "hudson-valley"),
+    ]
+    for key, region in cases:
+        result = CliRunner().invoke(
+            app,
+            ["layer", "run", key, "--region", region, "--grain", "both"],
+        )
+
+        assert result.exit_code != 0
+        assert "not implemented yet" not in result.output
+
+
 def test_region_add_requires_database_url(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     result = CliRunner().invoke(

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, Home, MapPin, Ruler, Trees, Waves, X } from "lucide-react";
+import { Bus, ExternalLink, Home, MapPin, Ruler, Trees, Waves, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WalkabilityExplainer } from "@/components/metrics/WalkabilityExplainer";
@@ -30,7 +30,13 @@ function formatPrice(value: number) {
 }
 
 function formatMetricValue(metric: ListingMetricItem) {
-  if (metric.metricKey === "flood_sfha") return metric.value >= 1 ? "Yes" : "No";
+  if (metric.metricKey === "flood_sfha") {
+    return metric.grain === "point"
+      ? metric.value >= 1
+        ? "Yes"
+        : "No"
+      : `${(metric.value * 100).toFixed(1)}% of land`;
+  }
   if (metric.metricKey === "tree_canopy_pct") {
     return `${treeCoverCategory(metric.value)} · ${metric.value.toFixed(0)}%`;
   }
@@ -38,7 +44,19 @@ function formatMetricValue(metric: ListingMetricItem) {
     return `${lightPollutionCategory(metric.value)} · ${metric.value.toFixed(1)}`;
   }
   if (metric.metricKey === "walkability_index") return `${metric.value.toFixed(1)} / 20`;
-  if (metric.metricKey === "park_distance_m") {
+  if (metric.metricKey === "effective_tax_rate") {
+    return `${(metric.value * 100).toFixed(2)}%`;
+  }
+  if (metric.metricKey === "park_access") {
+    return `${(metric.value * 100).toFixed(1)}% of land within 800 m`;
+  }
+  if (metric.metricKey === "transit_access") {
+    return `${metric.value.toFixed(1)} mapped stops / km²`;
+  }
+  if (metric.metricKey.startsWith("commute_minutes_")) {
+    return `${metric.value.toFixed(0)} min by car`;
+  }
+  if (metric.metricKey === "park_distance_m" || metric.metricKey === "transit_distance_m") {
     return metric.value < 1000
       ? `${Math.round(metric.value)} m`
       : `${(metric.value / 1000).toFixed(1)} km`;
@@ -66,6 +84,9 @@ function metricIcon(metric: ListingMetricItem) {
   if (metric.metricKey === "park_distance_m") {
     return <Trees className="h-4 w-4 text-green-700" />;
   }
+  if (metric.metricKey === "transit_distance_m") {
+    return <Bus className="h-4 w-4 text-blue-700" />;
+  }
   if (metric.metricKey === "canopy_height_m") {
     return <Ruler className="h-4 w-4 text-emerald-800" />;
   }
@@ -82,6 +103,8 @@ function metricName(metric: ListingMetricItem) {
   if (metric.metricKey === "canopy_height_m") return "Average canopy height";
   if (metric.metricKey === "light_pollution_radiance") return "Light pollution";
   if (metric.metricKey === "park_distance_m") return "Distance to mapped park or open space";
+  if (metric.metricKey === "transit_distance_m") return "Distance to mapped transit stop";
+  if (metric.metricKey === "transit_access") return "Transit-stop density";
   return metric.name;
 }
 
@@ -95,6 +118,41 @@ function metricHelp(metric: ListingMetricItem) {
           space polygon edge. Zero means the point falls inside a mapped polygon.
         </p>
         <p>It is not walking-route distance and does not confirm an accessible entrance.</p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "transit_distance_m") {
+    return (
+      <MetricExplainer compact label="How transit distance works" title="Mapped transit proximity">
+        <p>
+          Straight-line distance from the listing point to the nearest active GTFS stop mapped by
+          Transitland.
+        </p>
+        <p>
+          It is not a walking route and does not measure service frequency, reliability, or
+          accessibility.
+        </p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "transit_access") {
+    return (
+      <MetricExplainer compact label="How transit access works" title="Mapped transit-stop density">
+        <p>
+          Active GTFS stops mapped by Transitland per square kilometer. This tract-level context
+          does not measure service frequency, reliability, or walking access.
+        </p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey.startsWith("commute_minutes_")) {
+    return (
+      <MetricExplainer compact label="How drive time works" title="Regional drive time">
+        <p>
+          Routed from a population-weighted census-tract origin to the named city anchor under the
+          routing engine's standard driving assumptions.
+        </p>
+        <p>It is neighborhood context, not live traffic or an address-specific estimate.</p>
       </MetricExplainer>
     );
   }

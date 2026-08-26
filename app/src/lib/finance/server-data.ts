@@ -52,6 +52,8 @@ export type DistrictPurchasingPowerRow = {
   flood_sfha: number | string | null;
   light_pollution_radiance: number | string | null;
   park_access: number | string | null;
+  transit_access: number | string | null;
+  commute_minutes: number | string | null;
 };
 
 export type DistrictEnvironmentMetrics = {
@@ -63,6 +65,8 @@ export type DistrictEnvironmentMetrics = {
   floodSfha: number | null;
   lightPollutionRadiance: number | null;
   parkAccess: number | null;
+  transitAccess: number | null;
+  commuteMinutes: number | null;
 };
 
 export type DistrictPurchasingPower = {
@@ -105,6 +109,9 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
     "flood_sfha",
     "light_pollution_radiance",
     "park_access",
+    "transit_access",
+    "commute_minutes_center_city_philadelphia",
+    "commute_minutes_grand_central",
   ];
   const where = [`dm.metric_key = ANY($1)`];
   values.push(metricKeys);
@@ -129,7 +136,14 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(dm.value) FILTER (WHERE dm.metric_key = 'risk_index') AS risk_index,
         max(dm.value) FILTER (WHERE dm.metric_key = 'flood_sfha') AS flood_sfha,
         max(dm.value) FILTER (WHERE dm.metric_key = 'light_pollution_radiance') AS light_pollution_radiance,
-        max(dm.value) FILTER (WHERE dm.metric_key = 'park_access') AS park_access
+        max(dm.value) FILTER (WHERE dm.metric_key = 'park_access') AS park_access,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'transit_access') AS transit_access,
+        max(dm.value) FILTER (
+          WHERE dm.metric_key IN (
+            'commute_minutes_center_city_philadelphia',
+            'commute_minutes_grand_central'
+          )
+        ) AS commute_minutes
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
       WHERE ${where.join(" AND ")}
@@ -205,6 +219,8 @@ function computeDistrictPurchasingPower(
       floodSfha: nullableNumber(row.flood_sfha),
       lightPollutionRadiance: nullableNumber(row.light_pollution_radiance),
       parkAccess: nullableNumber(row.park_access),
+      transitAccess: nullableNumber(row.transit_access),
+      commuteMinutes: nullableNumber(row.commute_minutes),
     },
     matchComponents: {
       affordability: null,

@@ -22,11 +22,11 @@ directions. Neither metric claims service frequency, span, reliability,
 destination usefulness, fare affordability, ADA accessibility, or a walkable
 route to the stop.
 
-## Implementation gate
+## Implementation evidence
 
-Production staging is blocked until `TRANSITLAND_API_KEY` is configured and
-the account quota is confirmed to support paginating both project regions.
-When unblocked, cache every page plus the returned feed-version identifiers,
-deduplicate stable stop identities, record active-feed provenance, and emit
-stop-count, tract-coverage, listing-coverage, range, pagination, and spatial QA
-statistics before promotion.
+`TRANSITLAND_API_KEY` is configured and a live bounded stop request returned an
+active-feed result plus a pagination cursor. Production ingestion caches every
+page plus returned feed-version identifiers, deduplicates stable stop
+identities, records active-feed provenance, and emits stop-count,
+tract-coverage, listing-coverage, range, pagination, and spatial QA statistics
+before promotion.

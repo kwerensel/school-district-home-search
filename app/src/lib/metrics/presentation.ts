@@ -5,9 +5,13 @@ export type MapMetricKey =
   | "lightPollution"
   | "walkability"
   | "risk"
-  | "parkAccess";
+  | "parkAccess"
+  | "transitAccess"
+  | "commuteMinutes";
 
-export type ExplorerMapMetricKey = "schoolDistricts" | Exclude<MapMetricKey, "purchasingPower">;
+export type ExplorerMapMetricKey =
+  | "schoolDistricts"
+  | Exclude<MapMetricKey, "purchasingPower" | "transitAccess" | "commuteMinutes">;
 
 export type MetricScale = {
   label: string;
@@ -67,6 +71,20 @@ export const MAP_METRIC_SCALES: Record<MapMetricKey, MetricScale> = {
     highLabel: "More access",
     colors: ["#f7fee7", "#d9f99d", "#86efac", "#22c55e", "#166534"],
   },
+  transitAccess: {
+    label: "Transit-stop density",
+    shortLabel: "Transit stops / km²",
+    lowLabel: "Fewer mapped stops",
+    highLabel: "More mapped stops",
+    colors: ["#f8fafc", "#cbd5e1", "#93c5fd", "#3b82f6", "#1e3a8a"],
+  },
+  commuteMinutes: {
+    label: "Drive time to city anchor",
+    shortLabel: "Drive time",
+    lowLabel: "Shorter drive",
+    highLabel: "Longer drive",
+    colors: ["#dcfce7", "#86efac", "#fde047", "#fb923c", "#dc2626"],
+  },
 };
 
 export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: string }> = [
@@ -77,6 +95,8 @@ export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: s
   { value: "walkability", label: MAP_METRIC_SCALES.walkability.label },
   { value: "risk", label: MAP_METRIC_SCALES.risk.label },
   { value: "parkAccess", label: MAP_METRIC_SCALES.parkAccess.label },
+  { value: "transitAccess", label: MAP_METRIC_SCALES.transitAccess.label },
+  { value: "commuteMinutes", label: MAP_METRIC_SCALES.commuteMinutes.label },
 ];
 
 export const DISCOVERY_MAP_METRICS: Array<{ value: MapMetricKey; label: string }> = [
@@ -175,5 +195,7 @@ export function formatMapMetricValue(metric: MapMetricKey, value: number | null 
   }
   if (metric === "walkability") return `${walkabilityCategory(value)} · ${value.toFixed(1)} / 20`;
   if (metric === "parkAccess") return `${percent.format(value)} of district land within 800 m`;
+  if (metric === "transitAccess") return `${value.toFixed(1)} mapped stops / km²`;
+  if (metric === "commuteMinutes") return `${value.toFixed(0)} min by car`;
   return `${riskCategory(value)} · ${value.toFixed(1)} / 100`;
 }

@@ -13,11 +13,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
-Phases 0–6 are complete. Phase 7 `park_access` and its listing-distance
-companion are implemented, promoted, and wired into Discovery/Explorer. The
-remaining Phase 7 access layers are credential-gated with validated source
-packets and manifests. The unblocked Phase 10 URL-profile slice is complete;
-GVI remains out of scope until its planned phase.
+Phases 0–7 are complete. `park_access`, Transitland stop access/proximity, and
+ORS fixed-anchor commute metrics are implemented, promoted, verified, and
+wired into Discovery/Explorer. The unblocked Phase 10 URL-profile slice is
+complete; GVI remains gated to its planned Phase 8/11 work.
 
 Completed checkpoints:
 
@@ -118,11 +117,10 @@ Completed checkpoints:
   failure/retry states, redacted error logging, server-function CSRF
   protection, a forced Cloudflare Nitro production bundle, deploy instructions,
   CI, and Dependabot configuration.
-- Remaining Phase 7 credential-gated layers now have truthful companion
-  manifests and onboarding packets: `transit_access` plus
-  `transit_distance_m`, and fixed-anchor commute metrics for Center City
-  Philadelphia and Grand Central. They are explicitly blocked from staging
-  until Transitland/ORS keys and quotas are configured.
+- Phase 7 Transitland and ORS credentials are configured. The previously
+  scaffolded `transit_access`, `transit_distance_m`, and fixed-anchor commute
+  metrics are implemented, staged, QA-rendered, explicitly promoted, and
+  exposed in the app with resolution-honest explanations.
 - Discovery now has a typed canonical profile parser/serializer for budget,
   down payment, credit band, region, and all seven scoring weights. Invalid or
   absent URL values fall back per field, customized profiles round-trip, and
@@ -988,16 +986,27 @@ Checks last run after repaired `flood_sfha` promotion:
 - App verification: `29 passed`, lint with zero errors/six existing warnings,
   canonical-route HTTP 200 checks, and a successful Cloudflare Nitro bundle.
 
-### Credential-Gated Phase 7 Scaffolding Checkpoint
+### Phase 7 Transit And Commute Checkpoint
 
-- Added validated Transitland manifests for tract stop density and listing
-  stop distance as separate units/directions, with active-feed, pagination,
-  deduplication, and honesty requirements documented.
-- Added validated ORS fixed-anchor commute manifests for Center City
-  Philadelphia and Grand Central plus a route-matrix reduction type.
-- No runner is registered and no staging/promotion is attempted while
-  `TRANSITLAND_API_KEY` and `ORS_API_KEY` are missing. This is an intentional
-  fail-closed placeholder, not synthetic live data.
+- Added cached Transitland pagination with active-feed filtering, stable stop
+  deduplication, feed-version evidence, tract stop density, and listing
+  straight-line nearest-stop distance.
+- Added ORS matrix routing through the current HeiGIT API host with cached
+  requests, population-weighted tract origins from official 2024 ACS block
+  groups, routing/snap provenance, and explicit missing-route accounting.
+- All six region/metric reports were promotable, QA-rendered, and explicitly
+  promoted. Live public counts are 495 PA + 437 Hudson Valley tract rows for
+  transit access, 251 PA + 4,254 Hudson Valley listing distances, 493 PA
+  Center City commute rows, and 437 Hudson Valley Grand Central commute rows.
+  The two missing PA values are explicitly unroutable ORS cells; 99.596%
+  coverage remains above the approved 99% threshold.
+- Discovery exposes district transit-stop density and region-appropriate drive
+  time as map layers and selected-district context. Explorer listing details
+  expose transit proximity as straight-line street context, not service
+  frequency or routed walking distance.
+- Post-promote verification: full Neon-backed pipeline suite `49 passed`,
+  spatial golden suite `11 passed`, app suite `33 passed`, lint has zero errors
+  and six existing shadcn warnings, and the Cloudflare production build passes.
 
 ### Typed Shareable Profile Checkpoint
 
@@ -1014,13 +1023,13 @@ Checks last run after repaired `flood_sfha` promotion:
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. This is a clean data checkpoint once
-committed/pushed; a fresh chat is not required if continuing immediately.
+committed/pushed; continuing in the current task preserves useful context.
 
 Next actions, in order:
 
-1. Configure `TRANSITLAND_API_KEY` and `ORS_API_KEY`, then implement the
-   scaffolded reducers and preserve staging -> validation -> QA -> explicit
-   promotion. Do not change providers without approval.
+1. Continue Phase 8 in task order, starting with the credential-ready EPA AQS
+   annual-air-quality layer; preserve source evidence -> staging -> validation
+   -> QA -> explicit promotion.
 2. Configure the intended Cloudflare account, production secrets, and domain,
    then run the documented production smoke journey. This is an external-state
    release action, not a local implementation gap.

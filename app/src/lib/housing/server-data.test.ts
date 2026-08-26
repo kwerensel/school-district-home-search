@@ -58,6 +58,8 @@ describe("housing server data", () => {
     expect(fragment.text).toContain("FROM region_metrics rm");
     expect(fragment.text).toContain("ST_Contains(r.geom, t.geom)");
     expect(fragment.text).toContain("'neighborhood' AS context");
+    expect(fragment.text).toContain("lm.metric_key = 'transit_distance_m'");
+    expect(fragment.text).toContain("THEN 'street'");
   });
 
   it("fetches listing GeoJSON with a mocked SQL executor", async () => {

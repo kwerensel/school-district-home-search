@@ -184,6 +184,8 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
           md.source,
           md.native_resolution,
           CASE
+            WHEN lm.metric_key = 'transit_distance_m' AND lm.grain = 'point'
+              THEN 'street'
             WHEN lm.metric_key IN ('flood_sfha', 'park_distance_m') AND lm.grain = 'point'
               THEN 'property'
             WHEN lm.grain IN ('buffer_100m', 'buffer_500m') THEN 'street'
