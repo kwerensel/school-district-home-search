@@ -10,6 +10,7 @@ counties:
 layers:
   - canopy_height_m
   - light_pollution_radiance
+  - aqi_annual_mean
   - tree_canopy_pct
   - noise_mean_dba
   - flood_sfha

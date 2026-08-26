@@ -15,6 +15,7 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("transit_access");
     expect(fragment.text).toContain("commute_minutes_center_city_philadelphia");
     expect(fragment.text).toContain("commute_minutes_grand_central");
+    expect(fragment.text).toContain("aqi_annual_mean");
     expect(fragment.text).toContain("GROUP BY d.id, d.slug, d.name, d.region_group");
     expect(fragment.text).toContain("ORDER BY d.region_group, d.name");
   });
@@ -37,6 +38,7 @@ describe("finance server data", () => {
         park_access: "0.82",
         transit_access: "4.2",
         commute_minutes: "55.5",
+        aqi_annual_mean: "38.4",
       },
       {
         district_region_id: 2,
@@ -54,6 +56,7 @@ describe("finance server data", () => {
         park_access: "0.44",
         transit_access: "11.8",
         commute_minutes: "37.2",
+        aqi_annual_mean: "44.1",
       },
     ]);
 
@@ -82,6 +85,7 @@ describe("finance server data", () => {
       parkAccess: 0.82,
       transitAccess: 4.2,
       commuteMinutes: 55.5,
+      aqiAnnualMean: 38.4,
     });
     expect(payload.districts[0].matchComponents).toMatchObject({
       affordability: expect.any(Number),

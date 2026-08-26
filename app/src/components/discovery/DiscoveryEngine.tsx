@@ -717,6 +717,24 @@ function SelectedDistrictPanel({
             active={mapMetric === "commuteMinutes"}
             onActivate={() => onMapMetricChange("commuteMinutes")}
           />
+          <MetricBox
+            label="Annual mean daily AQI"
+            value={formatOptionalNumber(selected.environmentMetrics.aqiAnnualMean, " AQI")}
+            help={
+              <MetricExplainer compact label="How air quality works" title="Annual air quality">
+                <p>
+                  EPA daily Air Quality Index values are averaged at regulatory monitor sites, then
+                  interpolated to census tracts from monitors within 30 km. Lower is cleaner.
+                </p>
+                <p>
+                  County monitor means fill gaps. This is coarse neighborhood context, not a live
+                  reading or an address-level measurement.
+                </p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "airQuality"}
+            onActivate={() => onMapMetricChange("airQuality")}
+          />
         </div>
       </div>
       <Button asChild className="mt-4 w-full" size="sm">

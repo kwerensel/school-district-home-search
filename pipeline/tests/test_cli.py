@@ -191,6 +191,32 @@ def test_credential_gated_access_manifests_validate() -> None:
         assert result.exit_code == 0, result.output
 
 
+def test_aqi_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/aqi_annual_mean.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "aqi_annual_mean" in result.output
+
+
+def test_layer_runner_accepts_aqi_key_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    result = CliRunner().invoke(
+        app,
+        ["layer", "run", "aqi_annual_mean", "--region", "pa-mainline", "--grain", "tract"],
+    )
+
+    assert result.exit_code != 0
+    assert "not implemented yet" not in result.output
+
+
 def test_layer_runner_accepts_park_keys_before_database_work(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     for key in ("park_access", "park_distance_m"):

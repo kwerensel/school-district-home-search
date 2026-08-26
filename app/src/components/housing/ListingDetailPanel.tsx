@@ -56,6 +56,9 @@ function formatMetricValue(metric: ListingMetricItem) {
   if (metric.metricKey.startsWith("commute_minutes_")) {
     return `${metric.value.toFixed(0)} min by car`;
   }
+  if (metric.metricKey === "aqi_annual_mean") {
+    return `${metric.value.toFixed(0)} annual mean daily AQI`;
+  }
   if (metric.metricKey === "park_distance_m" || metric.metricKey === "transit_distance_m") {
     return metric.value < 1000
       ? `${Math.round(metric.value)} m`
@@ -105,6 +108,7 @@ function metricName(metric: ListingMetricItem) {
   if (metric.metricKey === "park_distance_m") return "Distance to mapped park or open space";
   if (metric.metricKey === "transit_distance_m") return "Distance to mapped transit stop";
   if (metric.metricKey === "transit_access") return "Transit-stop density";
+  if (metric.metricKey === "aqi_annual_mean") return "Annual mean daily AQI";
   return metric.name;
 }
 
@@ -153,6 +157,17 @@ function metricHelp(metric: ListingMetricItem) {
           routing engine's standard driving assumptions.
         </p>
         <p>It is neighborhood context, not live traffic or an address-specific estimate.</p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "aqi_annual_mean") {
+    return (
+      <MetricExplainer compact label="How air quality works" title="Annual air quality">
+        <p>
+          EPA daily AQI is averaged at regulatory monitors and interpolated to this census tract
+          from monitors within 30 km, with a county monitor mean fallback. Lower is cleaner.
+        </p>
+        <p>This is coarse neighborhood context, not a live or address-level reading.</p>
       </MetricExplainer>
     );
   }

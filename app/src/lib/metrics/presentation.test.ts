@@ -33,5 +33,6 @@ describe("consumer metric presentation", () => {
   it("formats transit density and regional drive time with honest units", () => {
     expect(formatMapMetricValue("transitAccess", 6.25)).toBe("6.3 mapped stops / km²");
     expect(formatMapMetricValue("commuteMinutes", 54.6)).toBe("55 min by car");
+    expect(formatMapMetricValue("airQuality", 41.7)).toBe("42 annual mean daily AQI");
   });
 });

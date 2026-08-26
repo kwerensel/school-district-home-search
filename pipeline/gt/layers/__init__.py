@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from gt.layers.aqi import run_aqi_annual_mean
 from gt.layers.canopy_height import run_canopy_height
 from gt.layers.commute_minutes import run_commute_minutes
 from gt.layers.effective_tax import run_effective_tax_rate
@@ -16,6 +17,7 @@ from gt.layers.walkability import run_walkability
 __all__ = [
     "promote_layer",
     "render_layer_qa",
+    "run_aqi_annual_mean",
     "run_canopy_height",
     "run_commute_minutes",
     "run_effective_tax_rate",

@@ -54,6 +54,7 @@ export type DistrictPurchasingPowerRow = {
   park_access: number | string | null;
   transit_access: number | string | null;
   commute_minutes: number | string | null;
+  aqi_annual_mean: number | string | null;
 };
 
 export type DistrictEnvironmentMetrics = {
@@ -67,6 +68,7 @@ export type DistrictEnvironmentMetrics = {
   parkAccess: number | null;
   transitAccess: number | null;
   commuteMinutes: number | null;
+  aqiAnnualMean: number | null;
 };
 
 export type DistrictPurchasingPower = {
@@ -112,6 +114,7 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
     "transit_access",
     "commute_minutes_center_city_philadelphia",
     "commute_minutes_grand_central",
+    "aqi_annual_mean",
   ];
   const where = [`dm.metric_key = ANY($1)`];
   values.push(metricKeys);
@@ -143,7 +146,8 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
             'commute_minutes_center_city_philadelphia',
             'commute_minutes_grand_central'
           )
-        ) AS commute_minutes
+        ) AS commute_minutes,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'aqi_annual_mean') AS aqi_annual_mean
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
       WHERE ${where.join(" AND ")}
@@ -221,6 +225,7 @@ function computeDistrictPurchasingPower(
       parkAccess: nullableNumber(row.park_access),
       transitAccess: nullableNumber(row.transit_access),
       commuteMinutes: nullableNumber(row.commute_minutes),
+      aqiAnnualMean: nullableNumber(row.aqi_annual_mean),
     },
     matchComponents: {
       affordability: null,

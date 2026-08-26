@@ -1,0 +1,32 @@
+metric_key: aqi_annual_mean
+name: Annual mean daily Air Quality Index
+source: EPA AirData/Air Quality System daily summary files
+source_urls:
+  - https://aqs.epa.gov/aqsweb/documents/data_api.html
+  - https://aqs.epa.gov/aqsweb/airdata/download_files.html
+  - https://aqs.epa.gov/aqsweb/airdata/daily_44201_2025.zip
+  - https://aqs.epa.gov/aqsweb/airdata/FileFormats.html
+vintage: "2025"
+units: AQI
+direction: lower_better
+native_resolution: regulatory monitor network
+allowed_range: [0, 500]
+reduction_method: idw
+coverage_threshold: 0.99
+grains:
+  - tract
+listing_reductions: []
+notes: >
+  For each AQS site and local date, take the maximum non-null EPA daily AQI
+  across supported criteria pollutants and duplicate standards/monitors, then
+  average those daily AQI values across the year for sites with at least 30
+  reported days. Interpolate site annual means to census-tract representative
+  points by inverse-distance-squared weighting of monitors within 30 km; when
+  none are within 30 km, use the day-count-weighted mean of qualifying monitors
+  in the tract's county. This is coarse neighborhood context from a sparse
+  regulatory monitor network, not an address-level measurement. The daily
+  summary endpoint is used because its AQI field is already calculated by EPA;
+  annual concentration summaries cannot be combined across pollutants as AQI.
+  Read EPA's account-free annual daily-summary ZIPs in chunks and cache the
+  exact source archives plus request metadata. The AQS API remains a documented
+  equivalent access path but is not a production credential gate.

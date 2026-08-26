@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Generated: 2026-08-22, America/New_York.
+Generated: 2026-08-26, America/New_York.
 
 ## 1. Project Goal
 
@@ -15,8 +15,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 Phases 0–7 are complete. `park_access`, Transitland stop access/proximity, and
 ORS fixed-anchor commute metrics are implemented, promoted, verified, and
-wired into Discovery/Explorer. The unblocked Phase 10 URL-profile slice is
-complete; GVI remains gated to its planned Phase 8/11 work.
+wired into Discovery/Explorer. Phase 8 is in progress; the EPA annual-mean AQI
+layer is implemented, promoted, verified, and wired into the app. The unblocked
+Phase 10 URL-profile slice is complete; satellite GVI remains sequenced within
+Phase 8 and Mapillary GVI remains Phase 11.
 
 Completed checkpoints:
 
@@ -1008,6 +1010,30 @@ Checks last run after repaired `flood_sfha` promotion:
   spatial golden suite `11 passed`, app suite `33 passed`, lint has zero errors
   and six existing shadcn warnings, and the Cloudflare production build passes.
 
+### Phase 8 AQI Checkpoint
+
+- Added an approved EPA AQS/AirData source packet and manifest for
+  `aqi_annual_mean`. The reducer uses official account-free 2025 daily-summary
+  ZIPs after the configured AQS API pair returned invalid, so the credential is
+  no longer a build gate.
+- The reducer takes the maximum EPA-calculated AQI per monitor site/day across
+  supported criteria pollutants and duplicate standards, keeps sites with at
+  least 30 valid days, computes annual monitor means, applies inverse-distance-
+  squared weighting within 30 km, and uses a day-weighted county monitor mean
+  only when no monitor is within range.
+- Both regions staged at 100% tract coverage with no non-finite or missing
+  tracts and plausible QA maps, then were explicitly promoted. Live counts are
+  495 PA tracts / 61 active district rollups and 437 Hudson Valley tracts / 78
+  active district rollups. Ranges are 36.48–46.49 PA and 29.57–45.19 Hudson
+  Valley.
+- Discovery exposes annual mean daily AQI as a selectable district map and
+  selected-district card. Explorer inherits it only as census-tract
+  Neighborhood Context with an interpolation/fallback honesty explainer.
+- Post-promote verification: full Neon-backed pipeline suite `53 passed`,
+  spatial golden suite `11 passed`, app suite `33 passed`, lint has zero errors
+  and six existing shadcn warnings, Cloudflare production build passes, and
+  local browser map interaction has no console errors.
+
 ### Typed Shareable Profile Checkpoint
 
 - Centralized Discovery URL defaults, types, parsing, and serialization in a
@@ -1027,9 +1053,9 @@ committed/pushed; continuing in the current task preserves useful context.
 
 Next actions, in order:
 
-1. Continue Phase 8 in task order, starting with the credential-ready EPA AQS
-   annual-air-quality layer; preserve source evidence -> staging -> validation
-   -> QA -> explicit promotion.
+1. Continue Phase 8 with the BTS National Transportation Noise Map source
+   packet and raster reducer, preserving source evidence -> staging ->
+   validation -> QA -> explicit promotion.
 2. Configure the intended Cloudflare account, production secrets, and domain,
    then run the documented production smoke journey. This is an external-state
    release action, not a local implementation gap.
@@ -1037,6 +1063,11 @@ Next actions, in order:
    dependencies; accounts must remain an optional save layer and never gate
    the signed-out journey.
 4. Do not start GVI before the planned phase.
+
+Phase 8 AQS access note: on 2026-08-25, the configured email/key pair was
+present but EPA returned `Email and/or key are invalid.` This no longer gates
+the layer because EPA's equivalent official daily-summary AirData ZIPs are
+account-free; the reducer uses those deterministic bulk archives instead.
 
 ## 8. Standing Chat-Continuity Instruction
 

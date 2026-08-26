@@ -8,6 +8,7 @@ from gt.db.migrate import run_migrations
 from gt.layers import (
     promote_layer,
     render_layer_qa,
+    run_aqi_annual_mean,
     run_canopy_height,
     run_commute_minutes,
     run_effective_tax_rate,
@@ -153,6 +154,7 @@ def layer_run(
     if grain not in {"tract", "listing", "both"}:
         raise typer.BadParameter("grain must be tract, listing, or both")
     layer_runners = {
+        "aqi_annual_mean": run_aqi_annual_mean,
         "canopy_height_m": run_canopy_height,
         "commute_minutes_center_city_philadelphia": run_commute_minutes,
         "commute_minutes_grand_central": run_commute_minutes,

@@ -7,11 +7,12 @@ export type MapMetricKey =
   | "risk"
   | "parkAccess"
   | "transitAccess"
-  | "commuteMinutes";
+  | "commuteMinutes"
+  | "airQuality";
 
 export type ExplorerMapMetricKey =
   | "schoolDistricts"
-  | Exclude<MapMetricKey, "purchasingPower" | "transitAccess" | "commuteMinutes">;
+  | Exclude<MapMetricKey, "purchasingPower" | "transitAccess" | "commuteMinutes" | "airQuality">;
 
 export type MetricScale = {
   label: string;
@@ -85,6 +86,13 @@ export const MAP_METRIC_SCALES: Record<MapMetricKey, MetricScale> = {
     highLabel: "Longer drive",
     colors: ["#dcfce7", "#86efac", "#fde047", "#fb923c", "#dc2626"],
   },
+  airQuality: {
+    label: "Annual mean daily AQI",
+    shortLabel: "Annual mean AQI",
+    lowLabel: "Lower annual mean",
+    highLabel: "Higher annual mean",
+    colors: ["#dcfce7", "#86efac", "#fde047", "#fb923c", "#dc2626"],
+  },
 };
 
 export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: string }> = [
@@ -97,6 +105,7 @@ export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: s
   { value: "parkAccess", label: MAP_METRIC_SCALES.parkAccess.label },
   { value: "transitAccess", label: MAP_METRIC_SCALES.transitAccess.label },
   { value: "commuteMinutes", label: MAP_METRIC_SCALES.commuteMinutes.label },
+  { value: "airQuality", label: MAP_METRIC_SCALES.airQuality.label },
 ];
 
 export const DISCOVERY_MAP_METRICS: Array<{ value: MapMetricKey; label: string }> = [
@@ -197,5 +206,6 @@ export function formatMapMetricValue(metric: MapMetricKey, value: number | null 
   if (metric === "parkAccess") return `${percent.format(value)} of district land within 800 m`;
   if (metric === "transitAccess") return `${value.toFixed(1)} mapped stops / km²`;
   if (metric === "commuteMinutes") return `${value.toFixed(0)} min by car`;
+  if (metric === "airQuality") return `${value.toFixed(0)} annual mean daily AQI`;
   return `${riskCategory(value)} · ${value.toFixed(1)} / 100`;
 }
