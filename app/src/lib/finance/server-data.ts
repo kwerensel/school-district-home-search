@@ -57,6 +57,10 @@ export type DistrictPurchasingPowerRow = {
   aqi_annual_mean: number | string | null;
   noise_mean_dba: number | string | null;
   noise_pct_over_55: number | string | null;
+  noise_siren_density: number | string | null;
+  noise_nightlife_density: number | string | null;
+  noise_industrial_land_pct: number | string | null;
+  noise_freight_rail_density: number | string | null;
 };
 
 export type DistrictEnvironmentMetrics = {
@@ -73,6 +77,10 @@ export type DistrictEnvironmentMetrics = {
   aqiAnnualMean: number | null;
   noiseMeanDba: number | null;
   noisePctOver55: number | null;
+  noiseSirenDensity: number | null;
+  noiseNightlifeDensity: number | null;
+  noiseIndustrialLandPct: number | null;
+  noiseFreightRailDensity: number | null;
 };
 
 export type DistrictPurchasingPower = {
@@ -121,6 +129,10 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
     "aqi_annual_mean",
     "noise_mean_dba",
     "noise_pct_over_55",
+    "noise_siren_density",
+    "noise_nightlife_density",
+    "noise_industrial_land_pct",
+    "noise_freight_rail_density",
   ];
   const where = [`dm.metric_key = ANY($1)`];
   values.push(metricKeys);
@@ -155,7 +167,11 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         ) AS commute_minutes,
         max(dm.value) FILTER (WHERE dm.metric_key = 'aqi_annual_mean') AS aqi_annual_mean,
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_mean_dba') AS noise_mean_dba,
-        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_pct_over_55') AS noise_pct_over_55
+        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_pct_over_55') AS noise_pct_over_55,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_siren_density') AS noise_siren_density,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_nightlife_density') AS noise_nightlife_density,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_industrial_land_pct') AS noise_industrial_land_pct,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_freight_rail_density') AS noise_freight_rail_density
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
       WHERE ${where.join(" AND ")}
@@ -236,6 +252,10 @@ function computeDistrictPurchasingPower(
       aqiAnnualMean: nullableNumber(row.aqi_annual_mean),
       noiseMeanDba: nullableNumber(row.noise_mean_dba),
       noisePctOver55: nullableNumber(row.noise_pct_over_55),
+      noiseSirenDensity: nullableNumber(row.noise_siren_density),
+      noiseNightlifeDensity: nullableNumber(row.noise_nightlife_density),
+      noiseIndustrialLandPct: nullableNumber(row.noise_industrial_land_pct),
+      noiseFreightRailDensity: nullableNumber(row.noise_freight_rail_density),
     },
     matchComponents: {
       affordability: null,

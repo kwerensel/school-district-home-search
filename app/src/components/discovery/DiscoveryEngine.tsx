@@ -768,6 +768,109 @@ function SelectedDistrictPanel({
             active={mapMetric === "transportationNoise"}
             onActivate={() => onMapMetricChange("transportationNoise")}
           />
+          <MetricBox
+            label="Emergency-response facility density"
+            value={
+              selected.environmentMetrics.noiseSirenDensity === null
+                ? "-"
+                : `${selected.environmentMetrics.noiseSirenDensity.toFixed(2)} mapped facilities / km²`
+            }
+            help={
+              <MetricExplainer
+                compact
+                label="How this source proxy works"
+                title="Mapped emergency-response facilities"
+                sourceHref="https://www.openstreetmap.org/copyright"
+                sourceLabel="OpenStreetMap data and attribution"
+              >
+                <p>
+                  OpenStreetMap fire stations, police stations, and hospitals are counted per square
+                  kilometer and averaged across the district. This is a possible siren-source proxy,
+                  not a measurement of siren events or sound.
+                </p>
+                <p>Community mapping completeness varies by place and over time.</p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "sirenSources"}
+            onActivate={() => onMapMetricChange("sirenSources")}
+          />
+          <MetricBox
+            label="Nightlife venue density"
+            value={
+              selected.environmentMetrics.noiseNightlifeDensity === null
+                ? "-"
+                : `${selected.environmentMetrics.noiseNightlifeDensity.toFixed(2)} mapped venues / km²`
+            }
+            help={
+              <MetricExplainer
+                compact
+                label="How this source proxy works"
+                title="Mapped nightlife venues"
+                sourceHref="https://www.openstreetmap.org/copyright"
+                sourceLabel="OpenStreetMap data and attribution"
+              >
+                <p>
+                  OpenStreetMap bars, pubs, and nightclubs are counted per square kilometer and
+                  averaged across the district. This is venue context, not a measurement of noise,
+                  opening hours, or activity.
+                </p>
+                <p>Community mapping completeness varies by place and over time.</p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "nightlifeSources"}
+            onActivate={() => onMapMetricChange("nightlifeSources")}
+          />
+          <MetricBox
+            label="Mapped industrial land"
+            value={
+              selected.environmentMetrics.noiseIndustrialLandPct === null
+                ? "-"
+                : `${oneDecimal.format(selected.environmentMetrics.noiseIndustrialLandPct)}% of district land`
+            }
+            help={
+              <MetricExplainer
+                compact
+                label="How this source proxy works"
+                title="Mapped industrial land"
+                sourceHref="https://www.openstreetmap.org/copyright"
+                sourceLabel="OpenStreetMap data and attribution"
+              >
+                <p>
+                  The mapped share of land tagged industrial in OpenStreetMap, averaged from
+                  census-tract coverage. It is context for possible activity sources, not an
+                  emissions, operating-hours, or sound measurement.
+                </p>
+                <p>Community mapping completeness and land-use tagging vary by place.</p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "industrialLand"}
+            onActivate={() => onMapMetricChange("industrialLand")}
+          />
+          <MetricBox
+            label="Active freight-capable rail density"
+            value={
+              selected.environmentMetrics.noiseFreightRailDensity === null
+                ? "-"
+                : `${selected.environmentMetrics.noiseFreightRailDensity.toFixed(2)} rail km / km²`
+            }
+            help={
+              <MetricExplainer
+                compact
+                label="How this rail proxy works"
+                title="Active freight-capable rail"
+                sourceHref="https://railroads.dot.gov/rail-network-development/maps-and-data/maps-geographic"
+                sourceLabel="View FRA rail network sources"
+              >
+                <p>
+                  Federal Railroad Administration lines classified as active main, industrial,
+                  siding, or yard track are measured per square kilometer. Classification indicates
+                  freight capability, not actual train frequency, schedules, horns, or sound.
+                </p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "freightRail"}
+            onActivate={() => onMapMetricChange("freightRail")}
+          />
         </div>
       </div>
       <Button asChild className="mt-4 w-full" size="sm">

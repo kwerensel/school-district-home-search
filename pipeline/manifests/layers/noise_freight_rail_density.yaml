@@ -1,0 +1,21 @@
+metric_key: noise_freight_rail_density
+name: Active freight-capable rail line density
+source: FRA North American Rail Network Lines via USDOT/BTS NTAD
+source_urls:
+  - https://railroads.dot.gov/rail-network-development/maps-and-data/maps-geographic-information-system/maps-geographic
+  - https://services.arcgis.com/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_North_American_Rail_Network_Lines/FeatureServer/0
+vintage: "2026-07-21"
+units: rail km per km2
+direction: lower_better
+native_resolution: FRA NARN line geometry at 1:24000 or better in the United States
+allowed_range: [0, 100]
+reduction_method: line_density
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  Kilometers of FRA NARN operational main, industrial-lead, long-siding, and
+  yard line per square kilometer of tract. Passenger-only, out-of-service,
+  abandoned, removed, and trail segments are excluded. The operational-network
+  filter is a freight-capable proxy, not confirmation of current train or horn
+  frequency on a segment; railroad conditions can change without notice.

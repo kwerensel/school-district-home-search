@@ -29,6 +29,10 @@ function formatPrice(value: number) {
   }).format(value);
 }
 
+function formatDistance(value: number) {
+  return value < 1000 ? `${Math.round(value)} m` : `${(value / 1000).toFixed(1)} km`;
+}
+
 function formatMetricValue(metric: ListingMetricItem) {
   if (metric.metricKey === "flood_sfha") {
     return metric.grain === "point"
@@ -68,10 +72,22 @@ function formatMetricValue(metric: ListingMetricItem) {
   if (metric.metricKey === "noise_pct_over_55") {
     return `${metric.value.toFixed(1)}% at or above 55 dBA`;
   }
+  if (metric.metricKey === "noise_siren_distance_m") {
+    return formatDistance(metric.value);
+  }
+  if (metric.metricKey === "noise_nightlife_count_300m") {
+    return metric.value === 0
+      ? "None mapped within 300 m"
+      : `${Math.round(metric.value)} mapped within 300 m`;
+  }
+  if (metric.metricKey === "noise_industrial_distance_m") {
+    return `${metric.value <= 500 ? "Within 500 m · " : ""}${formatDistance(metric.value)}`;
+  }
+  if (metric.metricKey === "noise_freight_rail_distance_m") {
+    return `${metric.value <= 500 ? "Within 500 m · " : ""}${formatDistance(metric.value)}`;
+  }
   if (metric.metricKey === "park_distance_m" || metric.metricKey === "transit_distance_m") {
-    return metric.value < 1000
-      ? `${Math.round(metric.value)} m`
-      : `${(metric.value / 1000).toFixed(1)} km`;
+    return formatDistance(metric.value);
   }
   if (metric.units === "percent" || metric.metricKey.endsWith("_pct")) {
     return `${metric.value.toFixed(1)}%`;
@@ -83,6 +99,7 @@ function formatMetricValue(metric: ListingMetricItem) {
 function grainLabel(grain: string) {
   if (grain === "point") return "Point";
   if (grain === "buffer_100m") return "100 m";
+  if (grain === "buffer_300m") return "300 m";
   if (grain === "buffer_500m") return "500 m";
   if (grain === "census_tract") return "Tract";
   return grain;
@@ -121,6 +138,18 @@ function metricName(metric: ListingMetricItem) {
   if (metric.metricKey === "noise_mean_dba") return "Modeled transportation noise";
   if (metric.metricKey === "noise_pct_over_45") return "Area with modeled noise ≥45 dBA";
   if (metric.metricKey === "noise_pct_over_55") return "Area with modeled noise ≥55 dBA";
+  if (metric.metricKey === "noise_siren_distance_m") {
+    return "Nearest mapped emergency-response facility";
+  }
+  if (metric.metricKey === "noise_nightlife_count_300m") {
+    return "Mapped nightlife venues nearby";
+  }
+  if (metric.metricKey === "noise_industrial_distance_m") {
+    return "Distance to mapped industrial land";
+  }
+  if (metric.metricKey === "noise_freight_rail_distance_m") {
+    return "Distance to active freight-capable rail";
+  }
   return metric.name;
 }
 
@@ -183,7 +212,53 @@ function metricHelp(metric: ListingMetricItem) {
       </MetricExplainer>
     );
   }
-  if (metric.metricKey.startsWith("noise_")) {
+  if (
+    metric.metricKey === "noise_siren_distance_m" ||
+    metric.metricKey === "noise_nightlife_count_300m" ||
+    metric.metricKey === "noise_industrial_distance_m"
+  ) {
+    return (
+      <MetricExplainer
+        compact
+        label="How this source proxy works"
+        title="Mapped possible noise source"
+        sourceHref="https://www.openstreetmap.org/copyright"
+        sourceLabel="OpenStreetMap data and attribution"
+      >
+        <p>
+          This value uses mapped emergency-response facilities, nightlife venues, or industrial land
+          as context for a possible activity source. It does not measure sound, events, operating
+          hours, or route-level exposure.
+        </p>
+        <p>
+          Distances are straight-line distances. OpenStreetMap is community maintained, so mapping
+          completeness varies by place and over time.
+        </p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey === "noise_freight_rail_distance_m") {
+    return (
+      <MetricExplainer
+        compact
+        label="How this rail proxy works"
+        title="Active freight-capable rail proximity"
+        sourceHref="https://railroads.dot.gov/rail-network-development/maps-and-data/maps-geographic"
+        sourceLabel="View FRA rail network sources"
+      >
+        <p>
+          Straight-line distance to a Federal Railroad Administration line classified as active
+          main, industrial, siding, or yard track. Classification indicates freight capability, not
+          actual train frequency, schedules, horns, or sound.
+        </p>
+      </MetricExplainer>
+    );
+  }
+  if (
+    metric.metricKey === "noise_mean_dba" ||
+    metric.metricKey === "noise_pct_over_45" ||
+    metric.metricKey === "noise_pct_over_55"
+  ) {
     return (
       <MetricExplainer
         compact

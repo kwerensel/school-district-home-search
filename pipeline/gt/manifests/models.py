@@ -46,6 +46,7 @@ Grain = Literal["tract", "listing", "both"]
 ListingReduction = Literal[
     "point",
     "buffer_100m",
+    "buffer_300m",
     "buffer_500m",
     "point_in_polygon",
     "distance_to_nearest",
@@ -59,6 +60,9 @@ ReductionMethod = Literal[
     "area_weighted",
     "idw",
     "nearest_distance",
+    "source_density",
+    "buffer_count",
+    "line_density",
     "route_matrix",
 ]
 Direction = Literal["higher_better", "lower_better", "neutral"]

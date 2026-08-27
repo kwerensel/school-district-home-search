@@ -1,0 +1,21 @@
+metric_key: noise_siren_density
+name: Emergency response facility density
+source: OpenStreetMap emergency response amenities via Overpass
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Overpass_API
+vintage: "2026-08-26"
+units: mapped facilities per km2
+direction: lower_better
+native_resolution: mapped OSM amenity points and facility polygons
+allowed_range: [0, 1000]
+reduction_method: source_density
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  Density of mapped amenity=fire_station, police, or hospital features using a
+  representative point for facility polygons. This is a proximity indicator
+  for potential intermittent siren activity, not a noise measurement, service
+  call frequency, emergency-response score, or claim that sirens are used at a
+  particular facility. OpenStreetMap coverage varies by place.

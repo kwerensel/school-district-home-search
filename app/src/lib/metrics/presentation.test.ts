@@ -36,4 +36,11 @@ describe("consumer metric presentation", () => {
     expect(formatMapMetricValue("airQuality", 41.7)).toBe("42 annual mean daily AQI");
     expect(formatMapMetricValue("transportationNoise", 18.25)).toBe("18.3% at or above 55 dBA");
   });
+
+  it("labels supplemental noise-source maps as proxies rather than measurements", () => {
+    expect(formatMapMetricValue("sirenSources", 0.825)).toBe("0.82 mapped facilities / km²");
+    expect(formatMapMetricValue("nightlifeSources", 1.144)).toBe("1.14 mapped venues / km²");
+    expect(formatMapMetricValue("industrialLand", 5.42)).toBe("5.4% mapped industrial land");
+    expect(formatMapMetricValue("freightRail", 0.345)).toBe("0.34 rail km / km²");
+  });
 });

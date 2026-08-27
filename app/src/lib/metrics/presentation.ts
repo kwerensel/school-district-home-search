@@ -9,13 +9,25 @@ export type MapMetricKey =
   | "transitAccess"
   | "commuteMinutes"
   | "airQuality"
-  | "transportationNoise";
+  | "transportationNoise"
+  | "sirenSources"
+  | "nightlifeSources"
+  | "industrialLand"
+  | "freightRail";
 
 export type ExplorerMapMetricKey =
   | "schoolDistricts"
   | Exclude<
       MapMetricKey,
-      "purchasingPower" | "transitAccess" | "commuteMinutes" | "airQuality" | "transportationNoise"
+      | "purchasingPower"
+      | "transitAccess"
+      | "commuteMinutes"
+      | "airQuality"
+      | "transportationNoise"
+      | "sirenSources"
+      | "nightlifeSources"
+      | "industrialLand"
+      | "freightRail"
     >;
 
 export type MetricScale = {
@@ -104,6 +116,34 @@ export const MAP_METRIC_SCALES: Record<MapMetricKey, MetricScale> = {
     highLabel: "More exposed",
     colors: ["#ecfdf5", "#a7f3d0", "#fde047", "#fb923c", "#dc2626"],
   },
+  sirenSources: {
+    label: "Mapped emergency-response facilities",
+    shortLabel: "Facilities / km²",
+    lowLabel: "Fewer mapped facilities",
+    highLabel: "More mapped facilities",
+    colors: ["#f8fafc", "#cbd5e1", "#fde68a", "#fb923c", "#dc2626"],
+  },
+  nightlifeSources: {
+    label: "Mapped nightlife venues",
+    shortLabel: "Venues / km²",
+    lowLabel: "Fewer mapped venues",
+    highLabel: "More mapped venues",
+    colors: ["#f8fafc", "#ddd6fe", "#c084fc", "#9333ea", "#581c87"],
+  },
+  industrialLand: {
+    label: "Mapped industrial land",
+    shortLabel: "Industrial land share",
+    lowLabel: "Lower mapped share",
+    highLabel: "Higher mapped share",
+    colors: ["#f8fafc", "#d6d3d1", "#a8a29e", "#78716c", "#44403c"],
+  },
+  freightRail: {
+    label: "Active freight-capable rail",
+    shortLabel: "Rail km / km²",
+    lowLabel: "Less mapped rail",
+    highLabel: "More mapped rail",
+    colors: ["#f8fafc", "#bfdbfe", "#60a5fa", "#2563eb", "#1e3a8a"],
+  },
 };
 
 export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: string }> = [
@@ -128,6 +168,10 @@ export const DISCOVERY_MAP_METRICS: Array<{ value: MapMetricKey; label: string }
   { value: "commuteMinutes", label: MAP_METRIC_SCALES.commuteMinutes.label },
   { value: "airQuality", label: MAP_METRIC_SCALES.airQuality.label },
   { value: "transportationNoise", label: MAP_METRIC_SCALES.transportationNoise.label },
+  { value: "sirenSources", label: MAP_METRIC_SCALES.sirenSources.label },
+  { value: "nightlifeSources", label: MAP_METRIC_SCALES.nightlifeSources.label },
+  { value: "industrialLand", label: MAP_METRIC_SCALES.industrialLand.label },
+  { value: "freightRail", label: MAP_METRIC_SCALES.freightRail.label },
 ];
 
 export function normalizedMetricPosition(
@@ -137,7 +181,12 @@ export function normalizedMetricPosition(
   max: number,
 ) {
   if (!Number.isFinite(value) || min === max) return 0.5;
-  if (metric === "lightPollution") {
+  if (
+    metric === "lightPollution" ||
+    metric === "sirenSources" ||
+    metric === "nightlifeSources" ||
+    metric === "freightRail"
+  ) {
     const transformedValue = Math.log1p(Math.max(value, 0));
     const transformedMin = Math.log1p(Math.max(min, 0));
     const transformedMax = Math.log1p(Math.max(max, 0));
@@ -220,5 +269,9 @@ export function formatMapMetricValue(metric: MapMetricKey, value: number | null 
   if (metric === "commuteMinutes") return `${value.toFixed(0)} min by car`;
   if (metric === "airQuality") return `${value.toFixed(0)} annual mean daily AQI`;
   if (metric === "transportationNoise") return `${value.toFixed(1)}% at or above 55 dBA`;
+  if (metric === "sirenSources") return `${value.toFixed(2)} mapped facilities / km²`;
+  if (metric === "nightlifeSources") return `${value.toFixed(2)} mapped venues / km²`;
+  if (metric === "industrialLand") return `${value.toFixed(1)}% mapped industrial land`;
+  if (metric === "freightRail") return `${value.toFixed(2)} rail km / km²`;
   return `${riskCategory(value)} · ${value.toFixed(1)} / 100`;
 }

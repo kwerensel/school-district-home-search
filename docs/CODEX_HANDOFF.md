@@ -13,11 +13,12 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
-Phases 0–7 are complete. Phase 8 is in progress: EPA annual-mean AQI and all
-three BTS transportation-noise metrics are implemented, promoted, verified,
-and wired into Discovery/Explorer. The next approved data slice is
-`noise_sources`. The unblocked Phase 10 URL-profile slice is complete;
-satellite GVI remains explicitly deferred and Mapillary GVI remains Phase 11.
+Phases 0–7 are complete. The approved Phase 8 AQI, BTS transportation-noise,
+and supplemental `noise_sources` slices are implemented, promoted, verified,
+and wired into Discovery/Explorer. Satellite GVI remains explicitly deferred
+and Mapillary GVI remains Phase 11. The next phase-ordered local build arc is
+Phase 9 archetypes and guarded narratives; the unblocked Phase 10 URL-profile
+slice is already complete.
 
 Completed checkpoints:
 
@@ -141,6 +142,13 @@ Completed checkpoints:
   promotable, QA-rendered, explicitly promoted, and live-verified. Discovery
   exposes the ≥55 dBA district share and modeled mean with honest limitations;
   Explorer exposes all three listing metrics with source/resolution context.
+- Phase 8 supplemental noise-source context is implemented for both regions.
+  OSM emergency-response facilities, nightlife venues, and industrial land
+  plus FRA active freight-capable rail are served as labeled density,
+  distance, count, and proximity signals only—never synthesized into dB or
+  treated as measured noise. All 16 region/metric reports were promotable,
+  visually QA-reviewed, explicitly promoted, and live-verified. A pinned
+  listing regression test confirms the expected near-rail condition.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -1051,6 +1059,28 @@ Checks last run after repaired `flood_sfha` promotion:
   and six existing shadcn warnings, Cloudflare production build passes, and
   local browser map interaction has no console errors.
 
+### Phase 8 Supplemental Noise Sources Checkpoint
+
+- Added cached OpenStreetMap source extraction for fire stations, police
+  stations, hospitals, bars, pubs, nightclubs, and industrial land, plus the
+  official FRA North American Rail Network line service filtered to active
+  freight-capable main, industrial, siding, and yard classifications.
+- Added four complete tract layers: `noise_siren_density`,
+  `noise_nightlife_density`, `noise_industrial_land_pct`, and
+  `noise_freight_rail_density`; each has 495 PA and 437 Hudson Valley rows.
+- Added four complete listing layers: `noise_siren_distance_m`,
+  `noise_nightlife_count_300m`, `noise_industrial_distance_m`, and
+  `noise_freight_rail_distance_m`; each has all 4,505 frozen listings.
+- All 16 reports passed validation and visual spatial QA before explicit
+  promotion. Explorer derives clear nearby/within-500 m labels and provides
+  OSM/FRA limitations; Discovery exposes all four district context maps but
+  does not use them in ranking.
+- The golden check pins `PA-209` at 26.3 m from an active freight-capable rail
+  line. Post-promote verification: full Neon-backed pipeline suite `64 passed`;
+  app suite `34 passed`; lint has zero errors and six existing shadcn warnings;
+  Cloudflare production build passes. Local browser QA confirmed live district
+  values and a clean Discovery layout.
+
 ### Typed Shareable Profile Checkpoint
 
 - Centralized Discovery URL defaults, types, parsing, and serialization in a
@@ -1070,17 +1100,15 @@ the Phase 8 build path remains stable.
 
 Next actions, in order:
 
-1. Continue Phase 8 with approved `noise_sources`: labeled listing distances
-   and flags for OSM siren/nightlife/industrial sources plus FRA freight rail,
-   and tract source-density context. Never synthesize these into dB.
+1. Continue with Phase 9 deterministic archetypes, pending-label workflow,
+   guarded narrative generation, and the existing Discovery result path.
 2. Configure the intended Cloudflare account, production secrets, and domain,
    then run the documented production smoke journey. This is an external-state
    release action, not a local implementation gap.
-3. Select/configure the Phase 12 auth and email providers before adding new
-   dependencies; accounts must remain an optional save layer and never gate
-   the signed-out journey.
-4. Do not start GVI until `noise_sources` is complete and the handoff is
-   updated; Mapillary remains Phase 11.
+3. Continue Phase 12 using the configured Better Auth, Resend, and Turnstile
+   environment values; accounts must remain an optional save layer and never
+   gate the signed-out journey.
+4. Keep satellite GVI deferred; Mapillary remains the Phase 11 research track.
 
 Phase 8 AQS access note: on 2026-08-25, the configured email/key pair was
 present but EPA returned `Email and/or key are invalid.` This no longer gates

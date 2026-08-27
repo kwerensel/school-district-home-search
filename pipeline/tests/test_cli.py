@@ -217,6 +217,49 @@ def test_noise_manifests_validate() -> None:
         assert key in result.output
 
 
+def test_noise_source_manifests_validate() -> None:
+    keys = (
+        "noise_siren_density",
+        "noise_siren_distance_m",
+        "noise_nightlife_density",
+        "noise_nightlife_count_300m",
+        "noise_industrial_land_pct",
+        "noise_industrial_distance_m",
+        "noise_freight_rail_density",
+        "noise_freight_rail_distance_m",
+    )
+    for key in keys:
+        result = CliRunner().invoke(
+            app,
+            ["manifest", "validate", "layer", f"manifests/layers/{key}.yaml"],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert key in result.output
+
+
+def test_layer_runner_accepts_noise_source_keys_before_database_work(monkeypatch) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    keys = (
+        "noise_siren_density",
+        "noise_siren_distance_m",
+        "noise_nightlife_density",
+        "noise_nightlife_count_300m",
+        "noise_industrial_land_pct",
+        "noise_industrial_distance_m",
+        "noise_freight_rail_density",
+        "noise_freight_rail_distance_m",
+    )
+    for key in keys:
+        result = CliRunner().invoke(
+            app,
+            ["layer", "run", key, "--region", "pa-mainline", "--grain", "both"],
+        )
+
+        assert result.exit_code != 0
+        assert "not implemented yet" not in result.output
+
+
 def test_layer_runner_accepts_noise_keys_before_database_work(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     for key in ("noise_mean_dba", "noise_pct_over_45", "noise_pct_over_55"):

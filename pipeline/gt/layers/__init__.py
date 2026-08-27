@@ -8,6 +8,7 @@ from gt.layers.flood_sfha import run_flood_sfha
 from gt.layers.light_pollution import run_light_pollution
 from gt.layers.median_home_value import run_median_home_value
 from gt.layers.noise import run_noise
+from gt.layers.noise_sources import run_noise_sources
 from gt.layers.park_access import run_park_access
 from gt.layers.risk_index import run_risk_index
 from gt.layers.runner import promote_layer, render_layer_qa
@@ -26,6 +27,7 @@ __all__ = [
     "run_light_pollution",
     "run_median_home_value",
     "run_noise",
+    "run_noise_sources",
     "run_park_access",
     "run_risk_index",
     "run_tree_canopy",

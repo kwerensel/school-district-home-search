@@ -57,6 +57,22 @@ def test_pinned_address_districts(address: str, state: str, district: str) -> No
     assert actual == district
 
 
+def test_pinned_listing_near_active_freight_capable_rail() -> None:
+    distance_m = fetch_one(
+        """
+        SELECT lm.value
+        FROM listings l
+        JOIN listing_metrics lm ON lm.listing_id = l.id
+        WHERE l.source_id = 'PA-209'
+          AND lm.metric_key = 'noise_freight_rail_distance_m'
+        ORDER BY lm.vintage DESC
+        LIMIT 1
+        """
+    )
+    assert distance_m is not None
+    assert 0 <= float(distance_m) <= 100
+
+
 def test_nearest_fallbacks_are_documented_and_capped() -> None:
     assert fetch_one("SELECT count(*) FROM listings WHERE assignment_method = 'nearest'") == 4
     assert (

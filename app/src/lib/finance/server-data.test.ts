@@ -18,6 +18,10 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("aqi_annual_mean");
     expect(fragment.text).toContain("noise_mean_dba");
     expect(fragment.text).toContain("noise_pct_over_55");
+    expect(fragment.text).toContain("noise_siren_density");
+    expect(fragment.text).toContain("noise_nightlife_density");
+    expect(fragment.text).toContain("noise_industrial_land_pct");
+    expect(fragment.text).toContain("noise_freight_rail_density");
     expect(fragment.text).toContain("GROUP BY d.id, d.slug, d.name, d.region_group");
     expect(fragment.text).toContain("ORDER BY d.region_group, d.name");
   });
@@ -43,6 +47,10 @@ describe("finance server data", () => {
         aqi_annual_mean: "38.4",
         noise_mean_dba: "49.8",
         noise_pct_over_55: "12.5",
+        noise_siren_density: "0.82",
+        noise_nightlife_density: "1.14",
+        noise_industrial_land_pct: "2.6",
+        noise_freight_rail_density: "0.34",
       },
       {
         district_region_id: 2,
@@ -63,6 +71,10 @@ describe("finance server data", () => {
         aqi_annual_mean: "44.1",
         noise_mean_dba: "55.2",
         noise_pct_over_55: "38.7",
+        noise_siren_density: "1.2",
+        noise_nightlife_density: "0.6",
+        noise_industrial_land_pct: "5.4",
+        noise_freight_rail_density: "0.72",
       },
     ]);
 
@@ -94,6 +106,10 @@ describe("finance server data", () => {
       aqiAnnualMean: 38.4,
       noiseMeanDba: 49.8,
       noisePctOver55: 12.5,
+      noiseSirenDensity: 0.82,
+      noiseNightlifeDensity: 1.14,
+      noiseIndustrialLandPct: 2.6,
+      noiseFreightRailDensity: 0.34,
     });
     expect(payload.districts[0].matchComponents).toMatchObject({
       affordability: expect.any(Number),

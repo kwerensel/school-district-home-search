@@ -1,0 +1,20 @@
+metric_key: noise_industrial_land_pct
+name: Mapped industrial land share
+source: OpenStreetMap landuse=industrial polygons via Overpass
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Overpass_API
+vintage: "2026-08-26"
+units: percent
+direction: lower_better
+native_resolution: mapped OSM industrial land-use polygons
+allowed_range: [0, 100]
+reduction_method: zonal_share
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  Percent of tract land covered by mapped landuse=industrial polygons. This is
+  a land-use adjacency signal, not a measurement of noise, emissions, facility
+  activity, or operating hours. Industrial areas vary widely and OpenStreetMap
+  polygon coverage varies by place.

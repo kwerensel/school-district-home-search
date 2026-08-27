@@ -1,0 +1,21 @@
+metric_key: noise_nightlife_density
+name: Nightlife venue density
+source: OpenStreetMap nightlife amenities via Overpass
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Overpass_API
+vintage: "2026-08-26"
+units: mapped venues per km2
+direction: lower_better
+native_resolution: mapped OSM amenity points and venue polygons
+allowed_range: [0, 5000]
+reduction_method: source_density
+coverage_threshold: 0.99
+grains:
+  - tract
+notes: >
+  Density of mapped amenity=bar, pub, or nightclub features, using a
+  representative point for venue polygons. It is a contextual proxy for
+  potential nighttime activity, not a measured noise level, operating-hours
+  check, patron count, or guarantee that a venue is active. OpenStreetMap
+  coverage varies by place.

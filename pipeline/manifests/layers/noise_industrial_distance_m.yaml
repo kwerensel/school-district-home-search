@@ -1,0 +1,22 @@
+metric_key: noise_industrial_distance_m
+name: Distance to mapped industrial land
+source: OpenStreetMap landuse=industrial polygons via Overpass
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Overpass_API
+vintage: "2026-08-26"
+units: meters
+direction: lower_better
+native_resolution: mapped OSM industrial land-use polygons
+allowed_range: [0, 200000]
+reduction_method: nearest_distance
+coverage_threshold: 1.0
+grains:
+  - listing
+listing_reductions:
+  - distance_to_nearest
+notes: >
+  Straight-line distance from a listing point to the nearest mapped
+  landuse=industrial polygon edge. Zero means the listing point falls inside a
+  mapped industrial polygon; values at or below 500 m can be labeled adjacent.
+  This is not a measured noise level or claim about facility activity.

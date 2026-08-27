@@ -1,0 +1,22 @@
+metric_key: noise_nightlife_count_300m
+name: Mapped nightlife venues within 300 m
+source: OpenStreetMap nightlife amenities via Overpass
+source_urls:
+  - https://www.openstreetmap.org/
+  - https://wiki.openstreetmap.org/wiki/Overpass_API
+vintage: "2026-08-26"
+units: mapped venues within 300 m
+direction: lower_better
+native_resolution: mapped OSM amenity points and venue polygons
+allowed_range: [0, 1000]
+reduction_method: buffer_count
+coverage_threshold: 1.0
+grains:
+  - listing
+listing_reductions:
+  - buffer_300m
+notes: >
+  Count of mapped amenity=bar, pub, or nightclub representative points within
+  a 300 m straight-line buffer of the listing. It is a proximity indicator,
+  not a measured noise level, operating-hours check, patron count, or guarantee
+  that a venue is active. OpenStreetMap coverage varies by place.

@@ -1,0 +1,23 @@
+metric_key: noise_freight_rail_distance_m
+name: Distance to active freight-capable rail line
+source: FRA North American Rail Network Lines via USDOT/BTS NTAD
+source_urls:
+  - https://railroads.dot.gov/rail-network-development/maps-and-data/maps-geographic-information-system/maps-geographic
+  - https://services.arcgis.com/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_North_American_Rail_Network_Lines/FeatureServer/0
+vintage: "2026-07-21"
+units: meters
+direction: lower_better
+native_resolution: FRA NARN line geometry at 1:24000 or better in the United States
+allowed_range: [0, 200000]
+reduction_method: nearest_distance
+coverage_threshold: 1.0
+grains:
+  - listing
+listing_reductions:
+  - distance_to_nearest
+notes: >
+  Straight-line distance from a listing point to the nearest FRA NARN
+  operational main, industrial-lead, long-siding, or yard line. Passenger-only,
+  out-of-service, abandoned, removed, and trail segments are excluded. This is
+  a proximity indicator, not a measured sound level or confirmation of current
+  freight train or horn frequency; railroad conditions can change.

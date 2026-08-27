@@ -44,6 +44,10 @@ function metricValue(district: DistrictPurchasingPower, metric: MapMetricKey) {
   if (metric === "commuteMinutes") return district.environmentMetrics.commuteMinutes;
   if (metric === "airQuality") return district.environmentMetrics.aqiAnnualMean;
   if (metric === "transportationNoise") return district.environmentMetrics.noisePctOver55;
+  if (metric === "sirenSources") return district.environmentMetrics.noiseSirenDensity;
+  if (metric === "nightlifeSources") return district.environmentMetrics.noiseNightlifeDensity;
+  if (metric === "industrialLand") return district.environmentMetrics.noiseIndustrialLandPct;
+  if (metric === "freightRail") return district.environmentMetrics.noiseFreightRailDensity;
   return district.environmentMetrics.riskIndex;
 }
 
