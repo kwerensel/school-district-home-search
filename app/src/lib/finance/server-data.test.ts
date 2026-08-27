@@ -16,6 +16,8 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("commute_minutes_center_city_philadelphia");
     expect(fragment.text).toContain("commute_minutes_grand_central");
     expect(fragment.text).toContain("aqi_annual_mean");
+    expect(fragment.text).toContain("noise_mean_dba");
+    expect(fragment.text).toContain("noise_pct_over_55");
     expect(fragment.text).toContain("GROUP BY d.id, d.slug, d.name, d.region_group");
     expect(fragment.text).toContain("ORDER BY d.region_group, d.name");
   });
@@ -39,6 +41,8 @@ describe("finance server data", () => {
         transit_access: "4.2",
         commute_minutes: "55.5",
         aqi_annual_mean: "38.4",
+        noise_mean_dba: "49.8",
+        noise_pct_over_55: "12.5",
       },
       {
         district_region_id: 2,
@@ -57,6 +61,8 @@ describe("finance server data", () => {
         transit_access: "11.8",
         commute_minutes: "37.2",
         aqi_annual_mean: "44.1",
+        noise_mean_dba: "55.2",
+        noise_pct_over_55: "38.7",
       },
     ]);
 
@@ -86,6 +92,8 @@ describe("finance server data", () => {
       transitAccess: 4.2,
       commuteMinutes: 55.5,
       aqiAnnualMean: 38.4,
+      noiseMeanDba: 49.8,
+      noisePctOver55: 12.5,
     });
     expect(payload.districts[0].matchComponents).toMatchObject({
       affordability: expect.any(Number),

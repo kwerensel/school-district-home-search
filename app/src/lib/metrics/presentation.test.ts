@@ -34,5 +34,6 @@ describe("consumer metric presentation", () => {
     expect(formatMapMetricValue("transitAccess", 6.25)).toBe("6.3 mapped stops / km²");
     expect(formatMapMetricValue("commuteMinutes", 54.6)).toBe("55 min by car");
     expect(formatMapMetricValue("airQuality", 41.7)).toBe("42 annual mean daily AQI");
+    expect(formatMapMetricValue("transportationNoise", 18.25)).toBe("18.3% at or above 55 dBA");
   });
 });

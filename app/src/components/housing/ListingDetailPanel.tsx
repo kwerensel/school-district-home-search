@@ -59,6 +59,15 @@ function formatMetricValue(metric: ListingMetricItem) {
   if (metric.metricKey === "aqi_annual_mean") {
     return `${metric.value.toFixed(0)} annual mean daily AQI`;
   }
+  if (metric.metricKey === "noise_mean_dba") {
+    return `${metric.value.toFixed(1)} dBA modeled mean`;
+  }
+  if (metric.metricKey === "noise_pct_over_45") {
+    return `${metric.value.toFixed(1)}% at or above 45 dBA`;
+  }
+  if (metric.metricKey === "noise_pct_over_55") {
+    return `${metric.value.toFixed(1)}% at or above 55 dBA`;
+  }
   if (metric.metricKey === "park_distance_m" || metric.metricKey === "transit_distance_m") {
     return metric.value < 1000
       ? `${Math.round(metric.value)} m`
@@ -109,6 +118,9 @@ function metricName(metric: ListingMetricItem) {
   if (metric.metricKey === "transit_distance_m") return "Distance to mapped transit stop";
   if (metric.metricKey === "transit_access") return "Transit-stop density";
   if (metric.metricKey === "aqi_annual_mean") return "Annual mean daily AQI";
+  if (metric.metricKey === "noise_mean_dba") return "Modeled transportation noise";
+  if (metric.metricKey === "noise_pct_over_45") return "Area with modeled noise ≥45 dBA";
+  if (metric.metricKey === "noise_pct_over_55") return "Area with modeled noise ≥55 dBA";
   return metric.name;
 }
 
@@ -168,6 +180,27 @@ function metricHelp(metric: ListingMetricItem) {
           from monitors within 30 km, with a county monitor mean fallback. Lower is cleaner.
         </p>
         <p>This is coarse neighborhood context, not a live or address-level reading.</p>
+      </MetricExplainer>
+    );
+  }
+  if (metric.metricKey.startsWith("noise_")) {
+    return (
+      <MetricExplainer
+        compact
+        label="How transportation noise works"
+        title="Modeled transportation noise"
+        sourceHref="https://www.bts.gov/geospatial/national-transportation-noise-map"
+        sourceLabel="View the BTS National Transportation Noise Map"
+      >
+        <p>
+          The Bureau of Transportation Statistics models 24-hour average aviation, road, and rail
+          noise. Mean dBA is estimated from the published noise-class midpoints; threshold values
+          preserve the published classes.
+        </p>
+        <p>
+          This is screening context, not a live measurement or parcel study. The simplified model
+          omits shielding and can overestimate some locations.
+        </p>
       </MetricExplainer>
     );
   }

@@ -1,0 +1,27 @@
+metric_key: noise_pct_over_45
+name: Area at or above 45 dBA transportation noise
+source: USDOT BTS National Transportation Noise Map 2022/2023 combined aviation, rail, and road layer
+source_urls:
+  - https://www.bts.gov/geospatial/national-transportation-noise-map
+  - https://catalog.data.gov/dataset/noise-data-2022
+  - https://tiles.arcgis.com/tiles/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Noise_2022_CONUS_aviation_rail_road/MapServer
+  - https://tiles.arcgis.com/tiles/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Noise_2022_CONUS_aviation_rail_road/MapServer/legend
+vintage: "2022/2023"
+units: percent
+direction: lower_better
+native_resolution: 38.2 m BTS zoom-12 published tile grid
+allowed_range: [0, 100]
+reduction_method: threshold_share
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - point
+  - buffer_100m
+notes: >
+  Percent of source-grid cells in the tract or listing buffer that fall in a
+  published BTS class beginning at 45 dBA. Listing point values are binary
+  0/100 class flags. This is modeled annual-average transportation exposure,
+  not a sound measurement. The simplified national model omits shielding and
+  non-transportation sources and should not be used for individual-location or
+  specific-time evaluation.

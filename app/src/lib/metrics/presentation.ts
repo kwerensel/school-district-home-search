@@ -8,11 +8,15 @@ export type MapMetricKey =
   | "parkAccess"
   | "transitAccess"
   | "commuteMinutes"
-  | "airQuality";
+  | "airQuality"
+  | "transportationNoise";
 
 export type ExplorerMapMetricKey =
   | "schoolDistricts"
-  | Exclude<MapMetricKey, "purchasingPower" | "transitAccess" | "commuteMinutes" | "airQuality">;
+  | Exclude<
+      MapMetricKey,
+      "purchasingPower" | "transitAccess" | "commuteMinutes" | "airQuality" | "transportationNoise"
+    >;
 
 export type MetricScale = {
   label: string;
@@ -93,6 +97,13 @@ export const MAP_METRIC_SCALES: Record<MapMetricKey, MetricScale> = {
     highLabel: "Higher annual mean",
     colors: ["#dcfce7", "#86efac", "#fde047", "#fb923c", "#dc2626"],
   },
+  transportationNoise: {
+    label: "Modeled transportation noise",
+    shortLabel: "Area at or above 55 dBA",
+    lowLabel: "Less exposed",
+    highLabel: "More exposed",
+    colors: ["#ecfdf5", "#a7f3d0", "#fde047", "#fb923c", "#dc2626"],
+  },
 };
 
 export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: string }> = [
@@ -103,9 +114,6 @@ export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: s
   { value: "walkability", label: MAP_METRIC_SCALES.walkability.label },
   { value: "risk", label: MAP_METRIC_SCALES.risk.label },
   { value: "parkAccess", label: MAP_METRIC_SCALES.parkAccess.label },
-  { value: "transitAccess", label: MAP_METRIC_SCALES.transitAccess.label },
-  { value: "commuteMinutes", label: MAP_METRIC_SCALES.commuteMinutes.label },
-  { value: "airQuality", label: MAP_METRIC_SCALES.airQuality.label },
 ];
 
 export const DISCOVERY_MAP_METRICS: Array<{ value: MapMetricKey; label: string }> = [
@@ -116,6 +124,10 @@ export const DISCOVERY_MAP_METRICS: Array<{ value: MapMetricKey; label: string }
   { value: "walkability", label: MAP_METRIC_SCALES.walkability.label },
   { value: "risk", label: MAP_METRIC_SCALES.risk.label },
   { value: "parkAccess", label: MAP_METRIC_SCALES.parkAccess.label },
+  { value: "transitAccess", label: MAP_METRIC_SCALES.transitAccess.label },
+  { value: "commuteMinutes", label: MAP_METRIC_SCALES.commuteMinutes.label },
+  { value: "airQuality", label: MAP_METRIC_SCALES.airQuality.label },
+  { value: "transportationNoise", label: MAP_METRIC_SCALES.transportationNoise.label },
 ];
 
 export function normalizedMetricPosition(
@@ -207,5 +219,6 @@ export function formatMapMetricValue(metric: MapMetricKey, value: number | null 
   if (metric === "transitAccess") return `${value.toFixed(1)} mapped stops / km²`;
   if (metric === "commuteMinutes") return `${value.toFixed(0)} min by car`;
   if (metric === "airQuality") return `${value.toFixed(0)} annual mean daily AQI`;
+  if (metric === "transportationNoise") return `${value.toFixed(1)}% at or above 55 dBA`;
   return `${riskCategory(value)} · ${value.toFixed(1)} / 100`;
 }

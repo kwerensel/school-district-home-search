@@ -13,12 +13,11 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
-Phases 0–7 are complete. `park_access`, Transitland stop access/proximity, and
-ORS fixed-anchor commute metrics are implemented, promoted, verified, and
-wired into Discovery/Explorer. Phase 8 is in progress; the EPA annual-mean AQI
-layer is implemented, promoted, verified, and wired into the app. The unblocked
-Phase 10 URL-profile slice is complete; satellite GVI remains sequenced within
-Phase 8 and Mapillary GVI remains Phase 11.
+Phases 0–7 are complete. Phase 8 is in progress: EPA annual-mean AQI and all
+three BTS transportation-noise metrics are implemented, promoted, verified,
+and wired into Discovery/Explorer. The next approved data slice is
+`noise_sources`. The unblocked Phase 10 URL-profile slice is complete;
+satellite GVI remains explicitly deferred and Mapillary GVI remains Phase 11.
 
 Completed checkpoints:
 
@@ -136,6 +135,12 @@ Completed checkpoints:
   a category-based Explorer tree-cover filter, and a Discovery -> Explorer
   district-focus handoff. Before/after screenshots are under
   `docs/screenshots/`.
+- Phase 8 BTS transportation noise is implemented for both regions at tract,
+  listing-point, and listing-100 m grains. `noise_mean_dba`,
+  `noise_pct_over_45`, and `noise_pct_over_55` were staged, validated as
+  promotable, QA-rendered, explicitly promoted, and live-verified. Discovery
+  exposes the ≥55 dBA district share and modeled mean with honest limitations;
+  Explorer exposes all three listing metrics with source/resolution context.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
@@ -144,7 +149,8 @@ staging -> validate -> explicit promote and keep moving. Stop only for genuinely
 missing information, surprising/red validation, a source-of-truth conflict, or a
 new unapproved source/provider/paid integration. GVI must not start.
 
-Do not start GVI. `gvi_ndvi_street` is Phase 8 and Mapillary/segmentation GVI is Phase 11.
+Do not start GVI yet. Complete `noise_sources` first; `gvi_ndvi_street` remains
+deferred within Phase 8 and Mapillary/segmentation GVI is Phase 11.
 
 ## 3. Completed So Far
 
@@ -469,41 +475,24 @@ Staged validation:
 
 ## 4. Recently Changed Files And Why
 
-Uncommitted in the current worktree:
+Current transportation-noise checkpoint:
 
-- `app/src/lib/finance/server-data.ts`: validates district purchasing-power
-  profile inputs, builds the promoted `effective_tax_rate` district query, and
-  maps tax rows through the pure finance engine.
-- `app/src/lib/finance/purchasing-power.functions.ts`: exposes
-  `getDistrictPurchasingPower` as a TanStack server function with private
-  short-lived cache headers.
-- `app/src/lib/finance/server-data.test.ts`: covers SQL construction, lower-tax
-  ordering, and DTI-limited output with mocked database rows.
-- `app/src/components/discovery/DiscoveryEngine.tsx`: first Discovery
-  interface with monthly payment, credit, down-payment, and region controls.
-- `app/src/components/discovery/RegionChoroplethMap.tsx`: Leaflet district
-  choropleth colored by computed district purchasing-power ceiling.
-- `app/src/routes/discover.tsx` and `app/src/routeTree.gen.ts`: register the
-  `/discover` route.
-- `app/src/lib/housing/server-queries.ts`, `app/src/lib/housing/types.ts`, and
-  `app/src/lib/housing/server-data.test.ts`: include district region metadata
-  in district GeoJSON so the choropleth can join shapes to purchasing-power
-  rows.
-- `app/src/components/housing/HousingSearch.tsx`: adds a desktop header link
-  from Explorer to Discovery.
-- `app/src/components/discovery/DiscoveryEngine.tsx`: now initializes budget
-  controls from URL params, keeps the URL profile current, and links selected
-  districts into Explorer.
-- `app/src/components/discovery/DiscoveryEngine.tsx`: follow-up fix moves URL
-  param reads out of initial render so SSR and client hydration match.
-- `app/src/components/discovery/RegionChoroplethMap.tsx`: follow-up fix removes
-  `preferCanvas` for the polygon choropleth after Chrome showed a Leaflet
-  canvas `clearRect` runtime error.
-- `app/src/components/housing/HousingSearch.tsx`: now initializes listing
-  filters from incoming `district`, `maxPrice`, `minBeds`, `minBaths`, and
-  `goodOnly` URL params.
-- `docs/CODEX_HANDOFF.md`: records the new app checkpoint and updated
-  median-value/source blockers.
+- `pipeline/gt/layers/noise.py`: cached BTS ArcGIS tile ingestion, legend-color
+  decoding, tract/listing reductions, staging, validation, and report output.
+- `pipeline/manifests/layers/noise_*.yaml` and
+  `docs/layer-onboarding/transportation_noise.md`: approved source evidence,
+  resolution limits, ranges, and midpoint-estimate disclosure.
+- `pipeline/gt/cli.py`, `pipeline/gt/layers/__init__.py`, and pipeline tests:
+  register and cover all three noise metrics.
+- `app/src/lib/finance/server-data.ts` and tests: add promoted district noise
+  values to the Discovery payload.
+- `app/src/lib/metrics/presentation.ts`, `RegionChoroplethMap.tsx`, and
+  `DiscoveryEngine.tsx`: add the selectable ≥55 dBA map, selected-district
+  value, modeled mean, and limitations explainer.
+- `app/src/components/housing/ListingDetailPanel.tsx`: label and explain BTS
+  mean/threshold metrics at listing point, 100 m, and tract context.
+- `docs/CODEX_HANDOFF.md`: records validation, promotion, UI QA, and the next
+  approved Phase 8 slice.
 
 Recently committed:
 
@@ -572,8 +561,10 @@ Committed in `42d9b30 Implement risk index layer staging`:
 
 - Branch: `main`
 - Worktree: `/Users/katherine/Dropbox/school-district-home-search`
-- Latest checkpoint: the typed/shareable profile changes described below,
-  following `def5285 Scaffold remaining Phase 7 access layers`.
+- Latest pushed checkpoint before the current commit: `f44e9b6 Implement Phase
+  8 annual AQI layer`.
+- Current checkpoint: Phase 8 BTS transportation-noise source packet, reducer,
+  promotion, app integration, and QA described below.
 - Expected handoff state after the checkpoint commit: clean and pushed.
 
 ## 6. Known Issues, Failing Checks, Or Unfinished Work
@@ -1010,6 +1001,32 @@ Checks last run after repaired `flood_sfha` promotion:
   spatial golden suite `11 passed`, app suite `33 passed`, lint has zero errors
   and six existing shadcn warnings, and the Cloudflare production build passes.
 
+### Phase 8 Transportation Noise Checkpoint
+
+- Added the official BTS National Transportation Noise Map source packet and a
+  cached ArcGIS tile reducer for the current combined model (2022 aviation and
+  rail, 2023 road). The source is a national 24-hour LAeq screening model, not
+  a live or address-specific measurement.
+- The reducer maps published RGBA legend colors instead of tile palette indexes
+  because the ArcGIS service may reorder palette entries per tile. Transparent
+  cells are treated as below the published 45 dBA floor. Threshold metrics
+  preserve exact classes; `noise_mean_dba` is explicitly labeled as a
+  class-midpoint estimate.
+- `noise_mean_dba`, `noise_pct_over_45`, and `noise_pct_over_55` staged with
+  complete tract and listing point/100 m coverage for both regions. All six
+  reports were promotable, all six QA maps were visually plausible, and all
+  six reports were explicitly promoted.
+- Live counts: 495 PA and 437 Hudson Valley tract rows per metric; all 251 PA
+  and 4,254 Hudson Valley listings at both point and 100 m grains; 61 active PA
+  and 78 Hudson Valley district rollups per metric.
+- Discovery shows the district share at or above 55 dBA, the modeled mean, a
+  selectable map, and BTS limitations. Explorer shows all three metrics with
+  point/buffer/tract labels and the same limitations.
+- Post-promote verification: pipeline suite `58 passed`; live golden suite
+  `11 passed`; app suite `33 passed`; lint has zero errors and six existing
+  shadcn warnings; Cloudflare production build passes. Local browser QA
+  confirmed live values and the interactive transportation-noise map layer.
+
 ### Phase 8 AQI Checkpoint
 
 - Added an approved EPA AQS/AirData source packet and manifest for
@@ -1048,21 +1065,22 @@ Checks last run after repaired `flood_sfha` promotion:
 
 ## 7. Recommended Next Steps
 
-Recommended next chat boundary: optional. This is a clean data checkpoint once
-committed/pushed; continuing in the current task preserves useful context.
+Recommended next chat boundary: optional. Continue in the current task while
+the Phase 8 build path remains stable.
 
 Next actions, in order:
 
-1. Continue Phase 8 with the BTS National Transportation Noise Map source
-   packet and raster reducer, preserving source evidence -> staging ->
-   validation -> QA -> explicit promotion.
+1. Continue Phase 8 with approved `noise_sources`: labeled listing distances
+   and flags for OSM siren/nightlife/industrial sources plus FRA freight rail,
+   and tract source-density context. Never synthesize these into dB.
 2. Configure the intended Cloudflare account, production secrets, and domain,
    then run the documented production smoke journey. This is an external-state
    release action, not a local implementation gap.
 3. Select/configure the Phase 12 auth and email providers before adding new
    dependencies; accounts must remain an optional save layer and never gate
    the signed-out journey.
-4. Do not start GVI before the planned phase.
+4. Do not start GVI until `noise_sources` is complete and the handoff is
+   updated; Mapillary remains Phase 11.
 
 Phase 8 AQS access note: on 2026-08-25, the configured email/key pair was
 present but EPA returned `Email and/or key are invalid.` This no longer gates

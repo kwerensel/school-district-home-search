@@ -1,0 +1,29 @@
+metric_key: noise_mean_dba
+name: Modeled transportation noise
+source: USDOT BTS National Transportation Noise Map 2022/2023 combined aviation, rail, and road layer
+source_urls:
+  - https://www.bts.gov/geospatial/national-transportation-noise-map
+  - https://catalog.data.gov/dataset/noise-data-2022
+  - https://tiles.arcgis.com/tiles/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Noise_2022_CONUS_aviation_rail_road/MapServer
+  - https://tiles.arcgis.com/tiles/xOi1kZaI0eWDREZv/arcgis/rest/services/NTAD_Noise_2022_CONUS_aviation_rail_road/MapServer/legend
+vintage: "2022/2023"
+units: dBA LAeq (class-midpoint estimate)
+direction: lower_better
+native_resolution: 38.2 m BTS zoom-12 published tile grid
+allowed_range: [45, 100]
+reduction_method: zonal_mean
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - point
+  - buffer_100m
+notes: >
+  Combined aviation and rail inputs are vintage 2022 and road inputs are
+  vintage 2023. BTS publishes the current web layer as seven modeled 24-hour
+  LAeq classes rather than continuous measurements. This metric assigns each
+  visible class its midpoint and assigns transparent/below-model-floor pixels
+  the published 45 dBA floor before averaging. Values are therefore
+  class-midpoint estimates, not measured sound levels or parcel-specific
+  claims. BTS says the national simplified model omits shielding and can
+  overestimate exposure; use it for broad comparison and trends only.

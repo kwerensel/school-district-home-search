@@ -735,6 +735,39 @@ function SelectedDistrictPanel({
             active={mapMetric === "airQuality"}
             onActivate={() => onMapMetricChange("airQuality")}
           />
+          <MetricBox
+            label="Modeled transportation noise"
+            value={
+              selected.environmentMetrics.noisePctOver55 === null
+                ? "-"
+                : `${oneDecimal.format(selected.environmentMetrics.noisePctOver55)}% of district area at or above 55 dBA${
+                    selected.environmentMetrics.noiseMeanDba === null
+                      ? ""
+                      : ` · ${oneDecimal.format(selected.environmentMetrics.noiseMeanDba)} dBA modeled mean`
+                  }`
+            }
+            help={
+              <MetricExplainer
+                compact
+                label="How transportation noise works"
+                title="Modeled transportation noise"
+                sourceHref="https://www.bts.gov/geospatial/national-transportation-noise-map"
+                sourceLabel="View the BTS National Transportation Noise Map"
+              >
+                <p>
+                  The Bureau of Transportation Statistics models 24-hour average aviation, road, and
+                  rail noise. This value is the share of district land in modeled classes at or
+                  above 55 dBA.
+                </p>
+                <p>
+                  It is national screening context, not a live or address-specific measurement. The
+                  simplified model omits shielding and can overestimate some locations.
+                </p>
+              </MetricExplainer>
+            }
+            active={mapMetric === "transportationNoise"}
+            onActivate={() => onMapMetricChange("transportationNoise")}
+          />
         </div>
       </div>
       <Button asChild className="mt-4 w-full" size="sm">
