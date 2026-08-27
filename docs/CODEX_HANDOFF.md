@@ -1122,6 +1122,21 @@ Checks last run after repaired `flood_sfha` promotion:
   lint has zero errors and six existing shadcn warnings; Cloudflare build
   passes; signed-out browser QA still returns all 139 districts.
 
+### Production Deployment Preflight
+
+- Wrangler is authenticated with the configured account-scoped API token for
+  the intended personal Cloudflare account.
+- A read-only secret check confirms that `groundtruth-home-search` does not yet
+  exist, so the next deploy is a first release rather than an update. No stale
+  Worker or secret set needs reconciliation.
+- `docs/deployment.md` now distinguishes server secrets from public production
+  configuration, records the Phase 12 secret names, and documents first-release
+  plus signed-out and optional-account smoke checks. No secret values are
+  checked in.
+- A custom domain is not required for the initial `workers.dev` smoke release,
+  but production deployment remains gated on the app checkpoint and Worker
+  secret configuration.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. Continue in the current task while
