@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 
+from gt.archetypes import approve_archetype_labels, build_archetypes, label_archetypes
 from gt.db.migrate import run_migrations
 from gt.layers import (
     promote_layer,
@@ -60,6 +61,34 @@ app.add_typer(qa_app, name="qa")
 
 layer_app = typer.Typer(help="Layer runner commands.")
 app.add_typer(layer_app, name="layer")
+
+archetypes_app = typer.Typer(help="Deterministic district archetype commands.")
+app.add_typer(archetypes_app, name="archetypes")
+
+
+@archetypes_app.command("build")
+def archetypes_build() -> None:
+    """Build and atomically persist a versioned district archetype model."""
+    result, report_path = build_archetypes()
+    typer.echo(json_dumps(result.as_dict() | {"report_path": report_path}))
+
+
+@archetypes_app.command("label")
+def archetypes_label(
+    model_version: str = typer.Option("latest", help="Ready model version or latest."),
+) -> None:
+    """Generate pending product-copy labels; never approves them automatically."""
+    labels = label_archetypes(model_version)
+    typer.echo(json_dumps([label.__dict__ for label in labels]))
+
+
+@archetypes_app.command("approve-labels")
+def archetypes_approve_labels(
+    model_version: str = typer.Option(..., help="Exact model version reviewed by a human."),
+) -> None:
+    """Promote reviewed pending archetype labels to approved product copy."""
+    count = approve_archetype_labels(model_version)
+    typer.echo(f"Approved {count} archetype labels for {model_version}.")
 
 
 @db_app.command("migrate")

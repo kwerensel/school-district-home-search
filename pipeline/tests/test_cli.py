@@ -10,6 +10,15 @@ def test_help() -> None:
     assert "Groundtruth deterministic geospatial pipeline" in result.output
 
 
+def test_archetype_commands_are_registered() -> None:
+    result = CliRunner().invoke(app, ["archetypes", "--help"])
+
+    assert result.exit_code == 0
+    assert "build" in result.output
+    assert "label" in result.output
+    assert "approve-labels" in result.output
+
+
 def test_region_manifest_validates() -> None:
     result = CliRunner().invoke(
         app,

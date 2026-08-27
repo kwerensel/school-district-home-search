@@ -61,6 +61,8 @@ export type DistrictPurchasingPowerRow = {
   noise_nightlife_density: number | string | null;
   noise_industrial_land_pct: number | string | null;
   noise_freight_rail_density: number | string | null;
+  archetype_label: string | null;
+  archetype_description: string | null;
 };
 
 export type DistrictEnvironmentMetrics = {
@@ -90,6 +92,7 @@ export type DistrictPurchasingPower = {
   regionGroup: string;
   effectiveTaxRate: number;
   environmentMetrics: DistrictEnvironmentMetrics;
+  archetype: { label: string; description: string } | null;
   matchComponents: Record<
     keyof Required<NonNullable<PurchasingPowerQuery["environmentWeights"]>>,
     number | null
@@ -171,9 +174,22 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_siren_density') AS noise_siren_density,
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_nightlife_density') AS noise_nightlife_density,
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_industrial_land_pct') AS noise_industrial_land_pct,
-        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_freight_rail_density') AS noise_freight_rail_density
+        max(dm.value) FILTER (WHERE dm.metric_key = 'noise_freight_rail_density') AS noise_freight_rail_density,
+        max(archetype.label) AS archetype_label,
+        max(archetype.one_line_description) AS archetype_description
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
+      LEFT JOIN LATERAL (
+        SELECT a.label, a.one_line_description
+        FROM region_archetypes ra
+        JOIN archetypes a ON a.id = ra.archetype_id
+        JOIN archetype_models am ON am.model_version = ra.model_version
+        WHERE ra.region_id = d.id
+          AND a.label_status = 'approved'
+          AND am.status = 'ready'
+        ORDER BY am.created_at DESC, am.model_version DESC
+        LIMIT 1
+      ) archetype ON true
       WHERE ${where.join(" AND ")}
       GROUP BY d.id, d.slug, d.name, d.region_group
       HAVING max(dm.value) FILTER (WHERE dm.metric_key = 'effective_tax_rate') IS NOT NULL
@@ -238,6 +254,10 @@ function computeDistrictPurchasingPower(
     districtName: row.district_name,
     regionGroup: row.region_group,
     effectiveTaxRate,
+    archetype:
+      row.archetype_label && row.archetype_description
+        ? { label: row.archetype_label, description: row.archetype_description }
+        : null,
     environmentMetrics: {
       canopyHeightM: nullableNumber(row.canopy_height_m),
       treeCanopyPct: nullableNumber(row.tree_canopy_pct),

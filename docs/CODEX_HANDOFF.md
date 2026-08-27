@@ -17,8 +17,10 @@ Phases 0–7 are complete. The approved Phase 8 AQI, BTS transportation-noise,
 and supplemental `noise_sources` slices are implemented, promoted, verified,
 and wired into Discovery/Explorer. Satellite GVI remains explicitly deferred
 and Mapillary GVI remains Phase 11. The next phase-ordered local build arc is
-Phase 9 archetypes and guarded narratives; the unblocked Phase 10 URL-profile
-slice is already complete.
+Phase 9 archetypes and guarded narratives; its dependency-free foundation is
+implemented, but live model persistence is correctly blocked by the approved
+HDBSCAN fallback gate described below. The unblocked Phase 10 URL-profile slice
+is already complete.
 
 Completed checkpoints:
 
@@ -1096,6 +1098,30 @@ Checks last run after repaired `flood_sfha` promotion:
   pre-existing shadcn fast-refresh warnings; the Cloudflare Nitro production
   bundle passes.
 
+### Phase 9 Archetype And Narrative Foundation
+
+- Added forward-only, versioned `archetype_models`, `archetypes`, and
+  `region_archetypes` schema plus a narrative cache keyed by region pair,
+  profile bucket, and structured-payload hash.
+- Added a dependency-free fixed-seed k-means implementation, percentile
+  normalization with median imputation for sparse cells, k=4..9 silhouette
+  selection, atomic model persistence, top-five distinguishing features, and
+  CLI commands for build, pending Claude labels, and explicit human approval.
+- The live 139-district build intentionally refused persistence: the best
+  k-means silhouette is `0.192`, below the architecture's `0.25` threshold.
+  The specified HDBSCAN fallback requires a new Python dependency and therefore
+  remains an explicit dependency approval gate. No weak model or label was
+  written.
+- Added the Anthropic Messages API path without an SDK dependency, strict
+  pending-versus-approved label visibility, structured tradeoff payloads, a
+  deterministic narrative fallback, and a numeral post-check. Tests inject an
+  unsupported `17`/`99` and prove the Claude result is rejected in favor of the
+  template.
+- Discovery queries approved labels only and remains unchanged while no model
+  is ready. Verification: pipeline suite `71 passed`; app suite `37 passed`;
+  lint has zero errors and six existing shadcn warnings; Cloudflare build
+  passes; signed-out browser QA still returns all 139 districts.
+
 ## 7. Recommended Next Steps
 
 Recommended next chat boundary: optional. Continue in the current task while
@@ -1103,8 +1129,9 @@ the Phase 8 build path remains stable.
 
 Next actions, in order:
 
-1. Continue with Phase 9 deterministic archetypes, pending-label workflow,
-   guarded narrative generation, and the existing Discovery result path.
+1. Approve adding the `hdbscan` Python dependency, run the required fallback,
+   inspect the versioned assignments, generate pending labels, and explicitly
+   approve product copy only after review. The k-means result must not be used.
 2. Configure the intended Cloudflare account, production secrets, and domain,
    then run the documented production smoke journey. This is an external-state
    release action, not a local implementation gap.

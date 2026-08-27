@@ -460,6 +460,11 @@ export function DiscoveryEngine() {
                           <p className="text-xs text-muted-foreground">
                             {regionLabel(district.regionGroup)}
                           </p>
+                          {district.archetype ? (
+                            <p className="mt-1 text-xs font-medium text-primary">
+                              {district.archetype.label}
+                            </p>
+                          ) : null}
                         </div>
                         <p className="shrink-0 text-xs font-semibold text-foreground">
                           #{index + 1} of {ranked.length}
@@ -575,6 +580,12 @@ function SelectedDistrictPanel({
         <p>{rank ? `#${rank} of ${districtCount} districts` : `${districtCount} districts`}</p>
       </div>
       <h2 className="mt-1 text-lg font-semibold text-foreground">{selected.districtName}</h2>
+      {selected.archetype ? (
+        <div className="mt-2 rounded-md bg-muted px-3 py-2">
+          <p className="text-xs font-semibold text-foreground">{selected.archetype.label}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{selected.archetype.description}</p>
+        </div>
+      ) : null}
       <p className="text-sm text-muted-foreground">
         Compared within {comparisonScope}
         {comparisonScope === regionLabel(selected.regionGroup)

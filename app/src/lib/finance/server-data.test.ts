@@ -22,6 +22,7 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("noise_nightlife_density");
     expect(fragment.text).toContain("noise_industrial_land_pct");
     expect(fragment.text).toContain("noise_freight_rail_density");
+    expect(fragment.text).toContain("label_status = 'approved'");
     expect(fragment.text).toContain("GROUP BY d.id, d.slug, d.name, d.region_group");
     expect(fragment.text).toContain("ORDER BY d.region_group, d.name");
   });
@@ -51,6 +52,8 @@ describe("finance server data", () => {
         noise_nightlife_density: "1.14",
         noise_industrial_land_pct: "2.6",
         noise_freight_rail_density: "0.34",
+        archetype_label: "Quiet Green Suburb",
+        archetype_description: "Leafier districts with calmer access patterns.",
       },
       {
         district_region_id: 2,
@@ -75,6 +78,8 @@ describe("finance server data", () => {
         noise_nightlife_density: "0.6",
         noise_industrial_land_pct: "5.4",
         noise_freight_rail_density: "0.72",
+        archetype_label: null,
+        archetype_description: null,
       },
     ]);
 
@@ -95,6 +100,10 @@ describe("finance server data", () => {
       districtSlug: "sd-hudson",
       effectiveTaxRate: 0.018,
       bindingBound: "budget",
+      archetype: {
+        label: "Quiet Green Suburb",
+        description: "Leafier districts with calmer access patterns.",
+      },
     });
     expect(payload.districts[0].environmentMetrics).toMatchObject({
       canopyHeightM: 20,
