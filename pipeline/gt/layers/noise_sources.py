@@ -633,19 +633,31 @@ def _stage_listing_metrics(
     manifest: LayerManifest,
     metrics: list[ListingMetric],
 ) -> None:
+    listing_grain = _listing_grain(manifest.metric_key)
     cur.executemany(
         """
         INSERT INTO staging.layer_listing_metrics
           (region_group, metric_key, listing_id, grain, value, vintage)
-        VALUES (%s, %s, %s, 'point', %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (region_group, metric_key, listing_id, grain, vintage) DO UPDATE SET
           value = EXCLUDED.value
         """,
         [
-            (region_slug, manifest.metric_key, metric.listing_id, metric.value, manifest.vintage)
+            (
+                region_slug,
+                manifest.metric_key,
+                metric.listing_id,
+                listing_grain,
+                metric.value,
+                manifest.vintage,
+            )
             for metric in metrics
         ],
     )
+
+
+def _listing_grain(metric_key: str) -> str:
+    return "buffer_300m" if metric_key == "noise_nightlife_count_300m" else "point"
 
 
 def _validation_checks(
@@ -679,9 +691,9 @@ def _validation_checks(
         SELECT count(*), min(value), max(value),
                count(*) FILTER (WHERE value::text IN ('NaN', 'Infinity', '-Infinity'))
         FROM staging.layer_listing_metrics
-        WHERE region_group = %s AND metric_key = %s AND vintage = %s AND grain = 'point'
+        WHERE region_group = %s AND metric_key = %s AND vintage = %s AND grain = %s
         """,
-        (region_slug, manifest.metric_key, manifest.vintage),
+        (region_slug, manifest.metric_key, manifest.vintage, _listing_grain(manifest.metric_key)),
     )
     listing_count, listing_min, listing_max, listing_nonfinite = cur.fetchone()
     bounds = [tract_min, tract_max] if compute_tract else [listing_min, listing_max]
@@ -696,6 +708,7 @@ def _validation_checks(
         "listings_expected": expected_listings,
         "listing_point_computed": int(listing_count),
         "listing_point_coverage": int(listing_count) / expected_listings if expected_listings else 0,
+        "listing_grain": _listing_grain(manifest.metric_key) if compute_listing else None,
         "nonfinite_values": int(tract_nonfinite or 0) + int(listing_nonfinite or 0),
         "range_allowed": list(manifest.allowed_range),
         "range_min": min(finite_bounds, default=math.nan),

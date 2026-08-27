@@ -6,6 +6,7 @@ from gt.layers.noise_sources import (
     _line_density,
     _listing_buffer_count,
     _listing_distance,
+    _listing_grain,
     _point_density,
     _polygon_share,
 )
@@ -33,6 +34,11 @@ def _listings() -> gpd.GeoDataFrame:
 def test_operational_freight_proxy_excludes_inactive_and_transit_only_codes() -> None:
     assert set(FRA_ACTIVE_FREIGHT_NET_CODES) == {"M", "I", "O", "S", "Y"}
     assert set(FRA_ACTIVE_FREIGHT_NET_CODES).isdisjoint({"X", "A", "R", "T", "Z"})
+
+
+def test_nightlife_count_keeps_its_300m_provenance_grain() -> None:
+    assert _listing_grain("noise_nightlife_count_300m") == "buffer_300m"
+    assert _listing_grain("noise_siren_distance_m") == "point"
 
 
 def test_point_density_and_listing_buffer_count_preserve_zeroes() -> None:

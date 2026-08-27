@@ -1071,6 +1071,9 @@ Checks last run after repaired `flood_sfha` promotion:
 - Added four complete listing layers: `noise_siren_distance_m`,
   `noise_nightlife_count_300m`, `noise_industrial_distance_m`, and
   `noise_freight_rail_distance_m`; each has all 4,505 frozen listings.
+- A follow-up provenance audit added `buffer_300m` to the allowed listing
+  grains and re-promoted `noise_nightlife_count_300m` under that exact grain;
+  live verification shows 4,505 `buffer_300m` rows and no generic point rows.
 - All 16 reports passed validation and visual spatial QA before explicit
   promotion. Explorer derives clear nearby/within-500 m labels and provides
   OSM/FRA limitations; Discovery exposes all four district context maps but

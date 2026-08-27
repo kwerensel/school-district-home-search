@@ -55,7 +55,6 @@ def render_layer_qa(manifest_path: Path, region_slug: str) -> Path:
                 WHERE s.region_group = %s
                   AND s.metric_key = %s
                   AND s.vintage = %s
-                  AND s.grain = 'point'
                 """,
                 conn,
                 params=(region_slug, manifest.metric_key, manifest.vintage),
