@@ -43,7 +43,9 @@ def test_divergence_views_pair_latest_matching_grains_and_rank_locally():
                   (2,'buffer_500m','tree_canopy_pct',50,'2023'),
                   (2,'buffer_500m','gvi_ndvi_street',0.3,'2025-summer');
             ''')
-            cur.execute(sql.replace('CREATE OR REPLACE VIEW', 'CREATE TEMP VIEW'))
+            cur.execute(sql.replace('CREATE OR REPLACE VIEW', 'CREATE TEMP VIEW')
+                        .replace('green_divergence_district_inputs(', 'pg_temp.green_divergence_district_inputs(')
+                        .replace('FROM public.district_metrics', 'FROM pg_temp.district_metrics'))
             for view, key in [('green_divergence_region_metrics','region_id'),
                               ('green_divergence_district_metrics','district_region_id')]:
                 cur.execute(f'SELECT {key},value FROM {view} ORDER BY {key}')

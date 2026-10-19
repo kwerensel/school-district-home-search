@@ -13,9 +13,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; base checkpoint `1cfa0e9` adds SQL green comparison views
-  and metadata-only GVI research. Current checkpoint: guided Discovery,
-  comparison/commute/shortlist, private operator foundation and preserved auth. Existing HDBSCAN and
+- Branch `main`; latest pushed checkpoint `8701f40` contains guided Discovery,
+  comparison/commute/shortlist, private operator foundation and preserved auth.
+  `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
 - Satellite GVI ingestion is active, **not promoted**. Fixed 2025 summer,
   max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
