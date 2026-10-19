@@ -11,16 +11,46 @@ Groundtruth is a geospatial home-search platform with two linked products on one
 
 Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district assignment, no new RentCast calls or listing expansion, no GreatSchools data, financial math in code/tests only, EPSG:4326 stored geometry, and staging -> validate -> explicit promote for pipeline loads.
 
+## Active autonomous arc — 2026-10-18
+
+- Existing dirty HDBSCAN and Better Auth/saved-data changes are preserved.
+  Production deployment remains outside this goal.
+- Added `010_green_divergence.sql`: read-only SQL views over promoted canopy
+  and GVI inputs at tract, district, and matching listing-buffer grains.
+  Percentiles are scoped to each project region and grain; latest finite source
+  vintages and paired input values remain visible. Views installed in Neon;
+  no source metrics changed. Isolated real-SQL fixtures pass (ties, missing
+  inputs, local ranks, latest vintages, grain separation).
+- Added `gt/gvi_research.py` plus source packet and seven tests for frozen-
+  listing road sampling, Mapillary metadata caching, inference counts,
+  sparse-coverage fallback, and paired Pearson correlation. Representative
+  metadata-only probes succeeded; no imagery downloaded or segmentation
+  result claimed. Research tests plus live spatial golden checks: 19 passed.
+- Phase 11 inference remains gated on approval of heavy torch/transformers
+  dependencies, an exact checkpoint with suitable rights, and verified image
+  retention/attribution terms. Source packet records these gates explicitly.
+- Satellite GVI implementation and both-region source ingestion are in progress;
+  no GVI promotion yet. Cached OSM download is currently the long-running step.
+- Comparison drawer/narrative cache and Phase 10 guided/profile/commute work are
+  being implemented and validated independently while sources download.
+- Address geocoder choice remains pending: user requested pricing research.
+  Geocodio free-tier/storage rights versus Mapbox permanent pricing reviewed;
+  no new provider account, key, billing, or geocoder request enabled.
+
 ## 2. Current Phase Or Feature Area
 
 Phases 0–7 are complete. The approved Phase 8 AQI, BTS transportation-noise,
 and supplemental `noise_sources` slices are implemented, promoted, verified,
-and wired into Discovery/Explorer. Satellite GVI remains explicitly deferred
-and Mapillary GVI remains Phase 11. The next phase-ordered local build arc is
-Phase 9 archetypes and guarded narratives; its dependency-free foundation is
-implemented, but live model persistence is correctly blocked by the approved
-HDBSCAN fallback gate described below. The unblocked Phase 10 URL-profile slice
-is already complete.
+and wired into Discovery/Explorer. On 2026-10-18 the user explicitly removed
+the earlier GVI deferral and set the remaining roadmap order to finish product
+features before Phase 12 and production. The next data arc is therefore Phase
+8 `gvi_ndvi_street` plus derived `green_divergence`, followed by a rebuild of
+the Phase 9 archetype model on the final planned district metric matrix. Phase
+10 product gaps and the Phase 11 Mapillary research track follow. A new private
+operator track then adds administrator-only listing refresh, region expansion,
+and attendance-zone evidence workflows. Phase 12 acceptance and the first
+production release are last. The unblocked Phase 10 URL-profile slice is
+already complete.
 
 Completed checkpoints:
 
@@ -151,16 +181,27 @@ Completed checkpoints:
   treated as measured noise. All 16 region/metric reports were promotable,
   visually QA-reviewed, explicitly promoted, and live-verified. A pinned
   listing regression test confirms the expected near-rail condition.
+- Phase 8 `gvi_ndvi_street` source onboarding is active as of 2026-10-18.
+  The manifest and source note select credential-free Copernicus Sentinel-2
+  Collection 1 L2A COGs through Element 84 Earth Search plus a cached OSM road
+  corridor. The deterministic design uses the completed 2025 summer, SCL and
+  cloud-probability masking, a per-pixel median with at least three valid
+  observations, and 50 m road-corridor reductions at tract and listing 100 m /
+  500 m grains. Manifest validation passes. Implementation, staging, QA, and
+  promotion remain next.
 
 Standing approval model: source and application choices already documented in
 the approved architecture/tasks/handoff count as approved. Do not stop for
 routine yes/no source or promotion approval when validation is green; preserve
 staging -> validate -> explicit promote and keep moving. Stop only for genuinely
 missing information, surprising/red validation, a source-of-truth conflict, or a
-new unapproved source/provider/paid integration. GVI must not start.
+new unapproved source/provider/paid integration.
 
-Do not start GVI yet. Complete `noise_sources` first; `gvi_ndvi_street` remains
-deferred within Phase 8 and Mapillary/segmentation GVI is Phase 11.
+GVI is now active work. Implement and promote the approved Phase 8
+`gvi_ndvi_street` and derived `green_divergence` before finalizing Phase 9
+archetype labels. Keep Mapillary/segmentation `gvi_streetlevel` as the Phase 11
+research track, but complete it before the Phase 12 acceptance pass and first
+production release.
 
 ## 3. Completed So Far
 
@@ -1144,16 +1185,67 @@ the Phase 8 build path remains stable.
 
 Next actions, in order:
 
-1. Approve adding the `hdbscan` Python dependency, run the required fallback,
-   inspect the versioned assignments, generate pending labels, and explicitly
-   approve product copy only after review. The k-means result must not be used.
-2. Configure the intended Cloudflare account, production secrets, and domain,
-   then run the documented production smoke journey. This is an external-state
-   release action, not a local implementation gap.
-3. Continue Phase 12 using the configured Better Auth, Resend, and Turnstile
-   environment values; accounts must remain an optional save layer and never
-   gate the signed-out journey.
-4. Keep satellite GVI deferred; Mapillary remains the Phase 11 research track.
+1. Implement, stage, validate, QA-render, and explicitly promote the approved
+   Phase 8 `gvi_ndvi_street` layer for both regions and supported listing
+   buffers. Add and verify the derived `green_divergence` signal and wire both
+   into the resolution-honest app surfaces.
+2. Rebuild the versioned HDBSCAN archetype model after GVI is live, inspect the
+   assignments, generate pending Claude labels, and explicitly approve product
+   copy only after review. Finish the guarded narrative endpoint/cache and
+   comparison UI.
+3. Complete the remaining Phase 10 app functionality: the guided Discovery
+   flow, up to two request-time commute anchors, comparison drawer, shortlist
+   handoff, and mobile end-to-end QA.
+4. Complete the Phase 11 Mapillary/segmentation GVI research track, including
+   coverage counts and correlation against the satellite proxy. Sparse
+   street-level coverage must retain the satellite-estimate fallback label.
+5. Build the private operator track described below. Preserve the frozen
+   listing dataset until a provider, terms, credit budget, and versioning
+   policy are explicitly approved; scaffold provider-neutral dry runs first.
+6. Finish the already-started Phase 12 Better Auth, Resend, Turnstile, saved
+   profile, favorite, password-reset, and delete-account acceptance journey.
+   Accounts remain an optional save layer and never gate signed-out use.
+7. Configure Cloudflare production secrets, deploy the first Worker, and run
+   the documented signed-out and account-enabled smoke journeys. A custom
+   domain remains optional for the initial release.
+
+### Private operator track: listings, regions, and attendance zones
+
+This track is for an administrator-controlled/private build. It must be hidden
+behind a server-verified administrator role and a deployment feature flag; the
+client must never be trusted to assert administrator status.
+
+- **Listing refresh:** provide a dry-run first that accepts an approved area,
+  estimates provider credits/record counts, and shows the provider/vintage.
+  An explicit confirmation may then create a versioned staging import, dedupe
+  and diff it against the active dataset, validate district assignments using
+  the existing PostGIS join, and explicitly publish a selected dataset
+  version. Never overwrite the frozen 4,505-listing baseline in place.
+- **Region expansion:** generate a draft region manifest from selected official
+  counties/districts, show which data layers and listing coverage are
+  available, estimate external cost/runtime, then run the existing
+  scaffold -> stage -> validate/QA -> explicit promote workflow as an
+  asynchronous operator job. This is a pipeline orchestration surface, not an
+  instant map toggle.
+- **Attendance zones:** district boundaries and school attendance zones are
+  separate facts. Store school-year- and grade-band-specific official zone
+  polygons plus evidence and retrieval dates. Assignment remains a
+  deterministic point-in-polygon operation; never infer a school from ZIP,
+  nearest-school distance, an LLM, or an undocumented phone statement.
+- **District outreach:** when official GIS/download/locator evidence is
+  missing, create a review queue for district-level outreach. An authorized
+  agent may draft and send clearly identified emails, and may place disclosed
+  follow-up calls through a configured communications provider, asking the
+  district enrollment/transportation office for the official boundary file or
+  a written address/grade/year confirmation. Store written replies as evidence
+  and require human review before publishing. Do not send student PII, pose as
+  a parent, bulk-spam individual schools, or record calls without the required
+  consent/compliance setup.
+
+Actual listing-provider calls, paid credits, communications integrations, and
+external outreach remain gated on the specific provider/account, ToS, budget,
+and sender identity. The current RentCast freeze remains active until that
+separate approval is recorded.
 
 Phase 8 AQS access note: on 2026-08-25, the configured email/key pair was
 present but EPA returned `Email and/or key are invalid.` This no longer gates
