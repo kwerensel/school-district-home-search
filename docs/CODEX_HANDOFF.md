@@ -1121,8 +1121,10 @@ Checks last run after repaired `flood_sfha` promotion:
 
 ### Conversational Discovery foundation (2026-10-18)
 
-Current worktree branch: `codex/conversational-discovery`. Green checkpoint
-covers this conversational foundation and the preceding product clarifications.
+Current worktree branch: `codex/conversational-discovery`. Implementation
+checkpoint `deef5c6` was committed and pushed to origin on this branch; it covers
+the conversational foundation and preceding product clarifications. No merge,
+PR, deployment, model request, or database write was performed.
 Local UI QA artifact: `data/reports/qa/discovery-conversation-no-key.png`
 (gitignored); local preview: http://127.0.0.1:5178/discover.
 
