@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Bus, ExternalLink, Home, MapPin, Ruler, Trees, Waves, X } from "lucide-react";
+import { Bus, ExternalLink, Heart, Home, MapPin, Ruler, Trees, Waves, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WalkabilityExplainer } from "@/components/metrics/WalkabilityExplainer";
+import { GreennessExplainer } from "@/components/metrics/GreennessExplainer";
+import { formatMapMetricValue } from "@/lib/metrics/presentation";
 import { MetricExplainer } from "@/components/metrics/MetricExplainer";
 import { getListingMetrics } from "@/lib/housing/listings.functions";
 import { lightPollutionCategory, treeCoverCategory } from "@/lib/metrics/presentation";
@@ -12,6 +14,7 @@ import type { ListingFeature, ListingMetricContext, ListingMetricItem } from "@/
 interface Props {
   listing: ListingFeature | null;
   onClose: () => void;
+  onFavorite?: (listingId: number) => void;
 }
 
 const contextOrder: ListingMetricContext[] = ["property", "street", "neighborhood"];
@@ -34,6 +37,10 @@ function formatDistance(value: number) {
 }
 
 function formatMetricValue(metric: ListingMetricItem) {
+  if (metric.metricKey === "gvi_ndvi_street")
+    return formatMapMetricValue("satelliteGreenness", metric.value);
+  if (metric.metricKey === "green_divergence")
+    return formatMapMetricValue("greenDivergence", metric.value);
   if (metric.metricKey === "flood_sfha") {
     return metric.grain === "point"
       ? metric.value >= 1
@@ -123,6 +130,8 @@ function metricIcon(metric: ListingMetricItem) {
 }
 
 function metricName(metric: ListingMetricItem) {
+  if (metric.metricKey === "gvi_ndvi_street") return "Street-adjacent greenness (satellite)";
+  if (metric.metricKey === "green_divergence") return "Canopy / street-greenness gap";
   if (metric.metricKey === "flood_sfha") {
     return metric.grain === "point"
       ? "Inside FEMA high-risk flood zone"
@@ -154,6 +163,8 @@ function metricName(metric: ListingMetricItem) {
 }
 
 function metricHelp(metric: ListingMetricItem) {
+  if (metric.metricKey === "gvi_ndvi_street") return <GreennessExplainer />;
+  if (metric.metricKey === "green_divergence") return <GreennessExplainer divergence />;
   if (metric.metricKey === "walkability_index") return <WalkabilityExplainer compact />;
   if (metric.metricKey === "park_distance_m") {
     return (
@@ -332,7 +343,7 @@ function metricHelp(metric: ListingMetricItem) {
   return null;
 }
 
-export function ListingDetailPanel({ listing, onClose }: Props) {
+export function ListingDetailPanel({ listing, onClose, onFavorite }: Props) {
   const getMetrics = useServerFn(getListingMetrics);
   const listingId = listing?.properties.id ?? null;
 
@@ -399,9 +410,22 @@ export function ListingDetailPanel({ listing, onClose }: Props) {
               {listingProps.city}, {listingProps.zip}
             </p>
           </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {onFavorite ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onFavorite(listingProps.id)}
+                aria-label="Favorite listing"
+              >
+                <Heart className="h-4 w-4" />
+              </Button>
+            ) : null}
+            <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">

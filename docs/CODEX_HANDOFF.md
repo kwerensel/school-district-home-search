@@ -13,29 +13,62 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Existing dirty HDBSCAN and Better Auth/saved-data changes are preserved.
-  Production deployment remains outside this goal.
-- Added `010_green_divergence.sql`: read-only SQL views over promoted canopy
-  and GVI inputs at tract, district, and matching listing-buffer grains.
-  Percentiles are scoped to each project region and grain; latest finite source
-  vintages and paired input values remain visible. Views installed in Neon;
-  no source metrics changed. Isolated real-SQL fixtures pass (ties, missing
-  inputs, local ranks, latest vintages, grain separation).
-- Added `gt/gvi_research.py` plus source packet and seven tests for frozen-
-  listing road sampling, Mapillary metadata caching, inference counts,
-  sparse-coverage fallback, and paired Pearson correlation. Representative
-  metadata-only probes succeeded; no imagery downloaded or segmentation
-  result claimed. Research tests plus live spatial golden checks: 19 passed.
-- Phase 11 inference remains gated on approval of heavy torch/transformers
-  dependencies, an exact checkpoint with suitable rights, and verified image
-  retention/attribution terms. Source packet records these gates explicitly.
-- Satellite GVI implementation and both-region source ingestion are in progress;
-  no GVI promotion yet. Cached OSM download is currently the long-running step.
-- Comparison drawer/narrative cache and Phase 10 guided/profile/commute work are
-  being implemented and validated independently while sources download.
-- Address geocoder choice remains pending: user requested pricing research.
-  Geocodio free-tier/storage rights versus Mapbox permanent pricing reviewed;
-  no new provider account, key, billing, or geocoder request enabled.
+- Branch `main`; base checkpoint `1cfa0e9` adds SQL green comparison views
+  and metadata-only GVI research. Current checkpoint: guided Discovery,
+  comparison/commute/shortlist, private operator foundation and preserved auth. Existing HDBSCAN and
+  Better Auth/saved-data work is preserved; production deployment is excluded.
+- Satellite GVI ingestion is active, **not promoted**. Fixed 2025 summer,
+  max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
+  three-day floor and exact-shape 50 m OSM corridors are implemented. PA has
+  36 selected scenes/128 candidates, 206,731 deduplicated road geometries and
+  a 9,736 × 8,240 10 m composite in progress. Log:
+  `/private/tmp/groundtruth-gvi-run.log`. Both-region validation/QA/promote,
+  paired green QA and the post-GVI model rebuild remain next.
+- `010_green_divergence.sql` is installed: promoted-input tract, district and
+  matching listing-buffer views, local percentiles, paired values/vintages.
+  A fixed invoker-rights input function avoids a dependency blocking the
+  existing district materialized-view rebuild. Isolated SQL fixtures and
+  rollback replay of migrations004/010 pass.
+- Discovery now has shareable wizard steps, canonical results navigation,
+  optional income/debt, max2 coordinate commute anchors with live ORS caps,
+  max10 district shortlists, independent Explorer district caps/polygons,
+  two-district comparison and guarded/cache-resilient narratives. Scoring uses
+  empirical percentiles with fair ties. GVI enters green only with complete
+  promoted finite coverage; divergence never scores.
+- Signed-out desktop and390×844 browser QA passed: public Center City45min cap
+  yields27 PA districts; comparison returns trusted differences; Lower Merion/
+  Radnor caps produce44 frozen listings, then16 at3+beds, confirmed independently
+  in SQL. Mobile wizard→canonical results→shortlist→Explorer works. Details:
+  `docs/qa/2026-10-18-discovery-acceptance.md`.
+- User approved **Geocodio free tier only**, then explicitly chose to leave it
+  disabled until tomorrow. Adapter/UI/atomic1,000-per-day quota are implemented;
+  migration012 installed; no provider request made. Key absent and flag off.
+  One-time chat reminder created for October19 at9AM Eastern (`add-geocodio-key`).
+  Never enable paid usage. See `docs/geocoding.md`.
+- Private operator schema011 installed, **flag off/no admin grants/no baseline
+  registration**. App verifies session+DBrole. Pipeline/standaloneCLI supports
+  supplied-record version staging, exact PostGIS assignment, validation/QA,
+  explicit private-pointer publication, baseline snapshots, leased region jobs,
+  year/grade attendance evidence and disabled outreach. Rollback integration
+  passes; frozen4505 baseline and public readers are unchanged. Actual provider,
+  terms, credits, sender/telephony and administrator identity remain gates.
+  Region enrichment before new scaffold promotion is recorded in `docs/operator.md`.
+- A rollback fixture's DDL lock temporarily blocked browser reads. It was
+  released; corrected tests run golden before DDL and coordinate short lock
+  windows. No application data changed.
+- Phase11 research has frozen-road sampling, metadata cache/coverage reducers,
+  successful-image counts, sparse satellite fallback and honest correlation
+  nulls. Metadata-only probes succeeded; no image bytes/inference. Heavy
+  torch/transformers approval, exact checkpoint rights and image-use evidence
+  still gate segmentation. PA offline sampling produced1,237 points across251 listings;247 meet the
+  three-point minimum. Sampling QA/golden pass. A regional251-query metadata
+  run was blocked by automatic approval review for precise-location egress;
+  explicit user approval is pending and zero regional queries were sent.
+- Current verification: app71 tests, TypeScript, lint0errors/6existing warnings
+  and Cloudflare build pass; pipeline105 passed/1opt-in skipped, including live golden checks;
+  operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
+  acceptance stays deferred; Better Auth secret/Turnstile configuration remain
+  missing. No pending labels approved and no production deployment performed.
 
 ## 2. Current Phase Or Feature Area
 

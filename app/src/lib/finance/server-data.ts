@@ -46,6 +46,8 @@ export type DistrictPurchasingPowerRow = {
   effective_tax_rate: number | string;
   canopy_height_m: number | string | null;
   tree_canopy_pct: number | string | null;
+  gvi_ndvi_street?: number | string | null;
+  green_divergence?: number | string | null;
   median_home_value: number | string | null;
   walkability_index: number | string | null;
   risk_index: number | string | null;
@@ -68,6 +70,8 @@ export type DistrictPurchasingPowerRow = {
 export type DistrictEnvironmentMetrics = {
   canopyHeightM: number | null;
   treeCanopyPct: number | null;
+  gviNdviStreet: number | null;
+  greenDivergence: number | null;
   medianHomeValue: number | null;
   walkabilityIndex: number | null;
   riskIndex: number | null;
@@ -120,6 +124,7 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
     "effective_tax_rate",
     "canopy_height_m",
     "tree_canopy_pct",
+    "gvi_ndvi_street",
     "median_home_value",
     "walkability_index",
     "risk_index",
@@ -155,6 +160,8 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(dm.value) FILTER (WHERE dm.metric_key = 'effective_tax_rate') AS effective_tax_rate,
         max(dm.value) FILTER (WHERE dm.metric_key = 'canopy_height_m') AS canopy_height_m,
         max(dm.value) FILTER (WHERE dm.metric_key = 'tree_canopy_pct') AS tree_canopy_pct,
+        max(dm.value) FILTER (WHERE dm.metric_key = 'gvi_ndvi_street') AS gvi_ndvi_street,
+        max(gd.value) AS green_divergence,
         max(dm.value) FILTER (WHERE dm.metric_key = 'median_home_value') AS median_home_value,
         max(dm.value) FILTER (WHERE dm.metric_key = 'walkability_index') AS walkability_index,
         max(dm.value) FILTER (WHERE dm.metric_key = 'risk_index') AS risk_index,
@@ -179,6 +186,7 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(archetype.one_line_description) AS archetype_description
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
+      LEFT JOIN green_divergence_district_metrics gd ON gd.district_region_id = d.id
       LEFT JOIN LATERAL (
         SELECT a.label, a.one_line_description
         FROM region_archetypes ra
@@ -261,6 +269,8 @@ function computeDistrictPurchasingPower(
     environmentMetrics: {
       canopyHeightM: nullableNumber(row.canopy_height_m),
       treeCanopyPct: nullableNumber(row.tree_canopy_pct),
+      gviNdviStreet: nullableNumber(row.gvi_ndvi_street),
+      greenDivergence: nullableNumber(row.green_divergence),
       medianHomeValue,
       walkabilityIndex: nullableNumber(row.walkability_index),
       riskIndex: nullableNumber(row.risk_index),
@@ -317,6 +327,15 @@ function addMatchScores(
     parkAccess: weights?.parkAccess ?? 1,
   } satisfies Required<ScoreKey>;
 
+  // Include satellite greenness only when the whole comparison set has promoted
+  // finite values; otherwise every district keeps the same existing green inputs.
+  const gviComplete =
+    districts.length > 0 &&
+    districts.every(
+      (district) =>
+        district.environmentMetrics.gviNdviStreet !== null &&
+        Number.isFinite(district.environmentMetrics.gviNdviStreet),
+    );
   const scoreInputs = {
     affordability: districtScores(
       districts,
@@ -326,6 +345,15 @@ function addMatchScores(
     green: averagedScores([
       districtScores(districts, (district) => district.environmentMetrics.canopyHeightM, "higher"),
       districtScores(districts, (district) => district.environmentMetrics.treeCanopyPct, "higher"),
+      ...(gviComplete
+        ? [
+            districtScores(
+              districts,
+              (district) => district.environmentMetrics.gviNdviStreet,
+              "higher",
+            ),
+          ]
+        : []),
     ]),
     walkability: districtScores(
       districts,
@@ -388,13 +416,21 @@ function districtScores(
   const values = districts
     .map((district) => getValue(district))
     .filter((value): value is number => value !== null && Number.isFinite(value));
-  const min = values.length ? Math.min(...values) : 0;
-  const max = values.length ? Math.max(...values) : 0;
+  const sorted = values.sort((a, b) => a - b);
+  const percentileByValue = new Map<number, number>();
+  for (let start = 0; start < sorted.length; ) {
+    let end = start + 1;
+    while (end < sorted.length && sorted[end] === sorted[start]) end += 1;
+    // Zero-based average rank for ties, matching archetype preprocessing.
+    const percentile = sorted.length === 1 ? 0.5 : (start + end - 1) / 2 / (sorted.length - 1);
+    percentileByValue.set(sorted[start], percentile);
+    start = end;
+  }
   const scores = new Map<string, number>();
   for (const district of districts) {
     const value = getValue(district);
     if (value === null || !Number.isFinite(value)) continue;
-    const rank = max === min ? 0.5 : (value - min) / (max - min);
+    const rank = percentileByValue.get(value)!;
     scores.set(district.districtSlug, (direction === "higher" ? rank : 1 - rank) * 100);
   }
   return scores;

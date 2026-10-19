@@ -24,7 +24,7 @@ data/raw/gvi_ndvi_street/<region>/summer2025-v1-12scenes-3days-scl4to7-cloud50-d
 ```
 
 The adjacent `osm-request.json` records retrieval, envelope and feature count.
-The cache uses `osmnx` drive roads with `simplify=False`, `retain_all=True`,
+The cache uses `osmnx` drive roads with `simplify=True` (retaining intermediate geometry vertices), `retain_all=True`,
 `truncate_by_edge=True`. Do not silently choose a newer or older glob match.
 Cache roads and sampling evidence under gitignored `data/`, preserving the
 source-contract path and a hash of both geometry inputs.
@@ -126,3 +126,61 @@ show the configured API can answer metadata requests and that coverage varies
 by location. Full frozen-listing sampling must use the completed satellite
 pipeline road caches before regional coverage can be claimed. No image bytes
 were requested or downloaded, and no provider payment action occurred.
+
+## Frozen PA sampling checkpoint
+
+The actual simplified Phase 8 PA road cache is available and was processed
+without clipping road geometries. An EPSG:5070 spatial index first restricts
+whole roads to those within 150 m of a frozen listing; canonical interpolation
+still starts from the original full line, so optimization does not move sample
+positions. New tests compare long lines with/without far-away roads and verify
+that image candidates can be restricted to the listing's own 150 m radius.
+
+The completed PA run uses all **251** live frozen listing IDs and produced
+**1,237** road sample points: **247** listings have five points, **one** has two,
+and **three** have none within 150 m. Thus 247/251 listings meet the research
+minimum of three road points. Sparse counts are retained; no distant road or
+zero-greenery value was imputed. The source input and listing geometry hashes,
+exact cache contract and sample coordinates are stored under
+`data/raw/gvi_streetlevel/pa-mainline/893967d1486c62be/road-samples.json`.
+The local summary is `data/reports/gvi_streetlevel_research_pa-mainline.json`;
+spatial QA is `data/reports/qa/gvi_streetlevel_sampling_pa-mainline.png`.
+
+A standalone repeatable command is available:
+
+```
+cd pipeline
+./.venv/bin/python -m gt.gvi_research_cli --region pa-mainline --roads ../data/raw/gvi_ndvi_street/pa-mainline/summer2025-v1-12scenes-3days-scl4to7-cloud50-dilate20m/osm-roads.geojson
+```
+
+This command only reads the frozen database points and local road cache. The
+optional metadata mode is bounded to one page per listing, at most 200 records
+per response and one outgoing request per second; it stops on the first provider
+failure, including authentication or throttling, and preserves prior cached
+results. This pacing is conservative rather than a claim about a current quota:
+the main API policy page requires login and historical forum numbers are not
+sufficient evidence for a current account quota. No thumbnail URLs or image
+bytes are requested.
+
+**Regional metadata gate:** automatic approval review rejected the proposed
+251-query PA metadata run **before execution**, because listing-derived road
+bounding boxes would be sent to Mapillary and the review required explicit
+user approval for that location egress. Its instruction explicitly prohibits
+bypassing the rejection. Only offline sampling/QA continued. Regional candidate
+image eligibility is therefore **unknown**, not zero; this run sent zero
+metadata queries and requested zero image bytes. Earlier representative probes
+remain illustrative only. Do not scale those probes or resume regional queries
+until the user explicitly approves the export of these bounding boxes.
+
+Successful segmentation remains **zero** and photographic GVI remains **null**.
+There are zero satellite/photographic pairs; correlation remains
+`not_computable: insufficient_pairs`. The torch/transformers and checkpoint/
+licensing/imagery-retention gates above remain in force. Hudson Valley sampling
+awaits its exact Phase 8 road cache and does not justify substituting a different
+source or extending coverage claims.
+
+The CLI additionally fails before database/source access when `--metadata` is
+requested without `--allow-listing-location-egress`. That flag is only for a
+future run after explicit user approval; adding a flag does not itself supply
+human approval or supersede the automatic-review rejection. The completed PA
+sampling run was followed by **12 passing spatial golden tests**.

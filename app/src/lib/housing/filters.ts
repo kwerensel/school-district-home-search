@@ -22,6 +22,10 @@ export function applyFilters(fc: ListingFC, f: Filters): ListingFC {
     features: fc.features.filter((feat) => {
       const p = feat.properties;
       if (p.price > f.maxPrice) return false;
+      if (f.districtCaps?.length) {
+        const cap = f.districtCaps.find((item) => item.slug === p.district_slug);
+        if (!cap || p.price > cap.maxPrice) return false;
+      }
       if (p.beds < f.minBeds) return false;
       if (p.baths < f.minBaths) return false;
       if (f.goodOnly && !p.good_district) return false;
@@ -59,6 +63,9 @@ export function priceBounds(fc: ListingFC): { min: number; max: number } {
 export function serializeExplorerFilters(current: URLSearchParams, filters: Filters) {
   const params = new URLSearchParams(current);
   params.set("maxPrice", String(Math.round(filters.maxPrice)));
+  if (filters.districtCaps?.length)
+    params.set("districtCaps", JSON.stringify(filters.districtCaps));
+  else params.delete("districtCaps");
   setOptionalNumber(params, "minBeds", filters.minBeds);
   setOptionalNumber(params, "minBaths", filters.minBaths);
   setOptionalBoolean(params, "goodOnly", filters.goodOnly);

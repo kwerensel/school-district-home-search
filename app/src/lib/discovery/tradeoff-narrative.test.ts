@@ -51,3 +51,8 @@ describe("tradeoff narrative guard", () => {
     expect(result.narrative).not.toContain("99");
   });
 });
+
+it("does not treat internal region IDs or profile bucket numerals as verified facts", () => {
+  expect(narrativeUsesOnlyPayloadNumerals("The drive is 10 minutes.", payload)).toBe(false);
+  expect(narrativeUsesOnlyPayloadNumerals("The price is 5500 dollars.", payload)).toBe(false);
+});

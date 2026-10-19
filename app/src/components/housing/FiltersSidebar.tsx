@@ -51,6 +51,31 @@ export function FiltersSidebar({
         </p>
       </div>
 
+      {filters.districtCaps?.length ? (
+        <section
+          className="space-y-2 rounded-md border border-border p-3"
+          aria-label="Shortlisted district price caps"
+        >
+          <h3 className="text-sm font-semibold">Shortlisted districts</h3>
+          <p className="text-xs text-muted-foreground">
+            Each district has its own Discovery buying ceiling. The max-price filter can narrow
+            these further.
+          </p>
+          {filters.districtCaps.map((cap) => (
+            <div key={cap.slug} className="text-xs">
+              <p className="font-medium">{cap.name}</p>
+              <p className="text-muted-foreground">Up to {formatPrice(cap.maxPrice)}</p>
+            </div>
+          ))}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setFilters({ ...filters, districtCaps: [] })}
+          >
+            Clear shortlist filter
+          </Button>
+        </section>
+      ) : null}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label>Max price</Label>

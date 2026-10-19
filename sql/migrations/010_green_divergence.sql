@@ -30,11 +30,24 @@ SELECT region_id, 'green_divergence'::text AS metric_key,
   canopy_percentile, gvi_percentile
 FROM ranked;
 
+-- Use a fixed, invoker-rights SQL statement so the existing forward-only
+-- migration runner may rebuild district_metrics without a dependent-view error.
+CREATE OR REPLACE FUNCTION green_divergence_district_inputs()
+RETURNS TABLE (district_region_id bigint, metric_key text, value double precision,
+               vintage text, computed_at timestamptz)
+LANGUAGE plpgsql STABLE SET search_path = public AS $$
+BEGIN
+  RETURN QUERY EXECUTE
+    'SELECT district_region_id::bigint, metric_key::text, value::double precision,
+            vintage::text, computed_at::timestamptz FROM public.district_metrics';
+END;
+$$;
+
 CREATE OR REPLACE VIEW green_divergence_district_metrics AS
 WITH latest AS (
   SELECT DISTINCT ON (dm.district_region_id, dm.metric_key)
     dm.*, r.region_group
-  FROM district_metrics dm JOIN regions r ON r.id = dm.district_region_id
+  FROM green_divergence_district_inputs() dm JOIN regions r ON r.id = dm.district_region_id
   WHERE dm.metric_key IN ('tree_canopy_pct', 'gvi_ndvi_street')
     AND dm.value > '-Infinity'::double precision
     AND dm.value < 'Infinity'::double precision

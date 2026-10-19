@@ -9,11 +9,48 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SavedRouteImport } from './routes/saved'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as OperatorRouteImport } from './routes/operator'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DiscoverResultsRouteImport } from './routes/discover.results'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SavedRoute = SavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorRoute = OperatorRouteImport.update({
+  id: '/operator',
+  path: '/operator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
@@ -34,42 +71,151 @@ const DiscoverResultsRoute = DiscoverResultsRouteImport.update({
   path: '/results',
   getParentRoute: () => DiscoverRoute,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/discover': typeof DiscoverRouteWithChildren
   '/explore': typeof ExploreRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/operator': typeof OperatorRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/saved': typeof SavedRoute
+  '/signup': typeof SignupRoute
   '/discover/results': typeof DiscoverResultsRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/discover': typeof DiscoverRouteWithChildren
   '/explore': typeof ExploreRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/operator': typeof OperatorRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/saved': typeof SavedRoute
+  '/signup': typeof SignupRoute
   '/discover/results': typeof DiscoverResultsRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/discover': typeof DiscoverRouteWithChildren
   '/explore': typeof ExploreRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/operator': typeof OperatorRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/saved': typeof SavedRoute
+  '/signup': typeof SignupRoute
   '/discover/results': typeof DiscoverResultsRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/discover' | '/explore' | '/discover/results'
+  fullPaths:
+    | '/'
+    | '/discover'
+    | '/explore'
+    | '/forgot-password'
+    | '/login'
+    | '/operator'
+    | '/reset-password'
+    | '/saved'
+    | '/signup'
+    | '/discover/results'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/discover' | '/explore' | '/discover/results'
-  id: '__root__' | '/' | '/discover' | '/explore' | '/discover/results'
+  to:
+    | '/'
+    | '/discover'
+    | '/explore'
+    | '/forgot-password'
+    | '/login'
+    | '/operator'
+    | '/reset-password'
+    | '/saved'
+    | '/signup'
+    | '/discover/results'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/discover'
+    | '/explore'
+    | '/forgot-password'
+    | '/login'
+    | '/operator'
+    | '/reset-password'
+    | '/saved'
+    | '/signup'
+    | '/discover/results'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DiscoverRoute: typeof DiscoverRouteWithChildren
   ExploreRoute: typeof ExploreRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  OperatorRoute: typeof OperatorRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SavedRoute: typeof SavedRoute
+  SignupRoute: typeof SignupRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saved': {
+      id: '/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operator': {
+      id: '/operator'
+      path: '/operator'
+      fullPath: '/operator'
+      preLoaderRoute: typeof OperatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/explore': {
       id: '/explore'
       path: '/explore'
@@ -98,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscoverResultsRouteImport
       parentRoute: typeof DiscoverRoute
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -117,6 +270,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DiscoverRoute: DiscoverRouteWithChildren,
   ExploreRoute: ExploreRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  OperatorRoute: OperatorRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SavedRoute: SavedRoute,
+  SignupRoute: SignupRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

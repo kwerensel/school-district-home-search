@@ -10,6 +10,7 @@ export interface ListingProps {
   baths: number;
   url: string | null;
   school_district: string;
+  district_slug?: string | null;
   county_name?: string | null;
   good_district: boolean;
   canopy_height_m_100m?: number | null;
@@ -25,6 +26,8 @@ export interface DistrictProps {
   good_district?: boolean;
   canopy_height_m?: number | null;
   tree_canopy_pct?: number | null;
+  gvi_ndvi_street?: number | null;
+  green_divergence?: number | null;
   walkability_index?: number | null;
   risk_index?: number | null;
   flood_sfha?: number | null;
@@ -45,6 +48,7 @@ export interface Filters {
   district: string; // "all" or a school_district name
   treeCover: "all" | "some" | "leafy" | "very-leafy";
   floodOnly: boolean;
+  districtCaps?: import("@/lib/discovery/shortlist").DistrictPriceCap[];
 }
 
 export type ListingMetricContext = "street" | "property" | "neighborhood";

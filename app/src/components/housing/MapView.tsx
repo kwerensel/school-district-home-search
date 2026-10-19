@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { Feature, Geometry, Point } from "geojson";
+import type { Feature, FeatureCollection, Geometry, Point } from "geojson";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -35,6 +35,7 @@ interface Props {
   initialDistrictName: string | null;
   initialDistrictSlug: string | null;
   initialRegionGroup: string | null;
+  shortlistSlugs?: string[];
   selectedListingId: number | null;
   onListingSelect: (listing: ListingFeature) => void;
 }
@@ -58,6 +59,8 @@ function markerStyle(props: ListingProps, selectedListingId: number | null): L.C
 }
 
 function districtMetricValue(props: DistrictProps, metric: ExplorerMapMetricKey) {
+  if (metric === "satelliteGreenness") return props.gvi_ndvi_street ?? null;
+  if (metric === "greenDivergence") return props.green_divergence ?? null;
   if (metric === "treeCanopy") return props.tree_canopy_pct ?? null;
   if (metric === "floodExposure") return props.flood_sfha ?? null;
   if (metric === "lightPollution") return props.light_pollution_radiance ?? null;
@@ -77,6 +80,7 @@ export function MapView({
   initialDistrictName,
   initialDistrictSlug,
   initialRegionGroup,
+  shortlistSlugs,
   selectedListingId,
   onListingSelect,
 }: Props) {
@@ -179,7 +183,17 @@ export function MapView({
     const districtsLayer = districtsLayerRef.current;
     if (!districtsLayer) return;
     districtsLayer.clearLayers();
-    if (districts) districtsLayer.addData(districts);
+    if (districts)
+      districtsLayer.addData(
+        shortlistSlugs?.length
+          ? {
+              ...districts,
+              features: districts.features.filter((feature) =>
+                shortlistSlugs.includes(feature.properties.district_slug ?? ""),
+              ),
+            }
+          : districts,
+      );
 
     districtsLayer.eachLayer((layer) => {
       const path = layer as L.Path & { feature?: DistrictGeoFeature };
@@ -225,12 +239,24 @@ export function MapView({
     listingsLayerRef.current?.eachLayer((layer) => {
       (layer as L.Path).bringToFront();
     });
-  }, [districts, goodOnly, mapMetric, minMetricValue, maxMetricValue]);
+  }, [districts, goodOnly, mapMetric, minMetricValue, maxMetricValue, shortlistSlugs]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !districts || hasInitialFitRef.current) return;
 
+    if (shortlistSlugs?.length) {
+      const features = districts.features.filter((feature) =>
+        shortlistSlugs.includes(feature.properties.district_slug ?? ""),
+      );
+      const collection: DistrictFC = { type: "FeatureCollection", features };
+      const bounds = L.geoJSON(collection).getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [36, 36] });
+        hasInitialFitRef.current = true;
+      }
+      return;
+    }
     const focusDistrict = districts.features.find((feature) => {
       if (initialDistrictSlug && feature.properties.district_slug === initialDistrictSlug) {
         return true;
@@ -265,11 +291,19 @@ export function MapView({
       const regionFeatures = districts.features.filter(
         (feature) => feature.properties.region_group === initialRegionGroup,
       );
-      const bounds = L.geoJSON({ type: "FeatureCollection", features: regionFeatures }).getBounds();
+      const collection: FeatureCollection = { type: "FeatureCollection", features: regionFeatures };
+      const bounds = L.geoJSON(collection).getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [36, 36] });
       hasInitialFitRef.current = true;
     }
-  }, [districts, initialDistrictName, initialDistrictSlug, initialRegionGroup, listings]);
+  }, [
+    districts,
+    initialDistrictName,
+    initialDistrictSlug,
+    initialRegionGroup,
+    listings,
+    shortlistSlugs,
+  ]);
 
   return (
     <div className="absolute inset-0">

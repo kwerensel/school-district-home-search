@@ -1,9 +1,18 @@
+import { CommuteControls } from "./CommuteControls";
+import { getCommuteEstimates } from "@/lib/discovery/commute.functions";
+import { withinCommuteCaps } from "@/lib/discovery/commute";
+import { shortlistExplorerHref } from "@/lib/discovery/shortlist";
+import type { DiscoveryProfile, WizardStep } from "@/lib/discovery/profile";
+import { DistrictComparisonDrawer } from "./DistrictComparisonDrawer";
+import { GreennessExplainer } from "@/components/metrics/GreennessExplainer";
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Calculator, Home, MapPinned, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AccountButton } from "@/components/auth/AccountButton";
+import { SaveProfileButton } from "@/components/auth/SaveProfileButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -136,6 +145,7 @@ export function DiscoveryEngine() {
   const getToken = useServerFn(getMapboxToken);
   const getDistrictsFn = useServerFn(getDistricts);
   const getPurchasingPower = useServerFn(getDistrictPurchasingPower);
+  const getCommutes = useServerFn(getCommuteEstimates);
 
   const [monthlyBudget, setMonthlyBudget] = useState(5500);
   const [monthlyBudgetText, setMonthlyBudgetText] = useState(currencyInputValue(5500));
@@ -147,6 +157,40 @@ export function DiscoveryEngine() {
   const [weights, setWeights] = useState<Record<WeightKey, number>>(DEFAULT_WEIGHTS);
   const [mapMetric, setMapMetric] = useState<MapMetricKey>("purchasingPower");
   const [urlHydrated, setUrlHydrated] = useState(false);
+  const [comparisonIds, setComparisonIds] = useState<number[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [details, setDetails] = useState<
+    Pick<
+      DiscoveryProfile,
+      "grossMonthlyIncome" | "monthlyDebt" | "wizardStep" | "shortlist" | "commuteAnchors"
+    >
+  >({});
+  const [incomeText, setIncomeText] = useState("");
+  const [debtText, setDebtText] = useState("");
+  const wizardStep = details.wizardStep ?? "results";
+  const anchors = useMemo(() => details.commuteAnchors ?? [], [details.commuteAnchors]);
+  const shortlist = details.shortlist ?? [];
+  const setWizardStep = (step: WizardStep) => {
+    if (step === "results" && window.location.pathname !== "/discover/results") {
+      const params = serializeDiscoveryProfile({ ...currentProfile, wizardStep: "results" });
+      if (new URLSearchParams(window.location.search).get("save") === "1") params.set("save", "1");
+      window.location.assign(`/discover/results?${params}`);
+      return;
+    }
+    setDetails((current) => ({ ...current, wizardStep: step }));
+  };
+  const toggleShortlist = (slug: string) =>
+    setDetails((current) => {
+      const slugs = current.shortlist ?? [];
+      return {
+        ...current,
+        shortlist: slugs.includes(slug)
+          ? slugs.filter((value) => value !== slug)
+          : slugs.length < 10
+            ? [...slugs, slug]
+            : slugs,
+      };
+    });
 
   const tokenQuery = useQuery({
     queryKey: ["mapbox-token"],
@@ -168,6 +212,8 @@ export function DiscoveryEngine() {
       creditBand,
       regionGroup,
       weights,
+      details.grossMonthlyIncome,
+      details.monthlyDebt,
     ],
     queryFn: () =>
       getPurchasingPower({
@@ -176,12 +222,22 @@ export function DiscoveryEngine() {
           downPaymentAmount,
           creditBand,
           environmentWeights: weights,
+          grossMonthlyIncome: details.grossMonthlyIncome,
+          monthlyDebt: details.monthlyDebt,
           ...(regionGroup === "all" ? {} : { regionGroup }),
         },
       }),
     staleTime: 60 * 1000,
   });
 
+  const commutesQuery = useQuery({
+    queryKey: ["request-commutes", anchors, regionGroup],
+    queryFn: () =>
+      getCommutes({ data: { anchors, ...(regionGroup === "all" ? {} : { regionGroup }) } }),
+    enabled: urlHydrated && anchors.length > 0,
+    retry: false,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
   const token = tokenQuery.data?.token ?? "";
   const districts = (districtsQuery.data ?? null) as DistrictFC | null;
   const purchasingPower = useMemo(
@@ -195,13 +251,21 @@ export function DiscoveryEngine() {
   };
   const ranked = useMemo(
     () =>
-      [...purchasingPower].sort(
-        (a, b) =>
-          b.matchScore - a.matchScore ||
-          b.maxPurchasePrice - a.maxPurchasePrice ||
-          a.districtName.localeCompare(b.districtName),
-      ),
-    [purchasingPower],
+      [...purchasingPower]
+        .filter((district) => {
+          if (!anchors.length) return true;
+          const estimate = commutesQuery.data?.districts.find(
+            (row) => row.districtRegionId === district.districtRegionId,
+          );
+          return Boolean(estimate && withinCommuteCaps(estimate, anchors));
+        })
+        .sort(
+          (a, b) =>
+            b.matchScore - a.matchScore ||
+            b.maxPurchasePrice - a.maxPurchasePrice ||
+            a.districtName.localeCompare(b.districtName),
+        ),
+    [purchasingPower, anchors, commutesQuery.data],
   );
   const selected =
     ranked.find((district) => district.districtSlug === selectedSlug) ?? ranked[0] ?? null;
@@ -209,6 +273,22 @@ export function DiscoveryEngine() {
     () => new Map(ranked.map((district, index) => [district.districtSlug, index + 1])),
     [ranked],
   );
+  const comparisonDistricts = comparisonIds.flatMap((id) => {
+    const district = ranked.find((item) => item.districtRegionId === id);
+    return district ? [district] : [];
+  });
+  const toggleComparison = (id: number) => {
+    setComparisonIds((current) => {
+      const available = current.filter((value) =>
+        ranked.some((district) => district.districtRegionId === value),
+      );
+      return available.includes(id)
+        ? available.filter((value) => value !== id)
+        : available.length < 2
+          ? [...available, id]
+          : available;
+    });
+  };
   const selectedRank = selected ? (rankBySlug.get(selected.districtSlug) ?? null) : null;
   const averagePower =
     ranked.length > 0
@@ -226,8 +306,28 @@ export function DiscoveryEngine() {
       creditBand,
       regionGroup,
       weights,
+      ...details,
     }).toString();
-  }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup, weights]);
+  }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup, weights, details]);
+  const currentProfile = useMemo(
+    () => ({
+      monthlyBudget,
+      downPayment: downPaymentAmount,
+      creditBand,
+      regionGroup,
+      weights,
+      ...details,
+    }),
+    [monthlyBudget, downPaymentAmount, creditBand, regionGroup, weights, details],
+  );
+  const shortlistDistricts = shortlist.flatMap((slug) => {
+    const district = purchasingPower.find((item) => item.districtSlug === slug);
+    return district ? [district] : [];
+  });
+  const shortlistHref = shortlistExplorerHref(currentProfile, purchasingPower);
+  const shortlistEligible = shortlist.every((slug) =>
+    ranked.some((district) => district.districtSlug === slug),
+  );
   const selectedExplorerHref = useMemo(() => {
     const params = new URLSearchParams(profileSearch);
     if (selected) {
@@ -258,12 +358,26 @@ export function DiscoveryEngine() {
     setCreditBand(profile.creditBand);
     setRegionGroup(profile.regionGroup);
     setWeights(profile.weights);
+    setDetails({
+      grossMonthlyIncome: profile.grossMonthlyIncome,
+      monthlyDebt: profile.monthlyDebt,
+      wizardStep:
+        profile.wizardStep ?? (window.location.pathname === "/discover" ? "region" : "results"),
+      shortlist: profile.shortlist,
+      commuteAnchors: profile.commuteAnchors,
+    });
+    setIncomeText(
+      profile.grossMonthlyIncome === undefined ? "" : String(profile.grossMonthlyIncome),
+    );
+    setDebtText(profile.monthlyDebt === undefined ? "" : String(profile.monthlyDebt));
     setUrlHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!urlHydrated) return;
-    window.history.replaceState(null, "", `${window.location.pathname}?${profileSearch}`);
+    const params = new URLSearchParams(profileSearch);
+    if (new URLSearchParams(window.location.search).get("save") === "1") params.set("save", "1");
+    window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
   }, [profileSearch, urlHydrated]);
 
   return (
@@ -273,18 +387,85 @@ export function DiscoveryEngine() {
           <MapPinned className="h-5 w-5 text-primary" />
           <h1 className="text-base font-semibold text-foreground">Groundtruth Discovery</h1>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <a href="/explore">
-            <Search className="mr-2 h-4 w-4" />
-            Explorer
-          </a>
-        </Button>
+        <div className="flex items-center gap-2">
+          <SaveProfileButton profile={currentProfile} ready={urlHydrated} />
+          <Button asChild variant="outline" size="sm">
+            <a href="/explore">
+              <Search className="mr-2 h-4 w-4" />
+              Explorer
+            </a>
+          </Button>
+          <AccountButton
+            returnTo={`${wizardStep === "results" ? "/discover/results" : "/discover"}?${profileSearch}`}
+          />
+        </div>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)]">
         <aside className="min-h-0 overflow-y-auto border-b border-border md:border-r md:border-b-0">
           <div className="space-y-6 p-5">
-            <section className="space-y-4">
+            <section className="space-y-3" aria-label="Guided Discovery">
+              <h2 className="text-sm font-semibold">Build your search</h2>
+              <nav className="grid grid-cols-2 gap-2" aria-label="Discovery steps">
+                {(["region", "budget", "priorities", "results"] as WizardStep[]).map(
+                  (step, index) => (
+                    <Button
+                      key={step}
+                      size="sm"
+                      variant={wizardStep === step ? "default" : "outline"}
+                      aria-current={wizardStep === step ? "step" : undefined}
+                      onClick={() => setWizardStep(step)}
+                    >
+                      {index + 1}. {step.charAt(0).toUpperCase() + step.slice(1)}
+                    </Button>
+                  ),
+                )}
+              </nav>
+              {wizardStep === "region" ? (
+                <p className="text-sm text-muted-foreground">
+                  Choose where to compare districts, then set a housing budget and the priorities
+                  that matter to you.
+                </p>
+              ) : null}
+              <Label>Comparison area</Label>
+              <Select
+                value={regionGroup}
+                onValueChange={(value) => {
+                  setRegionGroup(value as RegionFilter);
+                  setComparisonIds([]);
+                  setComparisonOpen(false);
+                }}
+              >
+                <SelectTrigger aria-label="Comparison area">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Both supported regions</SelectItem>
+                  <SelectItem value="pa-mainline">PA Main Line</SelectItem>
+                  <SelectItem value="hudson-valley">Hudson Valley</SelectItem>
+                </SelectContent>
+              </Select>
+              {wizardStep !== "results" ? (
+                <Button
+                  className="w-full"
+                  onClick={() =>
+                    setWizardStep(
+                      wizardStep === "region"
+                        ? "budget"
+                        : wizardStep === "budget"
+                          ? "priorities"
+                          : "results",
+                    )
+                  }
+                >
+                  {wizardStep === "priorities" ? "See matching districts" : "Continue"}
+                </Button>
+              ) : null}
+            </section>
+            <section
+              className="space-y-4"
+              hidden={wizardStep !== "budget" && wizardStep !== "results"}
+            >
               <div className="flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-primary" />
                 <h2 className="text-sm font-semibold text-foreground">Budget</h2>
@@ -358,25 +539,50 @@ export function DiscoveryEngine() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Region</Label>
-                <Select
-                  value={regionGroup}
-                  onValueChange={(value) => setRegionGroup(value as RegionFilter)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All regions</SelectItem>
-                    <SelectItem value="pa-mainline">PA Main Line</SelectItem>
-                    <SelectItem value="hudson-valley">Hudson Valley</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3 rounded-md border border-border p-3">
+                <h3 className="text-sm font-medium">Income and debt (optional)</h3>
+                <p className="text-xs text-muted-foreground">
+                  Add gross monthly income to also apply a 36% debt-to-income ceiling after monthly
+                  debts. Leave blank to use only your housing budget.
+                </p>
+                <Label htmlFor="gross-income">Gross monthly income</Label>
+                <Input
+                  id="gross-income"
+                  inputMode="decimal"
+                  value={incomeText}
+                  onChange={(event) => setIncomeText(event.target.value)}
+                  onBlur={() => {
+                    const value = incomeText.trim()
+                      ? parseDollarAmount(incomeText, details.grossMonthlyIncome ?? 0)
+                      : undefined;
+                    setDetails((current) => ({
+                      ...current,
+                      grossMonthlyIncome: value && value <= 1_000_000 ? value : undefined,
+                    }));
+                  }}
+                  placeholder="Optional"
+                />
+                <Label htmlFor="monthly-debt">Other monthly debt payments</Label>
+                <Input
+                  id="monthly-debt"
+                  inputMode="decimal"
+                  value={debtText}
+                  onChange={(event) => setDebtText(event.target.value)}
+                  onBlur={() => {
+                    const value = debtText.trim()
+                      ? parseDollarAmount(debtText, details.monthlyDebt ?? 0, true)
+                      : undefined;
+                    setDetails((current) => ({
+                      ...current,
+                      monthlyDebt: value !== undefined && value <= 1_000_000 ? value : undefined,
+                    }));
+                  }}
+                  placeholder="Optional"
+                />
               </div>
             </section>
 
-            {selected ? (
+            {selected && wizardStep === "results" ? (
               <SelectedDistrictPanel
                 selected={selected}
                 selectedExplorerHref={selectedExplorerHref}
@@ -393,7 +599,10 @@ export function DiscoveryEngine() {
               />
             ) : null}
 
-            <section className="space-y-4">
+            <section
+              className="space-y-4"
+              hidden={wizardStep !== "priorities" && wizardStep !== "results"}
+            >
               <h2 className="text-sm font-semibold text-foreground">Priorities</h2>
               <div className="space-y-4">
                 {weightControls.map((control) => (
@@ -419,6 +628,70 @@ export function DiscoveryEngine() {
               </div>
             </section>
 
+            <div hidden={wizardStep !== "priorities" && wizardStep !== "results"}>
+              <CommuteControls
+                anchors={anchors}
+                onChange={(commuteAnchors) =>
+                  setDetails((current) => ({ ...current, commuteAnchors }))
+                }
+              />
+            </div>
+            {anchors.length ? (
+              <section className="space-y-2 rounded-md border border-border p-3" aria-live="polite">
+                {commutesQuery.isPending ? (
+                  <p className="text-sm">Checking district drive-time caps…</p>
+                ) : commutesQuery.isError ? (
+                  <>
+                    <p className="text-sm">
+                      Commute estimates could not load. Results are withheld while these caps cannot
+                      be verified.
+                    </p>
+                    <Button size="sm" onClick={() => void commutesQuery.refetch()}>
+                      Retry commute check
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {ranked.length} districts meet every drive-time cap from a representative
+                    district point. Unroutable districts are excluded. No live traffic.
+                  </p>
+                )}
+              </section>
+            ) : null}
+            <section
+              className="space-y-3 rounded-md border border-border p-4"
+              hidden={wizardStep !== "results"}
+            >
+              <h2 className="text-sm font-semibold">Shortlist ({shortlist.length} / 10)</h2>
+              <p className="text-xs text-muted-foreground">
+                The URL shares your shortlist, budget, and priorities. Each district keeps its own
+                estimated max home price in Explorer.
+              </p>
+              {shortlist.map((slug) => (
+                <div className="flex items-center justify-between gap-2 text-sm" key={slug}>
+                  <span>
+                    {shortlistDistricts.find((district) => district.districtSlug === slug)
+                      ?.districtName ?? "District outside this comparison area"}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => toggleShortlist(slug)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              {shortlist.length &&
+              shortlistDistricts.length === shortlist.length &&
+              shortlistEligible ? (
+                <Button asChild className="w-full">
+                  <a href={shortlistHref}>Search shortlisted districts</a>
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {shortlist.length
+                    ? "Some shortlisted districts are outside this area or current commute caps. Adjust the area or caps, or remove them."
+                    : "Add districts from the ranked results below."}
+                </p>
+              )}
+            </section>
             <section className="grid grid-cols-2 gap-3">
               <MetricBox label="Districts" value={String(ranked.length)} />
               <MetricBox
@@ -436,69 +709,149 @@ export function DiscoveryEngine() {
               </p>
             </section>
 
-            <section className="space-y-2">
+            <section
+              className="space-y-3 rounded-md border border-border p-4"
+              aria-label="District comparison selection"
+            >
+              <h2 className="text-sm font-semibold">Compare two districts</h2>
+              <p className="text-xs text-muted-foreground">
+                Choose up to two districts below. Selection order sets the first and second
+                district.
+              </p>
+              <ol className="space-y-2 text-sm">
+                {comparisonDistricts.map((district, index) => (
+                  <li
+                    key={district.districtRegionId}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span>
+                      {index + 1}. {district.districtName}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleComparison(district.districtRegionId)}
+                      aria-label={`Remove ${district.districtName} from comparison`}
+                    >
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ol>
+              <Button
+                className="w-full"
+                disabled={comparisonDistricts.length !== 2}
+                onClick={() => setComparisonOpen(true)}
+              >
+                Compare selected districts
+              </Button>
+            </section>
+            <section className="space-y-2" hidden={wizardStep !== "results"}>
               <h2 className="text-sm font-semibold text-foreground">Ranked Districts</h2>
               <div className="space-y-2">
                 {ranked.map((district, index) => {
                   const reasons = districtReasons(district, weights);
                   return (
-                    <button
-                      key={district.districtSlug}
-                      type="button"
-                      onClick={() => setSelectedSlug(district.districtSlug)}
-                      className={`w-full rounded-md border p-3 text-left transition-colors ${
-                        district.districtSlug === selected?.districtSlug
-                          ? "border-primary bg-accent"
-                          : "border-border bg-background hover:bg-accent"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {district.districtName}
+                    <div key={district.districtSlug} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSlug(district.districtSlug)}
+                        className={`w-full rounded-md border p-3 text-left transition-colors ${
+                          district.districtSlug === selected?.districtSlug
+                            ? "border-primary bg-accent"
+                            : "border-border bg-background hover:bg-accent"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">
+                              {district.districtName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {regionLabel(district.regionGroup)}
+                            </p>
+                            {district.archetype ? (
+                              <p className="mt-1 text-xs font-medium text-primary">
+                                {district.archetype.label}
+                              </p>
+                            ) : null}
+                          </div>
+                          <p className="shrink-0 text-xs font-semibold text-foreground">
+                            #{index + 1} of {ranked.length}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {regionLabel(district.regionGroup)}
-                          </p>
-                          {district.archetype ? (
-                            <p className="mt-1 text-xs font-medium text-primary">
-                              {district.archetype.label}
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">Estimated max price</p>
+                            <p className="mt-0.5 font-semibold text-foreground">
+                              {formatCurrency(district.maxPurchasePrice)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">District median value</p>
+                            <p className="mt-0.5 font-semibold text-foreground">
+                              {formatOptionalCurrency(district.environmentMetrics.medianHomeValue)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                          {reasons.strengths.length ? (
+                            <p>
+                              <span className="font-medium text-foreground">Stronger here:</span>{" "}
+                              {reasons.strengths.join(", ")}
+                            </p>
+                          ) : null}
+                          {reasons.tradeoffs.length ? (
+                            <p>
+                              <span className="font-medium text-foreground">Tradeoff:</span>{" "}
+                              {reasons.tradeoffs.join(", ")}
                             </p>
                           ) : null}
                         </div>
-                        <p className="shrink-0 text-xs font-semibold text-foreground">
-                          #{index + 1} of {ranked.length}
+                      </button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        aria-pressed={shortlist.includes(district.districtSlug)}
+                        disabled={
+                          shortlist.length >= 10 && !shortlist.includes(district.districtSlug)
+                        }
+                        onClick={() => toggleShortlist(district.districtSlug)}
+                      >
+                        {shortlist.includes(district.districtSlug)
+                          ? "Remove from shortlist"
+                          : "Add to shortlist"}
+                        <span className="sr-only"> {district.districtName}</span>
+                      </Button>
+                      {anchors.length ? (
+                        <p className="text-xs text-muted-foreground">
+                          {commutesQuery.data?.districts
+                            .find((row) => row.districtRegionId === district.districtRegionId)
+                            ?.anchors.map(
+                              (estimate, i) =>
+                                `${anchors[i].label}: ${estimate.minutes?.toFixed(0) ?? "unroutable"} min`,
+                            )
+                            .join(" · ")}
                         </p>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <p className="text-muted-foreground">Estimated max price</p>
-                          <p className="mt-0.5 font-semibold text-foreground">
-                            {formatCurrency(district.maxPurchasePrice)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">District median value</p>
-                          <p className="mt-0.5 font-semibold text-foreground">
-                            {formatOptionalCurrency(district.environmentMetrics.medianHomeValue)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                        {reasons.strengths.length ? (
-                          <p>
-                            <span className="font-medium text-foreground">Stronger here:</span>{" "}
-                            {reasons.strengths.join(", ")}
-                          </p>
-                        ) : null}
-                        {reasons.tradeoffs.length ? (
-                          <p>
-                            <span className="font-medium text-foreground">Tradeoff:</span>{" "}
-                            {reasons.tradeoffs.join(", ")}
-                          </p>
-                        ) : null}
-                      </div>
-                    </button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        aria-pressed={comparisonIds.includes(district.districtRegionId)}
+                        disabled={
+                          comparisonDistricts.length === 2 &&
+                          !comparisonIds.includes(district.districtRegionId)
+                        }
+                        onClick={() => toggleComparison(district.districtRegionId)}
+                      >
+                        {comparisonIds.includes(district.districtRegionId)
+                          ? "Remove from comparison"
+                          : "Add to comparison"}
+                        <span className="sr-only"> {district.districtName}</span>
+                      </Button>
+                    </div>
                   );
                 })}
               </div>
@@ -506,7 +859,7 @@ export function DiscoveryEngine() {
           </div>
         </aside>
 
-        <main className="relative min-h-[420px] md:min-h-0">
+        <main className="relative isolate min-h-[420px] md:min-h-0">
           {isBooting ? (
             <div className="h-full w-full bg-muted" />
           ) : tokenQuery.isError || districtsQuery.isError || purchasingPowerQuery.isError ? (
@@ -542,6 +895,20 @@ export function DiscoveryEngine() {
           )}
         </main>
       </div>
+      <DistrictComparisonDrawer
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
+        districtIds={comparisonDistricts.map((district) => district.districtRegionId)}
+        profile={{
+          monthlyBudget,
+          downPaymentAmount,
+          creditBand,
+          environmentWeights: weights,
+          grossMonthlyIncome: details.grossMonthlyIncome,
+          monthlyDebt: details.monthlyDebt,
+          ...(regionGroup === "all" ? {} : { regionGroup }),
+        }}
+      />
     </div>
   );
 }
@@ -634,6 +1001,28 @@ function SelectedDistrictPanel({
             help={<TreeCoverageExplainer />}
             active={mapMetric === "treeCanopy"}
             onActivate={() => onMapMetricChange("treeCanopy")}
+          />
+          <MetricBox
+            label="Street-adjacent greenness (satellite)"
+            value={
+              selected.environmentMetrics.gviNdviStreet === null
+                ? "No data"
+                : `${selected.environmentMetrics.gviNdviStreet.toFixed(2)} NDVI`
+            }
+            help={<GreennessExplainer />}
+            active={mapMetric === "satelliteGreenness"}
+            onActivate={() => onMapMetricChange("satelliteGreenness")}
+          />
+          <MetricBox
+            label="Canopy / street-greenness gap"
+            value={
+              selected.environmentMetrics.greenDivergence === null
+                ? "No data"
+                : `${selected.environmentMetrics.greenDivergence > 0 ? "+" : ""}${selected.environmentMetrics.greenDivergence.toFixed(1)} percentile points`
+            }
+            help={<GreennessExplainer divergence />}
+            active={mapMetric === "greenDivergence"}
+            onActivate={() => onMapMetricChange("greenDivergence")}
           />
           <MetricBox
             label="EPA walkability"

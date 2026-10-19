@@ -30,7 +30,16 @@ function normalizeNumeral(value: string) {
 }
 
 export function narrativeUsesOnlyPayloadNumerals(narrative: string, payload: TradeoffPayload) {
-  const allowed = new Set(extractNormalizedNumerals(JSON.stringify(payload)));
+  const allowed = new Set(
+    extractNormalizedNumerals(
+      JSON.stringify({
+        ...payload,
+        regionA: payload.regionA.name,
+        regionB: payload.regionB.name,
+        profileBucket: undefined,
+      }),
+    ),
+  );
   return extractNormalizedNumerals(narrative).every((value) => allowed.has(value));
 }
 
@@ -67,6 +76,7 @@ export async function requestTradeoffNarrative(
   const model = options.model ?? "claude-sonnet-4-20250514";
   const response = await fetcher("https://api.anthropic.com/v1/messages", {
     method: "POST",
+    signal: AbortSignal.timeout(6000),
     headers: {
       "content-type": "application/json",
       "x-api-key": options.apiKey,

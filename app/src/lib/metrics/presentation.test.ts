@@ -7,6 +7,14 @@ import {
 } from "./presentation";
 
 describe("consumer metric presentation", () => {
+  it("keeps satellite NDVI honest and missing values unknown", () => {
+    expect(formatMapMetricValue("satelliteGreenness", 0.63)).toBe("0.63 NDVI · satellite estimate");
+    expect(formatMapMetricValue("satelliteGreenness", null)).toBe("No data");
+    expect(formatMapMetricValue("greenDivergence", -22.6)).toBe("-22.6 percentile points");
+    expect(colorForMetricValue("greenDivergence", 0, -5, 40)).toBe("#f8fafc");
+    expect(colorForMetricValue("greenDivergence", null, -5, 40)).toBe("#cbd5e1");
+  });
+
   it("turns raw tree-cover percentages into stable plain-language categories", () => {
     expect(treeCoverCategory(12)).toBe("Sparse");
     expect(treeCoverCategory(27)).toBe("Some trees");

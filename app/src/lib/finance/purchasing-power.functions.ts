@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import { sql } from "@/server/db";
 import { fetchDistrictPurchasingPower, PurchasingPowerQuerySchema } from "./server-data";
-import type { PurchasingPowerPayload } from "./server-data";
+import type { DistrictPurchasingPowerRow, PurchasingPowerPayload } from "./server-data";
 import { getMortgageRateAssumption } from "./rates";
 
 export const getDistrictPurchasingPower = createServerFn({ method: "GET" })
@@ -13,7 +13,8 @@ export const getDistrictPurchasingPower = createServerFn({ method: "GET" })
       data.baseAnnualRate === undefined ? await getMortgageRateAssumption() : undefined;
     return fetchDistrictPurchasingPower(
       data,
-      (text, values) => sql.query(text, values),
+      async (text, values) =>
+        (await sql.query(text, values)) as unknown as DistrictPurchasingPowerRow[],
       rateAssumption,
     );
   });

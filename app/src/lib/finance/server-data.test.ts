@@ -2,6 +2,30 @@ import { describe, expect, it, vi } from "vitest";
 import { buildDistrictTaxRateSql, fetchDistrictPurchasingPower } from "./server-data";
 
 describe("finance server data", () => {
+  it("keeps missing promoted values unknown and a singleton GVI distribution neutral", async () => {
+    const row = {
+      district_region_id: 1,
+      district_slug: "test",
+      district_name: "Test",
+      region_group: "pa-mainline",
+      effective_tax_rate: 0.02,
+      tree_canopy_pct: 50,
+      canopy_height_m: 15,
+    };
+    const missing = await fetchDistrictPurchasingPower(
+      { monthlyBudget: 5000 },
+      vi.fn().mockResolvedValue([row]),
+    );
+    const available = await fetchDistrictPurchasingPower(
+      { monthlyBudget: 5000 },
+      vi.fn().mockResolvedValue([{ ...row, gvi_ndvi_street: 0.7, green_divergence: -25 }]),
+    );
+    expect(missing.districts[0].environmentMetrics.gviNdviStreet).toBeNull();
+    expect(missing.districts[0].environmentMetrics.greenDivergence).toBeNull();
+    expect(available.districts[0].matchScore).toBe(missing.districts[0].matchScore);
+    expect(available.districts[0].matchComponents).toEqual(missing.districts[0].matchComponents);
+  });
+
   it("builds effective-tax district SQL with optional region filtering", () => {
     const fragment = buildDistrictTaxRateSql({ regionGroup: "hudson-valley" });
 
@@ -12,6 +36,8 @@ describe("finance server data", () => {
     expect(fragment.text).toContain("median_home_value");
     expect(fragment.text).toContain("light_pollution_radiance");
     expect(fragment.text).toContain("park_access");
+    expect(fragment.text).toContain("green_divergence_district_metrics");
+    expect(fragment.values[0]).toContain("gvi_ndvi_street");
     expect(fragment.text).toContain("transit_access");
     expect(fragment.text).toContain("commute_minutes_center_city_philadelphia");
     expect(fragment.text).toContain("commute_minutes_grand_central");
@@ -37,6 +63,8 @@ describe("finance server data", () => {
         effective_tax_rate: "0.018",
         canopy_height_m: "20",
         tree_canopy_pct: "55",
+        gvi_ndvi_street: "0.63",
+        green_divergence: "-12.4",
         median_home_value: "650000",
         walkability_index: "14",
         risk_index: "20",
@@ -99,6 +127,7 @@ describe("finance server data", () => {
       districtRegionId: 1,
       districtSlug: "sd-hudson",
       effectiveTaxRate: 0.018,
+      environmentMetrics: { gviNdviStreet: 0.63, greenDivergence: -12.4 },
       bindingBound: "budget",
       archetype: {
         label: "Quiet Green Suburb",
@@ -276,5 +305,97 @@ describe("finance server data", () => {
       payload.districts[1].affordabilityRatio ?? 0,
     );
     expect(payload.districts[1].matchScore).toBeGreaterThan(payload.districts[0].matchScore);
+  });
+});
+
+describe("percentile profile ranking", () => {
+  const base = { district_name: "Example", region_group: "pa-mainline", effective_tax_rate: 0.02 };
+  const weights = {
+    affordability: 0,
+    green: 0,
+    walkability: 1,
+    lowerRisk: 0,
+    lowerFlood: 0,
+    darkSkies: 0,
+    parkAccess: 0,
+  };
+  async function score(values: Array<number | null>, overrides = {}) {
+    return (
+      await fetchDistrictPurchasingPower(
+        { monthlyBudget: 5000, environmentWeights: { ...weights, ...overrides } },
+        vi.fn().mockResolvedValue(
+          values.map((value, index) => ({
+            ...base,
+            district_region_id: index + 1,
+            district_slug: String(index),
+            walkability_index: value,
+            risk_index: value,
+          })),
+        ),
+      )
+    ).districts;
+  }
+
+  it("uses order percentiles rather than magnitude so heavy-tailed metrics do not crowd scores", async () => {
+    const districts = await score([1, 2, 1000, null]);
+    expect(districts.map((district) => district.matchComponents.walkability)).toEqual([
+      0,
+      50,
+      100,
+      null,
+    ]);
+    const reversed = await score([1, 2, 1000, null], { walkability: 0, lowerRisk: 1 });
+    expect(reversed.map((district) => district.matchComponents.lowerRisk)).toEqual([
+      100,
+      50,
+      0,
+      null,
+    ]);
+    expect([...reversed].sort((a, b) => b.matchScore - a.matchScore)[0].districtSlug).toBe("0");
+  });
+
+  it("gives equal values average ranks and keeps singleton or all-tied inputs neutral", async () => {
+    expect(
+      (await score([5, 5, 20])).map((district) => district.matchComponents.walkability),
+    ).toEqual([25, 25, 100]);
+    expect((await score([5, 5])).map((district) => district.matchComponents.walkability)).toEqual([
+      50, 50,
+    ]);
+    expect(
+      (await score([5, null])).map((district) => district.matchComponents.walkability),
+    ).toEqual([50, null]);
+  });
+
+  it("includes GVI only with complete finite coverage and never scores derived divergence", async () => {
+    async function green(gvi: Array<number | null>, divergence: number[] = [-100, 0, 100]) {
+      return (
+        await fetchDistrictPurchasingPower(
+          { monthlyBudget: 5000, environmentWeights: { ...weights, walkability: 0, green: 1 } },
+          vi.fn().mockResolvedValue(
+            gvi.map((value, index) => ({
+              ...base,
+              district_region_id: index + 1,
+              district_slug: String(index),
+              canopy_height_m: 20,
+              tree_canopy_pct: 50,
+              gvi_ndvi_street: value,
+              green_divergence: divergence[index],
+            })),
+          ),
+        )
+      ).districts;
+    }
+    const partial = await green([-0.2, null, 0.8]);
+    expect(partial.map((district) => district.matchComponents.green)).toEqual([50, 50, 50]);
+    const complete = await green([-0.2, 0, 0.8]);
+    expect(complete[0].matchComponents.green).toBeCloseTo(100 / 3);
+    expect(complete[1].matchComponents.green).toBe(50);
+    expect(complete[2].matchComponents.green).toBeCloseTo(200 / 3);
+    expect(
+      (await green([-0.2, 0, 0.8], [100, -100, 50])).map((district) => district.matchScore),
+    ).toEqual(complete.map((district) => district.matchScore));
+    expect(
+      (await green([-0.2, Infinity, 0.8])).map((district) => district.matchComponents.green),
+    ).toEqual([50, 50, 50]);
   });
 });

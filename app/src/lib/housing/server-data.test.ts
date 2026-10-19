@@ -56,6 +56,8 @@ describe("housing server data", () => {
     expect(fragment.values).toEqual([42]);
     expect(fragment.text).toContain("FROM listing_metrics lm");
     expect(fragment.text).toContain("FROM region_metrics rm");
+    expect(fragment.text).toContain("FROM green_divergence_listing_metrics gd");
+    expect(fragment.text).toContain("FROM green_divergence_region_metrics gd");
     expect(fragment.text).toContain("ST_Contains(r.geom, t.geom)");
     expect(fragment.text).toContain("'neighborhood' AS context");
     expect(fragment.text).toContain("lm.metric_key = 'transit_distance_m'");

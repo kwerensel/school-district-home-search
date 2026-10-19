@@ -1,5 +1,7 @@
 export type MapMetricKey =
   | "purchasingPower"
+  | "satelliteGreenness"
+  | "greenDivergence"
   | "treeCanopy"
   | "floodExposure"
   | "lightPollution"
@@ -45,6 +47,20 @@ export const MAP_METRIC_SCALES: Record<MapMetricKey, MetricScale> = {
     lowLabel: "Lower max price",
     highLabel: "Higher max price",
     colors: ["#b91c1c", "#f97316", "#eab308", "#22c55e", "#0284c7"],
+  },
+  satelliteGreenness: {
+    label: "Street-adjacent greenness (satellite)",
+    shortLabel: "Satellite NDVI estimate",
+    lowLabel: "Less green",
+    highLabel: "More green",
+    colors: ["#f5e6c8", "#c7d99b", "#79b86b", "#2f855a", "#14532d"],
+  },
+  greenDivergence: {
+    label: "Canopy / street-greenness gap",
+    shortLabel: "Canopy minus greenness percentile",
+    lowLabel: "Street greenness ranks higher",
+    highLabel: "Canopy ranks higher",
+    colors: ["#0f766e", "#99f6e4", "#f8fafc", "#fcd34d", "#b45309"],
   },
   treeCanopy: {
     label: "Tree coverage",
@@ -149,6 +165,8 @@ export const MAP_METRIC_SCALES: Record<MapMetricKey, MetricScale> = {
 export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: string }> = [
   { value: "schoolDistricts", label: "School districts" },
   { value: "treeCanopy", label: MAP_METRIC_SCALES.treeCanopy.label },
+  { value: "satelliteGreenness", label: MAP_METRIC_SCALES.satelliteGreenness.label },
+  { value: "greenDivergence", label: MAP_METRIC_SCALES.greenDivergence.label },
   { value: "floodExposure", label: MAP_METRIC_SCALES.floodExposure.label },
   { value: "lightPollution", label: MAP_METRIC_SCALES.lightPollution.label },
   { value: "walkability", label: MAP_METRIC_SCALES.walkability.label },
@@ -159,6 +177,8 @@ export const EXPLORER_MAP_METRICS: Array<{ value: ExplorerMapMetricKey; label: s
 export const DISCOVERY_MAP_METRICS: Array<{ value: MapMetricKey; label: string }> = [
   { value: "purchasingPower", label: MAP_METRIC_SCALES.purchasingPower.label },
   { value: "treeCanopy", label: MAP_METRIC_SCALES.treeCanopy.label },
+  { value: "satelliteGreenness", label: MAP_METRIC_SCALES.satelliteGreenness.label },
+  { value: "greenDivergence", label: MAP_METRIC_SCALES.greenDivergence.label },
   { value: "floodExposure", label: MAP_METRIC_SCALES.floodExposure.label },
   { value: "lightPollution", label: MAP_METRIC_SCALES.lightPollution.label },
   { value: "walkability", label: MAP_METRIC_SCALES.walkability.label },
@@ -180,7 +200,9 @@ export function normalizedMetricPosition(
   min: number,
   max: number,
 ) {
-  if (!Number.isFinite(value) || min === max) return 0.5;
+  if (!Number.isFinite(value)) return 0.5;
+  if (metric === "greenDivergence") return Math.min(Math.max((value + 100) / 200, 0), 1);
+  if (min === max) return 0.5;
   if (
     metric === "lightPollution" ||
     metric === "sirenSources" ||
@@ -258,6 +280,9 @@ const percent = new Intl.NumberFormat("en-US", {
 export function formatMapMetricValue(metric: MapMetricKey, value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) return "No data";
   if (metric === "purchasingPower") return currency.format(Math.round(value));
+  if (metric === "satelliteGreenness") return `${value.toFixed(2)} NDVI · satellite estimate`;
+  if (metric === "greenDivergence")
+    return `${value > 0 ? "+" : ""}${value.toFixed(1)} percentile points`;
   if (metric === "treeCanopy") return `${treeCoverCategory(value)} · ${value.toFixed(0)}% coverage`;
   if (metric === "floodExposure") return `${percent.format(value)} of district land`;
   if (metric === "lightPollution") {

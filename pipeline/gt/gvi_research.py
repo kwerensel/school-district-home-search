@@ -13,6 +13,7 @@ import math
 import os
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -56,7 +57,15 @@ def sample_listing_roads(
         raise ValueError("Frozen listings require unique id values")
     if not listings.geometry.geom_type.eq("Point").all():
         raise ValueError("Frozen listings must contain points")
+    projected_listings = listings.to_crs(PROJECTED_CRS).sort_values("id")
     projected_roads = roads.to_crs(PROJECTED_CRS)
+    if projected_listings.empty or projected_roads.empty:
+        return []
+    # Filter whole geometries, never clip: clipping would reset interpolation
+    # origins and change the selected sample positions between nearby listings.
+    pairs = projected_roads.sindex.query(projected_listings.geometry,
+                                        predicate="dwithin", distance=radius_m)
+    projected_roads = projected_roads.iloc[np.unique(pairs[1])]
     coordinates: set[tuple[float, float]] = set()
     for geom in projected_roads.geometry:
         if geom is None or geom.is_empty:
@@ -76,7 +85,7 @@ def sample_listing_roads(
     candidates = gpd.GeoSeries([Point(xy) for xy in sorted(coordinates)], crs=PROJECTED_CRS)
     wgs84 = candidates.to_crs(4326)
     output: list[RoadSample] = []
-    for row in listings.to_crs(PROJECTED_CRS).sort_values("id").itertuples():
+    for row in projected_listings.itertuples():
         indices = candidates.sindex.query(row.geometry.buffer(radius_m))
         eligible = sorted(
             ((float(row.geometry.distance(candidates.iloc[i])), int(i)) for i in indices),
@@ -110,6 +119,7 @@ def image_coverage(
     listing_ids: Iterable[int],
     max_image_distance_m: float = 50,
     minimum_images: int = 3,
+    listing_locations: Mapping[int, tuple[float, float]] | None = None,
 ) -> list[dict[str, Any]]:
     """Unique image counts near sampled roads, not usable segmentation counts.
 
@@ -121,6 +131,11 @@ def image_coverage(
     sample_list = list(samples)
     ids = sorted(set(int(value) for value in listing_ids))
     found: dict[int, set[str]] = {value: set() for value in ids}
+    listing_points = None
+    if listing_locations is not None:
+        if set(ids) - listing_locations.keys():
+            raise ValueError("Listing coordinate contract is incomplete")
+        listing_points = gpd.GeoSeries([Point(listing_locations[key]) for key in ids],index=ids,crs=4326).to_crs(PROJECTED_CRS)
     if sample_list:
         points = gpd.GeoSeries(
             [Point(s.longitude, s.latitude) for s in sample_list], crs=4326,
@@ -135,7 +150,10 @@ def image_coverage(
                 if sample.listing_id not in found:
                     raise ValueError("Sample listing is outside the frozen sample contract")
                 for index in image_points.sindex.query(point.buffer(max_image_distance_m)):
-                    if point.distance(image_points.iloc[index]) <= max_image_distance_m:
+                    image_point = image_points.iloc[index]
+                    if listing_points is not None and listing_points.loc[sample.listing_id].distance(image_point) > 150:
+                        continue
+                    if point.distance(image_point) <= max_image_distance_m:
                         found[sample.listing_id].add(str(image_list[index]["id"]))
     return [
         {"listing_id": value, "image_ids": sorted(found[value]),
@@ -225,9 +243,11 @@ def mapillary_coverage(
                           headers={"Authorization": f"OAuth {token}"})
         try:
             body = fetch(request)
+        except HTTPError as error:
+            raise MapillaryMetadataError(status_code=error.code) from None
         except Exception:
             # Provider exceptions can contain credential-bearing URLs/headers.
-            raise RuntimeError("Mapillary metadata request failed; no imagery was fetched") from None
+            raise MapillaryMetadataError() from None
         for record in body.get("data", []):
             geometry = record.get("computed_geometry") or {}
             coords = geometry.get("coordinates", [])
@@ -255,3 +275,9 @@ def mapillary_coverage(
 def _request_metadata(request: Request) -> Mapping[str, Any]:
     with urlopen(request, timeout=20) as response:
         return json.load(response)
+
+
+class MapillaryMetadataError(RuntimeError):
+    def __init__(self, status_code: int | None = None):
+        self.status_code = status_code
+        super().__init__("Mapillary metadata request failed; no imagery was fetched")

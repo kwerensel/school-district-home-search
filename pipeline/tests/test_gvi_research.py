@@ -91,3 +91,31 @@ def test_provider_errors_are_sanitized(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="metadata request failed") as error:
         mapillary_coverage((-75.01, 39.99, -74.99, 40.01), cache_dir=tmp_path, requester=fail)
     assert "secret" not in str(error.value)
+
+
+def test_spatial_road_prefilter_preserves_whole_line_sample_positions():
+    listings, roads = frames()
+    long_line = LineString([(-1000, 0), (1000, 0)])
+    far_line = LineString([(5000, 5000), (6000, 5000)])
+    full = gpd.GeoDataFrame(geometry=[long_line, far_line], crs=5070).to_crs(4326)
+    near = gpd.GeoDataFrame(geometry=[long_line], crs=5070).to_crs(4326)
+    assert sample_listing_roads(listings.iloc[:1],full) == sample_listing_roads(listings.iloc[:1],near)
+    result = sample_listing_roads(listings.iloc[:1],full)
+    # Original whole-line regular samples include the nearest x=0 point.
+    assert min(p.distance_m for p in result) == pytest.approx(10, abs=.001)
+
+
+def test_image_coverage_restricts_images_to_frozen_listing_radius():
+    origin = gpd.GeoSeries([Point(0, 0)],crs=5070).to_crs(4326).iloc[0]
+    road = gpd.GeoSeries([Point(140, 0)],crs=5070).to_crs(4326).iloc[0]
+    image = gpd.GeoSeries([Point(175, 0)],crs=5070).to_crs(4326).iloc[0]
+    result = image_coverage([RoadSample(1,"road",road.x,road.y,140)],
+        [{"id":"far-from-listing","longitude":image.x,"latitude":image.y}],
+        listing_ids=[1],listing_locations={1:(origin.x,origin.y)})
+    assert result[0]["candidate_image_count"] == 0
+
+
+def test_regional_metadata_requires_explicit_location_egress_gate(tmp_path):
+    from gt.gvi_research_cli import run_research
+    with pytest.raises(PermissionError, match="Explicit approval"):
+        run_research(region="pa-mainline",roads_path=tmp_path/"unread-roads.geojson",metadata=True)

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { parseDistrictPriceCaps } from "@/lib/discovery/shortlist";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ClientOnly, Link } from "@tanstack/react-router";
@@ -7,6 +8,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { Compass, Filter as FilterIcon, Home } from "lucide-react";
 import { FiltersSidebar } from "./FiltersSidebar";
 import { ListingDetailPanel } from "./ListingDetailPanel";
+import { AccountButton } from "@/components/auth/AccountButton";
+import { getSession } from "@/lib/auth.functions";
+import { toggleFavorite } from "@/lib/saved/persistence.functions";
 
 const MapView = lazy(() => import("./MapView").then((m) => ({ default: m.MapView })));
 import { getDistricts, getListings } from "@/lib/housing/listings.functions";
@@ -27,6 +31,9 @@ export function HousingSearch() {
   const getToken = useServerFn(getMapboxToken);
   const getListingsFn = useServerFn(getListings);
   const getDistrictsFn = useServerFn(getDistricts);
+  const getSessionFn = useServerFn(getSession);
+  const toggleFavoriteFn = useServerFn(toggleFavorite);
+  const autoFavoriteHandled = useRef<number | null>(null);
 
   const tokenQuery = useQuery({
     queryKey: ["mapbox-token"],
@@ -42,8 +49,13 @@ export function HousingSearch() {
 
   const districtsQuery = useQuery({
     queryKey: ["districts"],
-    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.001, representedOnly: true } }),
+    queryFn: () => getDistrictsFn({ data: { simplifyTolerance: 0.001, representedOnly: false } }),
     staleTime: 60 * 60 * 1000,
+  });
+  const sessionQuery = useQuery({
+    queryKey: ["auth-session"],
+    queryFn: () => getSessionFn(),
+    staleTime: 30_000,
   });
 
   const token = tokenQuery.data?.token ?? "";
@@ -86,6 +98,7 @@ export function HousingSearch() {
 
     setFilters((current) => ({
       ...current,
+      districtCaps: parseDistrictPriceCaps(params),
       maxPrice:
         Number.isFinite(maxPrice) && maxPrice > 0 ? Math.min(maxPrice, bounds.max) : bounds.max,
       minBeds: Number.isFinite(minBeds) && minBeds >= 0 ? minBeds : current.minBeds,
@@ -107,6 +120,31 @@ export function HousingSearch() {
     const query = params.toString();
     window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
   }, [filters, filtersInitialized]);
+
+  const favoriteListing = async (listingId: number) => {
+    if (!sessionQuery.data?.user) {
+      const returnUrl = new URL(window.location.href);
+      returnUrl.searchParams.set("favorite", String(listingId));
+      window.location.assign(
+        `/login?returnTo=${encodeURIComponent(returnUrl.pathname + returnUrl.search)}`,
+      );
+      return;
+    }
+    await toggleFavoriteFn({ data: { listingId } });
+  };
+
+  useEffect(() => {
+    if (sessionQuery.isPending || !sessionQuery.data?.user || typeof window === "undefined") return;
+    const favorite = Number(new URLSearchParams(window.location.search).get("favorite"));
+    if (!Number.isInteger(favorite) || favorite <= 0 || autoFavoriteHandled.current === favorite)
+      return;
+    autoFavoriteHandled.current = favorite;
+    void toggleFavoriteFn({ data: { listingId: favorite } }).then(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("favorite");
+      window.history.replaceState(null, "", url.pathname + url.search);
+    });
+  }, [sessionQuery.data?.user, sessionQuery.isPending, toggleFavoriteFn]);
 
   const isBooting =
     tokenQuery.isPending ||
@@ -165,6 +203,7 @@ export function HousingSearch() {
               </SheetContent>
             </Sheet>
           </div>
+          <AccountButton />
         </div>
       </header>
 
@@ -173,7 +212,7 @@ export function HousingSearch() {
           {sidebar}
         </aside>
 
-        <main className="relative min-h-0 flex-1">
+        <main className="relative isolate min-h-0 flex-1">
           {isBooting ? (
             <div className="h-full w-full bg-muted" />
           ) : tokenQuery.isError || listingsQuery.isError || districtsQuery.isError ? (
@@ -212,6 +251,7 @@ export function HousingSearch() {
                   initialDistrictName={initialFocus.districtName}
                   initialDistrictSlug={initialFocus.districtSlug}
                   initialRegionGroup={initialFocus.regionGroup}
+                  shortlistSlugs={filters.districtCaps?.map((cap) => cap.slug)}
                   selectedListingId={selectedListing?.properties.id ?? null}
                   onListingSelect={setSelectedListing}
                 />
@@ -229,6 +269,7 @@ export function HousingSearch() {
                 <ListingDetailPanel
                   listing={selectedListing}
                   onClose={() => setSelectedListing(null)}
+                  onFavorite={(listingId) => void favoriteListing(listingId)}
                 />
               </Suspense>
             </ClientOnly>

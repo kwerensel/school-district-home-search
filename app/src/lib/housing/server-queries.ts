@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DistrictPriceCapsSchema } from "@/lib/discovery/shortlist";
 
 export const BboxSchema = z
   .tuple([z.number(), z.number(), z.number(), z.number()])
@@ -14,6 +15,7 @@ export const ListingQuerySchema = z
     minBaths: z.number().min(0).optional(),
     goodOnly: z.boolean().optional(),
     districtSlug: z.string().min(1).optional(),
+    districtCaps: DistrictPriceCapsSchema.optional(),
   })
   .default({});
 
@@ -24,7 +26,7 @@ export const DistrictQuerySchema = z
     simplifyTolerance: z.number().min(0).max(0.1).default(0.001),
     representedOnly: z.boolean().default(true),
   })
-  .default({});
+  .default({ simplifyTolerance: 0.001, representedOnly: true });
 
 export const ListingMetricsQuerySchema = z.object({
   listingId: z.number().int().positive(),
@@ -79,6 +81,14 @@ export function buildListingsSql(input: ListingQuery): SqlFragment {
     where.push(`d.nces_geoid = $${values.length}`);
   }
 
+  if (input.districtCaps?.length) {
+    const caps = input.districtCaps.map((cap) => {
+      values.push(cap.slug, cap.maxPrice);
+      return `(EXISTS (SELECT 1 FROM regions sr WHERE sr.district_id = d.id AND sr.region_type = 'school_district' AND sr.region_group = l.region_slug AND sr.slug = $${values.length - 1}) AND l.price <= $${values.length})`;
+    });
+    where.push(`(${caps.join(" OR ")})`);
+  }
+
   return {
     text: `
       SELECT json_build_object(
@@ -98,6 +108,9 @@ export function buildListingsSql(input: ListingQuery): SqlFragment {
           l.baths,
           l.url,
           d.name_display AS school_district,
+          (SELECT sr.slug FROM regions sr WHERE sr.district_id = d.id
+            AND sr.region_type = 'school_district' AND sr.region_group = l.region_slug
+            ORDER BY sr.id LIMIT 1) AS district_slug,
           l.county AS county_name,
           COALESCE(dq.good_district, false) AS good_district,
           canopy.value AS canopy_height_m_100m,
@@ -142,6 +155,9 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
           l.region_slug,
           l.geom,
           d.name_display AS school_district,
+          (SELECT sr.slug FROM regions sr WHERE sr.district_id = d.id
+            AND sr.region_type = 'school_district' AND sr.region_group = l.region_slug
+            ORDER BY sr.id LIMIT 1) AS district_slug,
           COALESCE(dq.good_district, false) AS good_district,
           canopy.value AS canopy_height_m_100m,
           tree_cover.value AS tree_canopy_pct_100m,
@@ -194,6 +210,15 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
         FROM listing_metrics lm
         JOIN metric_definitions md ON md.metric_key = lm.metric_key
         WHERE lm.listing_id = $1
+        UNION ALL
+        SELECT
+          gd.metric_key, 'Canopy / street-greenness gap' AS name,
+          gd.value, 'percentile points' AS units, gd.grain, gd.vintage,
+          'Derived from promoted tree canopy and satellite NDVI' AS source,
+          'Matching listing buffers; regional percentile comparison' AS native_resolution,
+          'street' AS context
+        FROM green_divergence_listing_metrics gd
+        WHERE gd.listing_id = $1
       ),
       tract_metric_rows AS (
         SELECT
@@ -214,6 +239,18 @@ export function buildListingMetricsSql(input: ListingMetricsQuery): SqlFragment 
           FROM listing_metrics lm
           WHERE lm.listing_id = $1
             AND lm.metric_key = rm.metric_key
+        )
+        UNION ALL
+        SELECT
+          gd.metric_key, 'Canopy / street-greenness gap' AS name,
+          gd.value, 'percentile points' AS units, 'census_tract' AS grain, gd.vintage,
+          'Derived from promoted tree canopy and satellite NDVI' AS source,
+          'Census tract; regional percentile comparison' AS native_resolution,
+          'neighborhood' AS context
+        FROM green_divergence_region_metrics gd
+        JOIN tract ON tract.id = gd.region_id
+        WHERE NOT EXISTS (
+          SELECT 1 FROM green_divergence_listing_metrics lm WHERE lm.listing_id = $1
         )
       )
       SELECT json_build_object(
@@ -270,6 +307,8 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
           COALESCE(dq.good_district, false) AS good_district,
           dm.canopy_height_m,
           dm.tree_canopy_pct,
+          dm.gvi_ndvi_street,
+          gd.value AS green_divergence,
           dm.walkability_index,
           dm.risk_index,
           dm.flood_sfha,
@@ -284,6 +323,7 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
           SELECT
             max(value) FILTER (WHERE metric_key = 'canopy_height_m') AS canopy_height_m,
             max(value) FILTER (WHERE metric_key = 'tree_canopy_pct') AS tree_canopy_pct,
+            max(value) FILTER (WHERE metric_key = 'gvi_ndvi_street') AS gvi_ndvi_street,
             max(value) FILTER (WHERE metric_key = 'walkability_index') AS walkability_index,
             max(value) FILTER (WHERE metric_key = 'risk_index') AS risk_index,
             max(value) FILTER (WHERE metric_key = 'flood_sfha') AS flood_sfha,
@@ -294,6 +334,7 @@ export function buildDistrictsSql(input: DistrictQuery): SqlFragment {
           FROM district_metrics
           WHERE district_region_id = dr.id
         ) dm ON TRUE
+        LEFT JOIN green_divergence_district_metrics gd ON gd.district_region_id = dr.id
         WHERE ${where.join(" AND ")}
       ) row
     `,

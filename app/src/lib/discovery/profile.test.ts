@@ -47,3 +47,69 @@ describe("Discovery profile parsing", () => {
     expect(parseDiscoveryProfile(serialized)).toEqual(profile);
   });
 });
+
+describe("extended Discovery profile", () => {
+  it("round-trips each wizard step, optional finance, shortlist and two commute anchors", () => {
+    for (const wizardStep of ["region", "budget", "priorities", "results"] as const) {
+      const profile = {
+        ...DEFAULT_DISCOVERY_PROFILE,
+        wizardStep,
+        grossMonthlyIncome: 15000,
+        monthlyDebt: 0,
+        shortlist: ["district-a", "district-b"],
+        commuteAnchors: [
+          {
+            label: "Public station",
+            lat: 40.1,
+            lng: -75.3,
+            maxMinutes: 45,
+            mode: "driving-car" as const,
+          },
+          {
+            label: "Town hall",
+            lat: 41.1,
+            lng: -74.3,
+            maxMinutes: 60,
+            mode: "driving-car" as const,
+          },
+        ],
+      };
+      expect(parseDiscoveryProfile(serializeDiscoveryProfile(profile))).toEqual(profile);
+    }
+  });
+
+  it("ignores malformed optional state without discarding a valid budget", () => {
+    const profile = parseDiscoveryProfile(
+      new URLSearchParams({
+        monthlyBudget: "7000",
+        grossMonthlyIncome: "NaN",
+        monthlyDebt: "-1",
+        step: "invalid",
+        shortlist: "broken",
+        commuteAnchors: JSON.stringify([
+          { label: "invalid", lat: 99, lng: -75, maxMinutes: 45, mode: "driving-car" },
+        ]),
+      }),
+    );
+    expect(profile.monthlyBudget).toBe(7000);
+    expect(profile.grossMonthlyIncome).toBeUndefined();
+    expect(profile.monthlyDebt).toBeUndefined();
+    expect(profile.wizardStep).toBeUndefined();
+    expect(profile.shortlist).toBeUndefined();
+    expect(profile.commuteAnchors).toBeUndefined();
+  });
+
+  it("bounds and deduplicates shareable shortlists", () => {
+    expect(
+      parseDiscoveryProfile(new URLSearchParams({ shortlist: JSON.stringify(["a", "a", "b"]) }))
+        .shortlist,
+    ).toEqual(["a", "b"]);
+    expect(
+      parseDiscoveryProfile(
+        new URLSearchParams({
+          shortlist: JSON.stringify(Array.from({ length: 11 }, (_, i) => `district-${i}`)),
+        }),
+      ).shortlist,
+    ).toBeUndefined();
+  });
+});

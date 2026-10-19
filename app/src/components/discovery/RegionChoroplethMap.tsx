@@ -35,6 +35,8 @@ const DEFAULT_CENTER: L.LatLngTuple = [40.6, -74.4];
 
 function metricValue(district: DistrictPurchasingPower, metric: MapMetricKey) {
   if (metric === "purchasingPower") return district.maxPurchasePrice;
+  if (metric === "satelliteGreenness") return district.environmentMetrics.gviNdviStreet;
+  if (metric === "greenDivergence") return district.environmentMetrics.greenDivergence;
   if (metric === "treeCanopy") return district.environmentMetrics.treeCanopyPct;
   if (metric === "floodExposure") return district.environmentMetrics.floodSfha;
   if (metric === "lightPollution") return district.environmentMetrics.lightPollutionRadiance;
