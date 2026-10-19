@@ -13,7 +13,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; latest pushed checkpoint `8701f40` contains guided Discovery,
+- Branch `main`; `8701f40` contains guided Discovery,
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
@@ -68,9 +68,15 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   Project `.npmrc` now records the lockfile's `legacy-peer-deps=true` mode as
   npm documents. Isolated fresh `npm ci`, all71 app tests and production build
   pass without private environment files or changing resolved package versions.
-  Remote CI is being rechecked after the companion fix.
-- Current verification: app71 tests, TypeScript, lint0errors/6existing warnings
-  and Cloudflare build pass; pipeline105 passed/1opt-in skipped, including live golden checks;
+  Remote CI passed for pushed checkpoint `7e9782b` (app and pipeline).
+- Deferred Phase12 acceptance harness is prepared, **not executed**. It uses
+  disposable accounts and injected test email/CAPTCHA adapters; production
+  checks remain enforced. Session-owned saved-store queries now use the actual
+  district join, with retry/error states for saves/favorites. Missing auth
+  configuration returns signed-out for optional session reads and fails closed
+  for protected actions. See `docs/account-acceptance.md`.
+- Current verification: app76 tests/1deferred integration skipped, TypeScript, lint0errors/6existing warnings
+  and Cloudflare build pass; pipeline114 passed/2opt-in skipped, including live golden checks;
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
   acceptance stays deferred; Better Auth secret/Turnstile configuration remain
   missing. No pending labels approved and no production deployment performed.

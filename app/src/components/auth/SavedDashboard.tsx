@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Heart, Search, Trash2 } from "lucide-react";
@@ -19,6 +20,7 @@ type FavoriteRow = {
 };
 
 export function SavedDashboard() {
+  const [actionError, setActionError] = useState("");
   const sessionFn = useServerFn(getSession);
   const profilesFn = useServerFn(listProfiles);
   const favoritesFn = useServerFn(listFavorites);
@@ -37,6 +39,20 @@ export function SavedDashboard() {
   });
 
   if (session.isPending) return <main className="p-8 text-sm text-muted-foreground">Loading…</main>;
+  if (session.isError)
+    return (
+      <main className="p-8">
+        <p className="text-sm" role="alert">
+          Your account could not be loaded.
+        </p>
+        <Button className="mt-3" onClick={() => void session.refetch()}>
+          Try again
+        </Button>
+        <a className="ml-4 text-sm underline" href="/discover/results">
+          Continue signed out
+        </a>
+      </main>
+    );
   if (!session.data?.user) {
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
@@ -80,14 +96,27 @@ export function SavedDashboard() {
                 )
               )
                 return;
-              await authClient.deleteUser();
-              window.location.assign("/");
+              setActionError("");
+              try {
+                const result = await authClient.deleteUser();
+                if (result.error) throw new Error("Delete failed");
+                window.location.assign("/");
+              } catch {
+                setActionError(
+                  "Your account could not be deleted. Please sign in again and retry.",
+                );
+              }
             }}
           >
             Delete account
           </Button>
         </div>
       </header>
+      {actionError ? (
+        <p className="mt-4 text-sm text-destructive" role="alert">
+          {actionError}
+        </p>
+      ) : null}
       <div className="mt-8 grid gap-8 md:grid-cols-2">
         <section>
           <h2 className="text-lg font-semibold">Saved searches</h2>
@@ -110,8 +139,15 @@ export function SavedDashboard() {
                       size="icon"
                       aria-label={`Delete ${item.name}`}
                       onClick={async () => {
-                        await deleteFn({ data: { id: Number(item.id) } });
-                        await queryClient.invalidateQueries({ queryKey: ["saved-profiles"] });
+                        setActionError("");
+                        try {
+                          await deleteFn({ data: { id: Number(item.id) } });
+                          await queryClient.invalidateQueries({ queryKey: ["saved-profiles"] });
+                        } catch {
+                          setActionError(
+                            "This saved search could not be deleted. Please try again.",
+                          );
+                        }
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -120,7 +156,22 @@ export function SavedDashboard() {
                 </article>
               );
             })}
-            {!profiles.isPending && !profiles.data?.length ? (
+            {profiles.isPending ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                Loading saved searches…
+              </p>
+            ) : null}
+            {profiles.isError ? (
+              <div className="space-y-2">
+                <p className="text-sm" role="alert">
+                  Saved searches could not be loaded.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => void profiles.refetch()}>
+                  Try again
+                </Button>
+              </div>
+            ) : null}
+            {profiles.isSuccess && !profiles.data?.length ? (
               <p className="text-sm text-muted-foreground">No saved searches yet.</p>
             ) : null}
           </div>
@@ -142,7 +193,22 @@ export function SavedDashboard() {
                 </p>
               </article>
             ))}
-            {!favorites.isPending && !favorites.data?.length ? (
+            {favorites.isPending ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                Loading favorites…
+              </p>
+            ) : null}
+            {favorites.isError ? (
+              <div className="space-y-2">
+                <p className="text-sm" role="alert">
+                  Favorites could not be loaded.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => void favorites.refetch()}>
+                  Try again
+                </Button>
+              </div>
+            ) : null}
+            {favorites.isSuccess && !favorites.data?.length ? (
               <p className="text-sm text-muted-foreground">No favorite listings yet.</p>
             ) : null}
           </div>

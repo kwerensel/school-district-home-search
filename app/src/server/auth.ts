@@ -6,13 +6,29 @@ import { PostgresDialect, type PostgresPool } from "kysely";
 import { sendPasswordResetEmail } from "./resend";
 import { verifyTurnstileToken } from "./turnstile";
 
-export function createGroundtruthAuth() {
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for authentication");
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+type AuthDependencies = {
+  // Injectable only by trusted server code, never request parameters.
+  databaseUrl?: string;
+  secret?: string;
+  baseURL?: string;
+  sendResetEmail?: typeof sendPasswordResetEmail;
+  verifySignup?: typeof verifyTurnstileToken;
+  loggerDisabled?: boolean;
+};
+
+export function createGroundtruthAuth(dependencies: AuthDependencies = {}) {
+  const databaseUrl = dependencies.databaseUrl ?? process.env.DATABASE_URL;
+  const secret = dependencies.secret ?? process.env.BETTER_AUTH_SECRET;
+  const baseURL = dependencies.baseURL ?? process.env.BETTER_AUTH_URL;
+  if (!databaseUrl) throw new Error("DATABASE_URL is required for authentication");
+  if (!secret || secret.length < 32 || !baseURL)
+    throw new Error("Authentication configuration is incomplete");
+  const pool = new Pool({ connectionString: databaseUrl });
   const auth = betterAuth({
     appName: "Groundtruth",
-    baseURL: process.env.BETTER_AUTH_URL,
-    secret: process.env.BETTER_AUTH_SECRET,
+    logger: dependencies.loggerDisabled ? { disabled: true } : undefined,
+    baseURL,
+    secret,
     database: {
       dialect: new PostgresDialect({ pool: pool as unknown as PostgresPool }),
       type: "postgres",
@@ -23,7 +39,11 @@ export function createGroundtruthAuth() {
       maxPasswordLength: 128,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl: url });
+        await (dependencies.sendResetEmail ?? sendPasswordResetEmail)({
+          to: user.email,
+          name: user.name,
+          resetUrl: url,
+        });
       },
     },
     rateLimit: {
@@ -48,10 +68,8 @@ export function createGroundtruthAuth() {
         if (ctx.path !== "/sign-up/email") return;
         const token = ctx.headers?.get("x-turnstile-token") ?? "";
         const forwarded = ctx.headers?.get("cf-connecting-ip") ?? undefined;
-        const hostname = process.env.BETTER_AUTH_URL
-          ? new URL(process.env.BETTER_AUTH_URL).hostname
-          : undefined;
-        const result = await verifyTurnstileToken(token, {
+        const hostname = new URL(baseURL).hostname;
+        const result = await (dependencies.verifySignup ?? verifyTurnstileToken)(token, {
           expectedAction: "groundtruth_signup",
           expectedHostname: hostname === "localhost" ? undefined : hostname,
           remoteIp: forwarded,

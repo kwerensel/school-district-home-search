@@ -1,6 +1,6 @@
 import { parseDistrictPriceCaps } from "@/lib/discovery/shortlist";
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ClientOnly, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,9 @@ import type { ExplorerMapMetricKey } from "@/lib/metrics/presentation";
 const EMPTY_LISTINGS: ListingFC = { type: "FeatureCollection", features: [] };
 
 export function HousingSearch() {
+  const queryClient = useQueryClient();
+  const [favoriteStatus, setFavoriteStatus] = useState("");
+  const [favoritePending, setFavoritePending] = useState(false);
   const getToken = useServerFn(getMapboxToken);
   const getListingsFn = useServerFn(getListings);
   const getDistrictsFn = useServerFn(getDistricts);
@@ -130,7 +133,19 @@ export function HousingSearch() {
       );
       return;
     }
-    await toggleFavoriteFn({ data: { listingId } });
+    setFavoritePending(true);
+    setFavoriteStatus("");
+    try {
+      const result = await toggleFavoriteFn({ data: { listingId } });
+      setFavoriteStatus(
+        result.favorite ? "Listing saved to favorites." : "Listing removed from favorites.",
+      );
+      await queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    } catch {
+      setFavoriteStatus("Favorites could not be updated. Please try again.");
+    } finally {
+      setFavoritePending(false);
+    }
   };
 
   useEffect(() => {
@@ -139,12 +154,15 @@ export function HousingSearch() {
     if (!Number.isInteger(favorite) || favorite <= 0 || autoFavoriteHandled.current === favorite)
       return;
     autoFavoriteHandled.current = favorite;
-    void toggleFavoriteFn({ data: { listingId: favorite } }).then(() => {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("favorite");
-      window.history.replaceState(null, "", url.pathname + url.search);
-    });
-  }, [sessionQuery.data?.user, sessionQuery.isPending, toggleFavoriteFn]);
+    void toggleFavoriteFn({ data: { listingId: favorite } })
+      .then(async () => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("favorite");
+        window.history.replaceState(null, "", url.pathname + url.search);
+        await queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      })
+      .catch(() => setFavoriteStatus("Favorites could not be updated. Please try again."));
+  }, [sessionQuery.data?.user, sessionQuery.isPending, toggleFavoriteFn, queryClient]);
 
   const isBooting =
     tokenQuery.isPending ||
@@ -270,6 +288,8 @@ export function HousingSearch() {
                   listing={selectedListing}
                   onClose={() => setSelectedListing(null)}
                   onFavorite={(listingId) => void favoriteListing(listingId)}
+                  favoriteStatus={favoriteStatus}
+                  favoritePending={favoritePending}
                 />
               </Suspense>
             </ClientOnly>

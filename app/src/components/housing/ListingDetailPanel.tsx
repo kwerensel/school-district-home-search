@@ -15,6 +15,8 @@ interface Props {
   listing: ListingFeature | null;
   onClose: () => void;
   onFavorite?: (listingId: number) => void;
+  favoriteStatus?: string;
+  favoritePending?: boolean;
 }
 
 const contextOrder: ListingMetricContext[] = ["property", "street", "neighborhood"];
@@ -343,7 +345,13 @@ function metricHelp(metric: ListingMetricItem) {
   return null;
 }
 
-export function ListingDetailPanel({ listing, onClose, onFavorite }: Props) {
+export function ListingDetailPanel({
+  listing,
+  onClose,
+  onFavorite,
+  favoriteStatus,
+  favoritePending,
+}: Props) {
   const getMetrics = useServerFn(getListingMetrics);
   const listingId = listing?.properties.id ?? null;
 
@@ -418,6 +426,7 @@ export function ListingDetailPanel({ listing, onClose, onFavorite }: Props) {
                 size="icon"
                 onClick={() => onFavorite(listingProps.id)}
                 aria-label="Favorite listing"
+                disabled={favoritePending}
               >
                 <Heart className="h-4 w-4" />
               </Button>
@@ -429,6 +438,11 @@ export function ListingDetailPanel({ listing, onClose, onFavorite }: Props) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {favoriteStatus ? (
+            <p className="mb-3 text-sm text-muted-foreground" role="status">
+              {favoriteStatus}
+            </p>
+          ) : null}
           <div className="space-y-3 border-b border-border pb-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
