@@ -13,7 +13,8 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; recent pushed `13a4e2f` preserves concurrent PMMS success
+- Branch `main`; pushed `63ac41b` contains PA GVI promotion/verified Unknowns
+  and installed migration013 evidence; app and pipeline CI pass. Earlier `13a4e2f` preserves concurrent PMMS success
   during failures; its GitHub CI passes. `a5e49ba` adds the offline vegetation-mask
   reducer and pinned research metadata; its GitHub CI passes.
   `60e8843` adds the one-minute PMMS outage cache
@@ -107,9 +108,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   torch/transformers approval, exact checkpoint rights and image-use evidence
   still gate segmentation. PA offline sampling produced1,237 points across251 listings;247 meet the
   three-point minimum. Sampling QA/golden pass. The user explicitly approved the regional251-query metadata check on
-  October19. It is running with cached successes, a total251-request cap and
-  no image downloads. First transport failure stopped after22 requests/21
-  successes; one resume is bounded to the remaining229 requests.
+  October19. It completed all251 listings (248 cached-or-new queries/3 no-road):
+  42 have >=3 candidates, 4 have 1–2, and 205 returned none. Three capped pages imply
+  lower bounds.225 total outgoing requests across the stopped attempt and one
+  resume stayed within251. There are1294 distinct candidates, years2014–2024
+  (mostly2018), so imagery is older than the2025 satellite source. Candidate
+  coverage QA/report are under `data/reports/`; no photos/inference/paid usage.
+
 - Phase11 now also has a pure NumPy semantic-mask reducer: explicit vegetation
   metadata, full valid semantic-pixel denominator, unknown-class refusal and
   void-only missing values. Seventeen research tests pass. Public README/class/
@@ -136,8 +141,8 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
   acceptance stays deferred; Better Auth secret/Turnstile configuration remain
   missing. No pending labels approved and no production deployment performed.
-- GVI implementation/CLI/QA helpers are ready for a green checkpoint after PA
-  promotion; the former strict source-gap gate is resolved by explicit user
+- GVI implementation/CLI/QA helpers are committed and pushed in `63ac41b`;
+  the former strict source-gap gate is resolved by explicit user
   approval and fresh validated evidence. Remaining gates:HV OSM availability,
   photographic inference dependency/rights review, deferred Geocodio key,
   post-GVI rebuild/label review and full account acceptance. Production remains
@@ -1299,8 +1304,8 @@ Next actions, in order:
 2. Once both regions pass, rebuild the post-GVI HDBSCAN model, inspect results,
    generate pending Claude labels and request human copy review. Phase10 guided
    Discovery, commute anchors, comparison, shortlist and mobile QA are complete.
-3. Finish the bounded, explicitly approved PA metadata check. Photographic
-   inference still needs dependency/imagery/model-rights approval; do not claim
+3. PA metadata coverage is complete under the approved request budget.
+   Photographic inference still needs dependency/imagery/model-rights approval; do not claim
    candidate images are successful segmentation or invent correlation. HV
    sampling requires its complete road cache.
 4. Operator foundation, guarded staging and migration013 are complete. Actual

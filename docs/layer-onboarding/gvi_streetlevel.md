@@ -164,15 +164,28 @@ the main API policy page requires login and historical forum numbers are not
 sufficient evidence for a current account quota. No thumbnail URLs or image
 bytes are requested.
 
-**Regional metadata gate:** automatic approval review rejected the proposed
-251-query PA metadata run **before execution**, because listing-derived road
-bounding boxes would be sent to Mapillary and the review required explicit
-user approval for that location egress. Its instruction explicitly prohibits
-bypassing the rejection. Only offline sampling/QA continued. Regional candidate
-image eligibility is therefore **unknown**, not zero; this run sent zero
-metadata queries and requested zero image bytes. Earlier representative probes
-remain illustrative only. Do not scale those probes or resume regional queries
-until the user explicitly approves the export of these bounding boxes.
+**Regional metadata approval and completed check — October 19:** the user
+explicitly approved up to 251 PA listing-derived bounding-box queries. The run
+completed all 251 listing records: 248 cached-or-new lookups plus 3 no-road
+cases. An initial transport failure stopped the first attempt after 22 outgoing
+requests; one cache-preserving resume sent 203. Total 225 outgoing requests,
+including the failed request, stayed within the approved 251 cap. No images or
+paid usage were requested. Attempt 1 evidence is retained alongside the final
+report, which records the combined authorization budget.
+
+The bounded road/radius reducer found 42/251 listings with at least 3 candidate
+images, 4 with 1–2, and 205 with none returned. Three searches hit the 200-record
+page cap, so counts are lower bounds; complete processing does not mean
+exhaustive imagery coverage. These metadata candidates are not quality-checked,
+selected, downloaded or segmented images. Across listing neighborhoods there
+are 1,294 distinct candidates; capture years span 2014–2024, dominated by 2018
+(735 images). None are contemporary with the 2025 satellite composite. A
+future image-selection policy must address age, sequence redundancy and
+orientation before any photographic comparison.
+
+Local spatial QA is
+`data/reports/qa/gvi_streetlevel_candidate_coverage_pa-mainline.png`; the final
+coverage report remains `data/reports/gvi_streetlevel_research_pa-mainline.json`.
 
 Successful segmentation remains **zero** and photographic GVI remains **null**.
 There are zero satellite/photographic pairs; correlation remains
@@ -182,10 +195,9 @@ awaits its exact Phase 8 road cache and does not justify substituting a differen
 source or extending coverage claims.
 
 The CLI additionally fails before database/source access when `--metadata` is
-requested without `--allow-listing-location-egress`. That flag is only for a
-future run after explicit user approval; adding a flag does not itself supply
-human approval or supersede the automatic-review rejection. The completed PA
-sampling run was followed by **12 passing spatial golden tests**.
+requested without `--allow-listing-location-egress`. The flag alone never supplies human approval. The October 19 approval
+authorizes this bounded PA metadata check; it does not extend to HV queries,
+photographs or inference. Spatial golden tests pass after completed coverage QA.
 
 ## Pinned metadata and offline mask reduction — 2026-10-19
 

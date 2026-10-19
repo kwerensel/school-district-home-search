@@ -19,6 +19,8 @@ imputed, and the corridor, tract threshold and three-day floor are unchanged.
 - Baseline:4505 listings; no district assignment or source listing change.
 - Tests:27 focused GVI,142 full pipeline/2 opt-in skipped,12 post-promote goldens;
   nine operator-context checks pass separately including live rollback fixture.
+- Post-promotion read-only Discovery integration passes:9 warmed data/finance/
+  ranking samples,26–89ms, with139/61/78 district counts preserved.
 
 Verification JSON is `data/reports/qa/gvi_pa_promotion_verification.json`.
 Local data artifacts remain gitignored. Hudson Valley source access remains
