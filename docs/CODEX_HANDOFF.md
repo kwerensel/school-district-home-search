@@ -64,6 +64,11 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   three-point minimum. Sampling QA/golden pass. A regional251-query metadata
   run was blocked by automatic approval review for precise-location egress;
   explicit user approval is pending and zero regional queries were sent.
+- Clean GitHub install caught the existing Nitro prerelease peer-range mismatch.
+  Project `.npmrc` now records the lockfile's `legacy-peer-deps=true` mode as
+  npm documents. Isolated fresh `npm ci`, all71 app tests and production build
+  pass without private environment files or changing resolved package versions.
+  Remote CI is being rechecked after the companion fix.
 - Current verification: app71 tests, TypeScript, lint0errors/6existing warnings
   and Cloudflare build pass; pipeline105 passed/1opt-in skipped, including live golden checks;
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete

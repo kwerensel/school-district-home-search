@@ -69,3 +69,12 @@ account but `groundtruth-home-search` does not yet exist there. This makes the
 next deployment a first release, not an update. Deployment itself remains an
 external-state action: it requires the production secret set and an explicit
 release checkpoint. A custom domain is optional for the first smoke release.
+
+## Reproducible dependency installation
+
+Run `npm ci` inside `app/`. The committed project `.npmrc` preserves the
+existing lockfile's legacy peer-resolution mode: the Vite wrapper's optional
+Nitro prerelease range otherwise rejects the tested pinned prerelease during
+a clean install. No resolved versions are changed by this setting. CI still
+runs all tests, lint, and the production build. This follows npm's guidance
+for [lockfiles created with peer-resolution flags](https://docs.npmjs.com/cli/v11/commands/npm-ci/).
