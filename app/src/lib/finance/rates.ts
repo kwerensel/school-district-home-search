@@ -3,6 +3,7 @@ import { DEFAULT_ANNUAL_RATE } from "./purchasing-power";
 export const PMMS_CSV_URL =
   "https://fred.stlouisfed.org/graph/fredgraph.csv?id=MORTGAGE30US&cosd=2025-01-01";
 export const RATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+export const FALLBACK_RATE_CACHE_TTL_MS = 60 * 1000;
 
 export type MortgageRateSource = "pmms" | "fallback" | "user";
 
@@ -49,7 +50,9 @@ export async function getMortgageRateAssumption({
   timeoutMs?: number;
 } = {}): Promise<MortgageRateAssumption> {
   const currentTime = now();
-  if (cachedRate && currentTime - cachedRate.fetchedAt < RATE_CACHE_TTL_MS) {
+  const cacheTtl =
+    cachedRate?.source === "fallback" ? FALLBACK_RATE_CACHE_TTL_MS : RATE_CACHE_TTL_MS;
+  if (cachedRate && currentTime - cachedRate.fetchedAt < cacheTtl) {
     const { fetchedAt: _fetchedAt, ...assumption } = cachedRate;
     return assumption;
   }
@@ -66,11 +69,15 @@ export async function getMortgageRateAssumption({
     cachedRate = { ...assumption, fetchedAt: currentTime };
     return assumption;
   } catch {
-    return {
+    const assumption: MortgageRateAssumption = {
       annualRate: DEFAULT_ANNUAL_RATE,
       source: "fallback",
       observationDate: null,
     };
+    // Avoid repeating the full upstream timeout on every warm request during
+    // an outage, while retrying much sooner than the successful-rate TTL.
+    cachedRate = { ...assumption, fetchedAt: currentTime };
+    return assumption;
   } finally {
     clearTimeout(timeout);
   }

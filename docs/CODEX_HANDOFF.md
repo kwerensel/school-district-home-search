@@ -61,6 +61,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   Radnor caps produce44 frozen listings, then16 at3+beds, confirmed independently
   in SQL. Mobile wizard→canonical results→shortlist→Explorer works. Details:
   `docs/qa/2026-10-18-discovery-acceptance.md`.
+- Warm Discovery verification now includes real Neon+finance+ranking and the
+  actual signed-out same-origin HTTP RPC. All nine HTTP samples return200,
+  private cache headers and139/61/78 district counts in27–32ms. Separate data
+  samples are24–87ms. Local only; browser rendering, commute and narratives
+  excluded. The PMMS outage fallback now caches for one minute before retrying
+  instead of repeating the upstream timeout on each warm request; value and
+  provenance unchanged. See `docs/qa/2026-10-19-discovery-performance.md`.
 - User approved **Geocodio free tier only**, then explicitly chose to leave it
   disabled until tomorrow. Adapter/UI/atomic1,000-per-day quota are implemented;
   migration012 installed; no provider request made. Key absent and flag off.
@@ -102,7 +109,8 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   district join, with retry/error states for saves/favorites. Missing auth
   configuration returns signed-out for optional session reads and fails closed
   for protected actions. See `docs/account-acceptance.md`.
-- Current verification: app76 tests/1deferred integration skipped, TypeScript, lint0errors/6existing warnings
+- Current verification: app77 tests/2opt-in integrations skipped, live read-only
+  Discovery timing check passed separately, TypeScript, lint0errors/6existing warnings
   and Cloudflare build pass; latest full pipeline116 passed/2opt-in skipped,
   including live golden checks; nine focused GVI tests pass after final QA fixes;
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete

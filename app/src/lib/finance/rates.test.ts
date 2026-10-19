@@ -5,6 +5,7 @@ import {
   getMortgageRateAssumption,
   parsePmmsCsv,
   RATE_CACHE_TTL_MS,
+  FALLBACK_RATE_CACHE_TTL_MS,
 } from "./rates";
 
 const csv = `observation_date,MORTGAGE30US
@@ -46,5 +47,27 @@ describe("PMMS mortgage-rate assumption", () => {
       source: "fallback",
       observationDate: null,
     });
+  });
+
+  it("briefly caches an outage fallback, then retries and recovers a fresh rate", async () => {
+    let attempts = 0;
+    const fetchImpl = vi.fn(async () => {
+      attempts++;
+      if (attempts === 1) throw new Error("offline");
+      return new Response(csv, { status: 200 });
+    });
+    let currentTime = 1000;
+    const first = await getMortgageRateAssumption({ fetchImpl, now: () => currentTime });
+    currentTime += FALLBACK_RATE_CACHE_TTL_MS - 1;
+    const second = await getMortgageRateAssumption({ fetchImpl, now: () => currentTime });
+    expect(first.source).toBe("fallback");
+    expect(second).toEqual(first);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    currentTime++;
+    const recovered = await getMortgageRateAssumption({ fetchImpl, now: () => currentTime });
+    expect(recovered.source).toBe("pmms");
+    expect(recovered.annualRate).toBe(0.0665);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
