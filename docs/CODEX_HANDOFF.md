@@ -13,8 +13,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; latest pushed checkpoints `f15523f` (saved-item hardening/
-  deferred account harness) and `a7450ea` (post-GVI model guards) pass GitHub CI.
+- Branch `main`; latest pushed checkpoint `ec06fac` prepares lease-scoped
+  staged-region enrichment; its GitHub CI passes. `f15523f` (saved-item
+  hardening/deferred account harness) and `a7450ea` (post-GVI model guards)
+  also pass GitHub CI.
   `8701f40` contains guided Discovery,
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
@@ -29,9 +31,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   no-road-corridor cases: nearest road159–169m away, outside100m+50m, zero
   corridor pixels; reducer/cloud checks pass. User review of an explicit
   Unknown/source-gap policy is pending; do not lower the gate or fill values.
-  Hudson Valley road retrieval hit repeated Overpass connection refusals;
-  bounded retry log: `/private/tmp/groundtruth-gvi-hv-retry.log`. Original log:
-  `/private/tmp/groundtruth-gvi-run.log`. Both-region validation/
+  Hudson Valley road retrieval is **externally blocked**: three primary and
+  two same-operator alias attempts were connection-refused; one documented
+  public OSM mirror attempt cached18,640,249bytes then returnedHTTP500. No
+  complete HVroadcache/composite/validation/staging exists; partial chunks
+  cannot support Phase11 regional sampling. No retries/processes remain active.
+  Evidence: `data/reports/gvi_source_access_hudson-valley_latest.json`; logs:
+  `/private/tmp/groundtruth-gvi-hv-{retry,alias,mirror}.log`. Both-region validation/
   QA/promote, paired green QA and the post-GVI model rebuild remain next.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
@@ -97,10 +103,17 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   configuration returns signed-out for optional session reads and fails closed
   for protected actions. See `docs/account-acceptance.md`.
 - Current verification: app76 tests/1deferred integration skipped, TypeScript, lint0errors/6existing warnings
-  and Cloudflare build pass; pipeline114 passed/2opt-in skipped, including live golden checks;
+  and Cloudflare build pass; latest full pipeline116 passed/2opt-in skipped,
+  including live golden checks; nine focused GVI tests pass after final QA fixes;
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
   acceptance stays deferred; Better Auth secret/Turnstile configuration remain
   missing. No pending labels approved and no production deployment performed.
+- Local GVI implementation/CLI wiring/tests and paired/local QA helpers remain
+  intentionally uncommitted while its strict staged-data gate is red. Preserve
+  these files. The source packet/manifest record the evidence and blockers;
+  they do not imply promotion readiness. First blocking audit: source access,
+  explicit source-gap policy, migration013 and Mapillary-egress decisions are
+  pending. Post-GVI rebuild and full account acceptance remain deferred.
 
 ## 2. Current Phase Or Feature Area
 

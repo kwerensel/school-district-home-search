@@ -1,0 +1,29 @@
+metric_key: gvi_ndvi_street
+name: Street-adjacent satellite greenness
+source: Copernicus Sentinel-2 Collection 1 Level-2A via Element 84 Earth Search, masked to OpenStreetMap road corridors
+source_urls:
+  - https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a
+  - https://registry.opendata.aws/sentinel-2-l2a-cogs/
+  - https://www.openstreetmap.org/copyright
+vintage: "2025-summer"
+units: ndvi
+direction: higher_better
+native_resolution: 10m
+allowed_range: [-1, 1]
+reduction_method: zonal_mean
+coverage_threshold: 0.99
+grains:
+  - both
+listing_reductions:
+  - buffer_100m
+  - buffer_500m
+notes: >
+  Build a deterministic summer median from Sentinel-2 Collection 1 Level-2A
+  red and near-infrared 10 m COG assets. Mask cloud, cloud shadow, cirrus,
+  saturated, defective, and snow pixels using the 20 m Scene Classification
+  Layer before calculating NDVI. Restrict valid NDVI pixels to a 50 m buffer
+  around the cached OpenStreetMap road network, then reduce to census-tract
+  means and listing 100 m / 500 m buffer means. This is a reproducible
+  satellite proxy for street-adjacent vegetation, not a literal eye-level
+  photograph or address-specific assertion. Store geometry in EPSG:4326 and
+  use an appropriate projected CRS for meter buffers.
