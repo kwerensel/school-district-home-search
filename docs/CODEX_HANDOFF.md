@@ -26,25 +26,27 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
-- Satellite GVI is staged for PA and blocked for HV, **not promoted**. Fixed 2025 summer,
+- PA satellite GVI is **promoted**, HV remains blocked. Fixed 2025 summer,
   max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
   three-day floor and exact-shape 50 m OSM corridors are implemented. PA has
-  36 selected scenes/128 candidates, 206,731 deduplicated road geometries and
-  a 9,736 × 8,240 10 m composite. PA staged validation is **not promotable**:
-  495/495 tracts and251/251 500m listing buffers are complete, but100m buffers
-  are missing for listings159/161/214. Exact source QA confirms genuine
-  no-road-corridor cases: nearest road159–169m away, outside100m+50m, zero
-  corridor pixels; reducer/cloud checks pass. User review of an explicit
-  Unknown/source-gap policy is pending; do not lower the gate or fill values.
-  Hudson Valley road retrieval is **externally blocked**: three primary and
-  two same-operator alias attempts were connection-refused; one documented
-  public OSM mirror attempt cached18,640,249bytes then returnedHTTP500. No
-  complete HVroadcache/composite/validation/staging exists; partial chunks
-  cannot support Phase11 regional sampling. No retries/processes remain active.
-  Evidence: `data/reports/gvi_source_access_hudson-valley_latest.json`; logs:
-  `/private/tmp/groundtruth-gvi-hv-{retry,alias,mirror}.log`. PA paired/local QA
-  is complete. HV coverage/QA, both-region promotion and the post-GVI model
-  rebuild remain next, subject to the gates above.
+  36 selected scenes/128 candidates, 206,731 road geometries and a 9,736×8,240
+  composite. On October19 the user approved genuine source gaps as Unknown.
+  Fresh staging/validation is promotable:495/495 tracts,251/251 500m buffers,
+  248/251 100m buffers plus three proven no-road Unknowns (159/161/214).
+  Diagnostics must match missing ID/grain pairs uniquely, prove absent
+  intersection/zero pixels and account for every buffer; cloud/reducer/bounds
+  failures remain red. No zero/imputation/corridor change. Fresh tract,
+  paired/divergence, same-street and missing-source QA passed visual review;
+  explicit `gt promote --report layer_gvi_ndvi_street_pa-mainline_latest.json`
+  completed and refreshed district rollups. Public verification:495 tract,
+  499 listing-buffer values,61 district divergence values,4505 frozen listings.
+  Twelve post-promotion spatial goldens pass. Evidence:
+  `docs/qa/2026-10-19-gvi-pa-promotion.md`.
+  HV still lacks complete roads/composite/validation; partial OSM cache cannot
+  support regional claims. Current source health:primary HTTP406, existing
+  mirror HTTP500. Existing retry/cache evidence remains in
+  `data/reports/gvi_source_access_hudson-valley_latest.json`. Both-region
+  completion and the post-GVI model rebuild remain blocked on source access.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
   A fixed invoker-rights input function avoids a dependency blocking the
@@ -89,12 +91,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   passes; frozen4505 baseline and public readers are unchanged. Actual provider,
   terms, credits, sender/telephony and administrator identity remain gates.
   Region enrichment before new scaffold promotion is recorded in `docs/operator.md`.
-- Guarded staged-region readers/worker/migration013 are rollback-verified
-  (8tests, including003→013→013→003 replay, absent/expired/revoked context
-  refusal and unchanged public staging). **Migration013 is not installed**:
-  automatic approval review rejected the shared-schema mutation before
-  execution and requires direct human authorization. User approval is pending;
-  do not retry or apply indirectly until it arrives. No public rows changed.
+- User explicitly approved migration013 on October19. The exact reviewed file
+  is now installed in Neon with bounded lock/statement timeouts. Scope guard
+  is enabled and old staging/public FK absent. All counts stayed unchanged:
+  4505 listings,17409 staged region metrics,81579 staged listing metrics,
+  zero operator roles/jobs. Nine context tests pass including live rollback
+  replay/lease/role/context checks. Operator remains off; no grants or baseline
+  registration. See `docs/operator.md`.
 - A rollback fixture's DDL lock temporarily blocked browser reads. It was
   released; corrected tests run golden before DDL and coordinate short lock
   windows. No application data changed.
@@ -103,9 +106,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   nulls. Metadata-only probes succeeded; no image bytes/inference. Heavy
   torch/transformers approval, exact checkpoint rights and image-use evidence
   still gate segmentation. PA offline sampling produced1,237 points across251 listings;247 meet the
-  three-point minimum. Sampling QA/golden pass. A regional251-query metadata
-  run was blocked by automatic approval review for precise-location egress;
-  explicit user approval is pending and zero regional queries were sent.
+  three-point minimum. Sampling QA/golden pass. The user explicitly approved the regional251-query metadata check on
+  October19. It is running with cached successes, a total251-request cap and
+  no image downloads. First transport failure stopped after22 requests/21
+  successes; one resume is bounded to the remaining229 requests.
 - Phase11 now also has a pure NumPy semantic-mask reducer: explicit vegetation
   metadata, full valid semantic-pixel denominator, unknown-class refusal and
   void-only missing values. Seventeen research tests pass. Public README/class/
@@ -126,24 +130,19 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   for protected actions. See `docs/account-acceptance.md`.
 - Current verification: app79 tests/2opt-in integrations skipped, live read-only
   Discovery timing check passed separately, TypeScript, lint0errors/6existing warnings
-  and Cloudflare build pass; latest full pipeline124 passed/2opt-in skipped,
-  including live golden checks; nine focused GVI tests pass after final QA fixes;
+  and Cloudflare build pass; latest full pipeline142 passed/2opt-in skipped,
+  including live golden checks;27 focused GVI tests pass including source-gap
+  accounting/failure refusals;
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
   acceptance stays deferred; Better Auth secret/Turnstile configuration remain
   missing. No pending labels approved and no production deployment performed.
-- Local GVI implementation/CLI wiring/tests and paired/local QA helpers remain
-  intentionally uncommitted while its strict staged-data gate is red. Preserve
-  these files. The source packet/manifest record the evidence and blockers;
-  they do not imply promotion readiness. Blocking audit3: source access,
-  explicit source-gap policy, migration013 and Mapillary-egress decisions are
-  still pending across three consecutive goal turns. All source agents are
-  terminal, latest implementation CI is green, and the Geocodio key/gate remain
-  absent/off. No further approved implementation can proceed without user
-  input or source recovery; retain the full goal scope. Latest unblocked work
-  completed rate/performance and mask/metadata work. Read-only verification confirms4505 listings,
-  zero promoted GVI rows, zero operator roles/jobs/baseline members/private
-  pointers and013guard absent. Geocodio key/gate are still absent/off.
-  Post-GVI rebuild and full account acceptance remain deferred.
+- GVI implementation/CLI/QA helpers are ready for a green checkpoint after PA
+  promotion; the former strict source-gap gate is resolved by explicit user
+  approval and fresh validated evidence. Remaining gates:HV OSM availability,
+  photographic inference dependency/rights review, deferred Geocodio key,
+  post-GVI rebuild/label review and full account acceptance. Production remains
+  excluded. Preserve roadmap scope; do not infer complete Phase8/9 from PA-only
+  promotion or candidate metadata coverage.
 
 ## 2. Current Phase Or Feature Area
 
@@ -1293,29 +1292,25 @@ the Phase 8 build path remains stable.
 
 Next actions, in order:
 
-1. Implement, stage, validate, QA-render, and explicitly promote the approved
-   Phase 8 `gvi_ndvi_street` layer for both regions and supported listing
-   buffers. Add and verify the derived `green_divergence` signal and wire both
-   into the resolution-honest app surfaces.
-2. Rebuild the versioned HDBSCAN archetype model after GVI is live, inspect the
-   assignments, generate pending Claude labels, and explicitly approve product
-   copy only after review. Finish the guarded narrative endpoint/cache and
-   comparison UI.
-3. Complete the remaining Phase 10 app functionality: the guided Discovery
-   flow, up to two request-time commute anchors, comparison drawer, shortlist
-   handoff, and mobile end-to-end QA.
-4. Complete the Phase 11 Mapillary/segmentation GVI research track, including
-   coverage counts and correlation against the satellite proxy. Sparse
-   street-level coverage must retain the satellite-estimate fallback label.
-5. Build the private operator track described below. Preserve the frozen
-   listing dataset until a provider, terms, credit budget, and versioning
-   policy are explicitly approved; scaffold provider-neutral dry runs first.
-6. Finish the already-started Phase 12 Better Auth, Resend, Turnstile, saved
-   profile, favorite, password-reset, and delete-account acceptance journey.
-   Accounts remain an optional save layer and never gate signed-out use.
-7. Configure Cloudflare production secrets, deploy the first Worker, and run
-   the documented signed-out and account-enabled smoke journeys. A custom
-   domain remains optional for the initial release.
+1. Recover Hudson Valley OSM access using the existing approved source/cache,
+   then stage, validate, QA and explicitly promote HV satellite GVI. PA is
+   already promoted with the approved three Unknowns. Never treat incomplete
+   HV road chunks as complete support. Derived green views/app wiring exist.
+2. Once both regions pass, rebuild the post-GVI HDBSCAN model, inspect results,
+   generate pending Claude labels and request human copy review. Phase10 guided
+   Discovery, commute anchors, comparison, shortlist and mobile QA are complete.
+3. Finish the bounded, explicitly approved PA metadata check. Photographic
+   inference still needs dependency/imagery/model-rights approval; do not claim
+   candidate images are successful segmentation or invent correlation. HV
+   sampling requires its complete road cache.
+4. Operator foundation, guarded staging and migration013 are complete. Actual
+   use remains gated on administrator identity, approved provider/terms/credits
+   and activation. No public baseline refresh or external outreach is approved.
+5. Add the deferred free-tier Geocodio key when supplied; keep paid usage off.
+   Full account/reset/delete acceptance remains last and needs missing auth/
+   Turnstile configuration. Preserve the existing optional-save scaffold.
+6. Production deployment remains outside this autonomous goal. Configure and
+   deploy only when the user explicitly resumes that release step.
 
 ### Private operator track: listings, regions, and attendance zones
 

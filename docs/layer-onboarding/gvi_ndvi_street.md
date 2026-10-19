@@ -67,8 +67,8 @@ validation report or adjacent cached request manifest.
 
 - At least 99% tract coverage in both project regions.
 - Complete 100 m and 500 m listing-buffer coverage unless a report identifies
-  a genuine no-road/no-valid-pixel case for review; never silently impute a
-  missing listing value.
+  a verified absent-road-corridor case under the user-approved October 19
+  Unknown policy below; never silently impute a missing listing value.
 - Values finite and inside `[-1, 1]`.
 - QA maps for both regions plus a paired canopy-versus-street-NDVI view and a
   divergence view.
@@ -97,8 +97,9 @@ The first full PA run selected 36 unique tile/day scenes from 128 candidates
 (across four MGRS tiles), with source and target CRS verified as EPSG:32618.
 It produced 495/495 tract means, 251/251 listing 500 m means, and 248/251
 listing 100 m means; all values are finite in 0.1631–0.8836. Valid composite
-coverage is 99.72% of rasterized road-corridor pixels. The report remains
-`promotable: false`: complete listing 100 m coverage is still the active gate.
+coverage is 99.72% of rasterized road-corridor pixels. The original report
+was not promotable under the complete-listing gate. A fresh run after the
+October 19 policy approval is promotable with three explicit Unknowns.
 
 Three frozen listing points have no geometric support from the cached OSM
 `drive` road network within their 100 m buffer plus the 50 m corridor width:
@@ -112,8 +113,15 @@ Three frozen listing points have no geometric support from the cached OSM
 Each has a valid 500 m value. These are also exactly the three listings with no
 Phase 11 road samples within 150 m. This is a source-support limitation relative
 to the cached drive network, not a cloud-mask or zonal-reducer failure. No
-value is imputed, corridor widened, gate lowered, or promotion authorized.
-Unknown-value policy remains a separate explicit review decision.
+value is imputed or corridor widened. On October 19 the user explicitly
+approved preserving genuine source gaps as Unknown. The revised validator
+requires unique, exact ID/grain diagnostic matching and complete accounting
+for both buffers: computed plus explicit Unknown equals expected listings.
+Accepted gaps must prove absent geometric intersection, nearest road beyond
+buffer radius plus 50 m, and zero corridor/observation pixels. Cloud gaps,
+outside-raster buffers, missing diagnostics and reducer inconsistencies remain
+blocking. The 99% tract, finite/range, and three-valid-day gates are unchanged.
+The old red report was replaced by a fresh staging/validation run, not edited.
 
 The first cached report used the field name `cloud_mask_invalid_fraction`
 (0.8479); it includes source nodata/out-of-tile cells across every selected
@@ -162,3 +170,14 @@ Exact retry counts and retained-cache evidence are recorded in
 approved source from its cached chunks after service recovery. No additional
 mirrors, repeated unbounded requests, corridor changes, or gate changes are
 currently authorized by this source-recovery episode.
+
+## PA promotion checkpoint — October 19
+
+The freshly generated promotable report, standard and detailed QA PNGs, 142
+passing pipeline tests and visual source-gap review preceded the separate
+explicit promote command. Public verification found 495 tract values
+(0.16306–0.79483), 248 100 m values (0.16960–0.88358), 251 500 m values
+(0.37025–0.80994), and exactly missing 100 m IDs 159/161/214. The live derived
+views contain 61 PA district and 499 matching listing-buffer comparisons.
+Twelve post-promotion golden checks pass. No HV GVI is live; no archetype
+rebuild or photographic GVI is implied by this regional checkpoint.

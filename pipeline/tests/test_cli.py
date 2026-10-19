@@ -247,6 +247,21 @@ def test_noise_source_manifests_validate() -> None:
         assert key in result.output
 
 
+def test_gvi_ndvi_street_manifest_validates() -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "manifest",
+            "validate",
+            "layer",
+            "manifests/layers/gvi_ndvi_street.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "gvi_ndvi_street" in result.output
+
+
 def test_layer_runner_accepts_noise_source_keys_before_database_work(monkeypatch) -> None:
     monkeypatch.delenv("DATABASE_URL", raising=False)
     keys = (

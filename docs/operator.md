@@ -1,10 +1,10 @@
 # Private operator track
 
 Status: the operator foundation in `sql/migrations/011_operator.sql` is installed
-in Neon. Migration 013 prepares the guarded staged-region metric path described below.
-It is rollback-verified but **not installed**: automatic approval review rejected
-its durable application before execution and requires direct human approval
-for the shared-database schema change. No workaround or retry was attempted.
+in Neon. Migration 013 is installed for the guarded staged-region metric path described below.
+The user explicitly authorized the shared-schema change on October 19 after
+automatic review requested direct approval. Installation and rollback
+verification pass.
 The operator feature flag remains off, administrator roles remain zero, and the
 4,505-listing baseline has not been registered, refreshed or overwritten.
 No real expansion job, attendance import, provider fetch, email or call has run.
@@ -128,7 +128,7 @@ region groups remain public; listings are never shadowed or fabricated.
 Deterministic negative scratch region IDs exist only inside the temporary views,
 while metric writes continue to use source slugs.
 
-Once explicitly approved and installed, migration 013 corrects the original staging table's premature FK to public
+Migration 013 corrects the original staging table's premature FK to public
 `regions`: staging must be possible before public geometry exists. A constraint
 trigger accepts an exact existing public `(region_group, slug)` on the ordinary
 path, or a matching staged pair plus trusted connection-local job/worker/actor
@@ -297,26 +297,18 @@ migration sequence finishes with 013. The guarded staging constraint and cleanup
 triggers themselves are rerunnable.
 
 
-### Current migration 013 gate
+### Migration 013 installed — October 19
 
-A read-only post-rejection check confirms the original staging FK is still
-present and the new scope trigger is absent. Live counts are 4,505 listings,
-17,409 staged region metrics and 81,579 staged listing metrics. Administrators,
-operator jobs, registered baseline members and private dataset pointers are all
-zero. The operator flag remains off. These counts describe the check time;
-approved ingestion jobs may subsequently change staging metric counts.
-The local evidence is `data/reports/operator_migration_013_gate.json`.
+The user directly authorized migration 013 after automatic review requested
+human approval. The exact reviewed file was applied in one transaction with
+5-second lock and 30-second statement timeouts. The scope trigger is installed
+and enabled; the old public-region FK is absent. Before/after counts matched:
+4,505 listings, 17,409 staged region metrics, 81,579 staged listing metrics,
+zero operator roles and zero jobs. The operator flag remains off; no admin,
+baseline registration or private pointer was created.
 
-The 003 → 013 → 003 rollback fixture passed all eight tests in 3.17 seconds,
-including correction rerun, unchanged public staging, scope/lease/role refusals,
-negative scratch IDs, tax overlap mapping and staged-deletion cleanup. All test
-DDL/data rolled back and the connection closed. The normal Neon-backed full
-suite passed 114 tests with two opt-in fixtures skipped. Source data jobs and
-public behavior remain on the existing schema; genuinely new-region metric
-staging must stay blocked until the user explicitly authorizes migration 013.
-Do not run a different command or a parent task to circumvent that rejection.
-
-The staged connection helper also checks that migration 013's SQL scope guard
-is installed and enabled before source work. It fails closed at that preflight
-while the migration gate is pending, so a job cannot waste external source
-requests and discover the missing schema only at the final staging insert.
+Nine focused context tests pass, including the opt-in live rollback fixture
+for 003 → 013 → 013 → 003 replay, lease/role/context refusals and staged
+cleanup. All test DDL/data rolled back. Staged ingestion still preflights the
+installed guard and requires a trusted, active administrator worker lease.
+This approval did not authorize operator activation or a new provider.
