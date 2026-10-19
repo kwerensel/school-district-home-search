@@ -195,6 +195,8 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         WHERE ra.region_id = d.id
           AND a.label_status = 'approved'
           AND am.status = 'ready'
+          AND am.metric_keys ? 'gvi_ndvi_street'
+          AND am.silhouette >= 0.25
         ORDER BY am.created_at DESC, am.model_version DESC
         LIMIT 1
       ) archetype ON true

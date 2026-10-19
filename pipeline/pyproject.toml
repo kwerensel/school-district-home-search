@@ -16,6 +16,7 @@ dependencies = [
   "rasterstats",
   "shapely",
   "typer",
+  "hdbscan>=0.8.44",
 ]
 
 [project.scripts]

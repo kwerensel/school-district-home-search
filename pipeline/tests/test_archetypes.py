@@ -7,6 +7,7 @@ from gt.archetypes import (
     percentile_normalize,
     _parse_label_response,
     select_kmeans,
+    select_hdbscan,
     silhouette_score,
 )
 
@@ -52,6 +53,21 @@ def test_select_kmeans_uses_stable_smallest_k_tie_break() -> None:
     assert score > 0.8
 
 
+def test_hdbscan_fallback_is_deterministic_and_assigns_noise() -> None:
+    rng = np.random.default_rng(11)
+    matrix = np.vstack(
+        [rng.normal(center, 0.015, size=(12, 2)) for center in (0.1, 0.35, 0.65, 0.9)]
+        + [np.array([[0.5, 0.05], [0.5, 0.95]])]
+    )
+    first = select_hdbscan(matrix)
+    second = select_hdbscan(matrix)
+
+    assert np.array_equal(first[0], second[0])
+    assert np.all(first[0] >= 0)
+    assert 4 <= first[3] <= 9
+    assert first[6] >= 0
+
+
 def test_distinguishing_metrics_emits_five_structured_features() -> None:
     centroid = np.full((1, len(METRIC_KEYS)), 0.5)
     centroid[0, 0] = 0.95
@@ -69,3 +85,40 @@ def test_label_response_parser_accepts_json_fence_and_rejects_bad_shape() -> Non
     )
     assert label == "Quiet Green Suburb"
     assert description.startswith("Leafier districts")
+
+
+def test_noise_assignment_preserves_core_members_even_when_centroids_are_closer():
+    from gt.archetypes import assign_hdbscan_noise
+    # A density-connected member at 9 remains in cluster 2 despite proximity
+    # to cluster 7's centroid. Only -1 is eligible for extension.
+    matrix = np.array([[0.0], [9.0], [10.0], [11.0], [10.5]])
+    labels = assign_hdbscan_noise(matrix, np.array([2, 2, 7, 7, -1]))
+    assert labels.tolist() == [0, 0, 1, 1, 1]
+
+
+def test_unchanged_rebuild_preserves_reviewed_labels():
+    from unittest.mock import MagicMock
+    from gt.archetypes import _persist_model
+    conn = MagicMock()
+    cur = conn.cursor.return_value.__enter__.return_value
+    cur.fetchone.return_value = (1,)
+    _persist_model(conn,'existing-version',[1],np.array([0]),np.array([[0.5]]),
+                   np.array([0.0]),0.4,[])
+    statements = [call.args[0] for call in cur.execute.call_args_list]
+    assert statements and all('SELECT' in statement for statement in statements)
+    cur.executemany.assert_not_called()
+
+
+def test_label_resolution_guards_even_an_explicit_pre_gvi_version():
+    from unittest.mock import MagicMock
+    import pytest
+    from gt.archetypes import _resolve_model_version
+    conn = MagicMock()
+    cur = conn.cursor.return_value.__enter__.return_value
+    cur.fetchone.return_value = None
+    with pytest.raises(RuntimeError,match='post-GVI'):
+        _resolve_model_version(conn,'pre-gvi-version')
+    query,params = cur.execute.call_args.args
+    assert "metric_keys ? 'gvi_ndvi_street'" in query
+    assert 'silhouette >= %s' in query
+    assert params == (0.25,'pre-gvi-version','pre-gvi-version')

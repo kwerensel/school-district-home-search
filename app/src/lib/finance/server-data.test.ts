@@ -28,6 +28,7 @@ describe("finance server data", () => {
 
   it("builds effective-tax district SQL with optional region filtering", () => {
     const fragment = buildDistrictTaxRateSql({ regionGroup: "hudson-valley" });
+    expect(fragment.text).toContain("am.metric_keys ? 'gvi_ndvi_street'");
 
     expect(fragment.values[1]).toBe("hudson-valley");
     expect(fragment.text).toContain("FROM district_metrics dm");

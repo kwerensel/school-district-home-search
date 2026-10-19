@@ -21,9 +21,12 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
   three-day floor and exact-shape 50 m OSM corridors are implemented. PA has
   36 selected scenes/128 candidates, 206,731 deduplicated road geometries and
-  a 9,736 × 8,240 10 m composite in progress. Log:
-  `/private/tmp/groundtruth-gvi-run.log`. Both-region validation/QA/promote,
-  paired green QA and the post-GVI model rebuild remain next.
+  a 9,736 × 8,240 10 m composite. PA staged validation is **not promotable**:
+  495/495 tracts and251/251 500m listing buffers are complete, but100m buffers
+  are missing for listings159/161/214. Diagnose source corridor/reduction
+  coverage; do not lower the gate or fill values. Hudson Valley ingestion is
+  running. Log: `/private/tmp/groundtruth-gvi-run.log`. Both-region validation/
+  QA/promote, paired green QA and the post-GVI model rebuild remain next.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
   A fixed invoker-rights input function avoids a dependency blocking the
@@ -35,6 +38,12 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   two-district comparison and guarded/cache-resilient narratives. Scoring uses
   empirical percentiles with fair ties. GVI enters green only with complete
   promoted finite coverage; divergence never scores.
+- Post-GVI archetype scaffolding preserves density-cluster core assignments
+  and extends only noise points to the nearest core centroid. Rebuilds require
+  promoted GVI coverage and a complete-partition silhouette>=0.25. Explicit
+  pre-GVI label requests and public pre-GVI label reads are refused; repeated
+  identical builds preserve reviewed copy. No post-GVI build or label approval
+  has occurred.
 - Signed-out desktop and390×844 browser QA passed: public Center City45min cap
   yields27 PA districts; comparison returns trusted differences; Lower Merion/
   Radnor caps produce44 frozen listings, then16 at3+beds, confirmed independently
