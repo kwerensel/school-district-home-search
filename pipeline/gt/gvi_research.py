@@ -2,6 +2,7 @@
 
 Inputs are frozen listing points and the cached Phase 8 EPSG:4326 OSM roads.
 All distance work uses EPSG:5070; emitted point coordinates remain EPSG:4326.
+Semantic-mask reduction accepts explicit class metadata without loading a model.
 """
 from __future__ import annotations
 
@@ -161,6 +162,60 @@ def image_coverage(
          "coverage_eligible": len(found[value]) >= minimum_images}
         for value in ids
     ]
+
+
+def vegetation_fraction_from_mask(
+    class_mask: np.ndarray,
+    id_to_label: Mapping[int | str, str],
+    *,
+    ignored_class_ids: Iterable[int] = (),
+) -> dict[str, Any]:
+    """Reduce an already-produced semantic mask; no model or image access.
+
+    The caller must supply the approved checkpoint's actual class metadata.
+    Require one explicit vegetation class rather than guessing an index.
+    Only undeclared nodata/padding labels may be ignored: excluding a semantic
+    class such as road or sky would change the vegetation-fraction denominator.
+    """
+    if np.ma.isMaskedArray(class_mask):
+        raise ValueError("Use explicit ignored class ids instead of an implicit array mask")
+    mask = np.asarray(class_mask)
+    if mask.ndim != 2 or not mask.size or not np.issubdtype(mask.dtype, np.integer):
+        raise ValueError("Require a nonempty two-dimensional integer semantic mask")
+    labels: dict[int, str] = {}
+    for key, label in id_to_label.items():
+        if isinstance(key, str) and key.isascii() and key.isdigit():
+            class_id = int(key)
+        elif isinstance(key, (int, np.integer)) and not isinstance(key, (bool, np.bool_)):
+            class_id = int(key)
+        else:
+            raise ValueError("Class metadata needs nonnegative integer ids")
+        if class_id < 0 or class_id in labels or not isinstance(label, str) or not label.strip():
+            raise ValueError("Class metadata is invalid or has duplicate ids")
+        labels[class_id] = label.strip().casefold()
+    vegetation_ids = [key for key, label in labels.items() if label == "vegetation"]
+    if len(vegetation_ids) != 1:
+        raise ValueError("Exactly one explicit vegetation class is required")
+    ignored: set[int] = set()
+    for value in ignored_class_ids:
+        if not isinstance(value, (int, np.integer)) or isinstance(value, (bool, np.bool_)):
+            raise ValueError("Ignored class ids must be integers")
+        ignored.add(int(value))
+    if ignored & labels.keys():
+        raise ValueError("Cannot ignore a declared semantic class")
+    if set(int(value) for value in np.unique(mask)) - labels.keys() - ignored:
+        raise ValueError("Mask contains class ids absent from the explicit metadata/ignore contract")
+    valid = ~np.isin(mask, list(ignored))
+    valid_count = int(valid.sum())
+    vegetation_count = int((mask == vegetation_ids[0]).sum())
+    return {
+        "vegetation_fraction": vegetation_count / valid_count if valid_count else None,
+        "vegetation_class_id": vegetation_ids[0],
+        "vegetation_pixel_count": vegetation_count,
+        "valid_pixel_count": valid_count,
+        "ignored_pixel_count": int(mask.size) - valid_count,
+        "total_pixel_count": int(mask.size),
+    }
 
 
 def aggregate_segmented_images(

@@ -1,12 +1,13 @@
 import json
 
 import geopandas as gpd
+import numpy as np
 import pytest
 from shapely.geometry import LineString, Point
 
 from gt.gvi_research import (
     RoadSample, aggregate_segmented_images, image_coverage, mapillary_coverage,
-    paired_correlation, sample_listing_roads,
+    paired_correlation, sample_listing_roads, vegetation_fraction_from_mask,
 )
 
 
@@ -56,6 +57,52 @@ def test_segmentation_count_is_successful_unique_images_not_metadata_count():
     assert aggregate_segmented_images({"a": .2, "b": .4, "c": .6})["gvi_streetlevel"] == pytest.approx(.4)
     with pytest.raises(ValueError):
         aggregate_segmented_images({"a": float("nan")})
+
+
+def test_vegetation_fraction_uses_explicit_checkpoint_class_metadata():
+    # Deliberately not Cityscapes' usual class index: no magic index is assumed.
+    result = vegetation_fraction_from_mask(
+        np.array([[17, 0], [5, 17]]), {"0": "road", "5": "sky", "17": "Vegetation"},
+    )
+    assert result == {"vegetation_fraction": .5, "vegetation_class_id": 17,
+                      "vegetation_pixel_count": 2, "valid_pixel_count": 4,
+                      "ignored_pixel_count": 0, "total_pixel_count": 4}
+    assert vegetation_fraction_from_mask(np.zeros((2, 2), dtype=int), {0: "road", 17: "vegetation"})["vegetation_fraction"] == 0
+
+
+def test_void_only_masks_do_not_become_successful_zero_green_images():
+    partial = vegetation_fraction_from_mask(
+        np.array([[17, 255], [0, 255]]), {0: "road", 17: "vegetation"}, ignored_class_ids=[255],
+    )
+    assert partial["vegetation_fraction"] == .5
+    assert partial["valid_pixel_count"] == 2 and partial["ignored_pixel_count"] == 2
+    result = vegetation_fraction_from_mask(
+        np.full((2, 3), 255, dtype=np.uint8), {0: "road", 17: "vegetation"}, ignored_class_ids=[255],
+    )
+    assert result["vegetation_fraction"] is None
+    assert result["valid_pixel_count"] == 0 and result["ignored_pixel_count"] == 6
+    aggregate = aggregate_segmented_images({"void-image": result["vegetation_fraction"]})
+    assert aggregate["gvi_streetlevel_n_images"] == 0 and aggregate["gvi_streetlevel"] is None
+
+
+@pytest.mark.parametrize("mask", [np.zeros((2, 2, 3), dtype=int), np.zeros((0, 2), dtype=int),
+                                   np.zeros((2, 2), dtype=float), np.ma.array([[0]], mask=True)])
+def test_vegetation_fraction_rejects_logits_rgb_empty_or_implicit_masks(mask):
+    with pytest.raises(ValueError):
+        vegetation_fraction_from_mask(mask, {0: "road", 17: "vegetation"})
+
+
+def test_vegetation_fraction_refuses_unknown_taxonomy_and_denominator_changes():
+    with pytest.raises(ValueError, match="Exactly one"):
+        vegetation_fraction_from_mask(np.array([[0]]), {0: "tree"})
+    with pytest.raises(ValueError, match="Exactly one"):
+        vegetation_fraction_from_mask(np.array([[0]]), {0: "vegetation", 1: "vegetation"})
+    with pytest.raises(ValueError, match="absent"):
+        vegetation_fraction_from_mask(np.array([[255]]), {0: "road", 17: "vegetation"})
+    with pytest.raises(ValueError, match="Cannot ignore"):
+        vegetation_fraction_from_mask(np.array([[0, 17]]), {0: "road", 17: "vegetation"}, ignored_class_ids=[0])
+    with pytest.raises(ValueError, match="duplicate"):
+        vegetation_fraction_from_mask(np.array([[0]]), {0: "road", "0": "road", 17: "vegetation"})
 
 
 def test_correlation_is_paired_and_honest_without_inference():

@@ -1,0 +1,80 @@
+{
+  "configured_ignore_label": null,
+  "evidence_scope": [
+    "public_model_metadata",
+    "model_card",
+    "class_configuration",
+    "preprocessor_configuration"
+  ],
+  "id2label": {
+    "0": "road",
+    "1": "sidewalk",
+    "10": "sky",
+    "11": "person",
+    "12": "rider",
+    "13": "car",
+    "14": "truck",
+    "15": "bus",
+    "16": "train",
+    "17": "motorcycle",
+    "18": "bicycle",
+    "2": "building",
+    "3": "wall",
+    "4": "fence",
+    "5": "pole",
+    "6": "traffic light",
+    "7": "traffic sign",
+    "8": "vegetation",
+    "9": "terrain"
+  },
+  "model_card_license": "other",
+  "model_card_license_reference": "https://github.com/NVlabs/SegFormer/blob/master/LICENSE",
+  "model_id": "nvidia/segformer-b0-finetuned-cityscapes-1024-1024",
+  "preprocessor": {
+    "do_normalize": true,
+    "do_resize": true,
+    "feature_extractor_type": "SegformerFeatureExtractor",
+    "image_mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "image_std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "reduce_labels": false,
+    "resample": 2,
+    "size": 512
+  },
+  "remaining_gates": [
+    "dependency_approval",
+    "research_vs_product_use_review",
+    "imagery_api_retention_attribution_evidence",
+    "explicit_resize_and_label_alignment_policy",
+    "runtime_budget"
+  ],
+  "reviewed_on": "2026-10-19",
+  "revision": "21b3847fae21ddee674abd31129307b6a1235bd9",
+  "source_files": {
+    "README.md": {
+      "bytes": 3136,
+      "sha256": "18368aca55f8673835edd57521a353b31365f576a145c6b040bd24753dff8cf6",
+      "url": "https://huggingface.co/nvidia/segformer-b0-finetuned-cityscapes-1024-1024/resolve/21b3847fae21ddee674abd31129307b6a1235bd9/README.md"
+    },
+    "config.json": {
+      "bytes": 1680,
+      "sha256": "649ba4afbaa11ee730b14ad5e31bd50f2e2d5be661a291e31a91512510dba8d9",
+      "url": "https://huggingface.co/nvidia/segformer-b0-finetuned-cityscapes-1024-1024/resolve/21b3847fae21ddee674abd31129307b6a1235bd9/config.json"
+    },
+    "preprocessor_config.json": {
+      "bytes": 272,
+      "sha256": "d96ab2cb112985c19d5ea32f1d1f2369104fc78b1379f5ce26e33ca8646202a7",
+      "url": "https://huggingface.co/nvidia/segformer-b0-finetuned-cityscapes-1024-1024/resolve/21b3847fae21ddee674abd31129307b6a1235bd9/preprocessor_config.json"
+    }
+  },
+  "status": "reference_only_not_enabled_for_inference",
+  "training_dataset_terms": "https://www.cityscapes-dataset.com/license/",
+  "weights_or_images_included": false
+}

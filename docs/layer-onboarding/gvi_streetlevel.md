@@ -92,10 +92,12 @@ Do not assert a presumed r > 0.7.
 
 1. `torch` and `transformers` are not installed in `pipeline/.venv`. Installing
    these heavy new dependencies needs approval under AGENTS.md. No packages or
-   checkpoint files were downloaded for this scaffold.
-2. A precise checkpoint revision, weights license, permissible research versus
-   product use, model class mapping, image resize policy and device/runtime
-   budget must be fixed before inference. Noncommercial upstream source rights
+   weight files were downloaded for this scaffold. Public text/JSON evidence
+   was subsequently inspected as recorded below.
+2. A candidate revision and its class/preprocessor metadata are now pinned
+   below. Weights licensing, permissible research versus product use, the
+   operational image resize policy and device/runtime budget still need
+   review before inference. Noncommercial upstream source rights
    do not authorize arbitrary product use.
 3. API terms/retention and attribution evidence must be verified before imagery
    retrieval. An access-token presence check is not authorization evidence for
@@ -184,3 +186,47 @@ requested without `--allow-listing-location-egress`. That flag is only for a
 future run after explicit user approval; adding a flag does not itself supply
 human approval or supersede the automatic-review rejection. The completed PA
 sampling run was followed by **12 passing spatial golden tests**.
+
+## Pinned metadata and offline mask reduction — 2026-10-19
+
+The existing NVIDIA candidate is recorded at revision
+`21b3847fae21ddee674abd31129307b6a1235bd9` in
+`docs/layer-onboarding/gvi-streetlevel-model-candidate.json`. This is a
+reference-only source contract, not an enabled inference configuration. Only
+the public model API, README and two small configuration files were read;
+no weights, imagery or new packages were downloaded. Raw evidence and hashes
+are under `data/raw/gvi_streetlevel/model-evidence/segformer-b0-cityscapes/`.
+
+The [pinned class configuration](https://huggingface.co/nvidia/segformer-b0-finetuned-cityscapes-1024-1024/blob/21b3847fae21ddee674abd31129307b6a1235bd9/config.json)
+has 19 classes, with vegetation at 8 and terrain at 9. The
+[pinned preprocessor configuration](https://huggingface.co/nvidia/segformer-b0-finetuned-cityscapes-1024-1024/blob/21b3847fae21ddee674abd31129307b6a1235bd9/preprocessor_config.json)
+sets `reduce_labels=false`, enables resizing and records size512 despite the
+model repository's 1024 name. The future adapter must explicitly resolve the
+resize/label-alignment policy; a repository name is insufficient evidence for
+an input-size assumption. No ignore-label setting was supplied in the model
+configuration, so none is inferred by the source contract.
+
+The [pinned model card](https://huggingface.co/nvidia/segformer-b0-finetuned-cityscapes-1024-1024/blob/21b3847fae21ddee674abd31129307b6a1235bd9/README.md)
+declares license `other` and points to the
+[NVIDIA source license](https://github.com/NVlabs/SegFormer/blob/master/LICENSE),
+whose section3.3 limits use to noncommercial research/evaluation. The
+[Cityscapes terms](https://www.cityscapes-dataset.com/license/), license-agreement
+item4, separately restrict commercial uses of the dataset and derivatives.
+Product-use permission remains unresolved; this review does not enable the
+candidate as a deployed asset.
+
+`vegetation_fraction_from_mask` is now implemented with existing NumPy only.
+It consumes an already-produced two-dimensional integer class mask plus
+explicit checkpoint class metadata. It identifies one named vegetation class
+without guessing a numeric ID, retains road/sky/other semantic pixels in the
+denominator, and rejects unknown classes or attempts to ignore declared
+semantic classes. Explicit undeclared nodata/padding labels can be excluded.
+Void-only masks yield a missing fraction and zero successful image count when
+passed to the existing aggregator. Valid images with no vegetation yield a
+real zero. Pixel counts accompany every reduction.
+
+Seventeen focused research tests pass, including synthetic mask/class-map,
+RGB/logit rejection, denominator, void-only, sparse-image and correlation cases.
+No real model masks were produced, no accuracy claim is made, and photographic
+GVI/correlation remain absent. Dependencies, imagery access/retention and
+attribution, use permissions, preprocessing and runtime gates remain open.

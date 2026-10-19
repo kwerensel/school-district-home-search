@@ -13,7 +13,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; latest pushed checkpoint `ec06fac` prepares lease-scoped
+- Branch `main`; latest pushed `60e8843` adds the one-minute PMMS outage cache
+  and repeatable read-only Discovery latency checks; its GitHub CI passes.
+  `a763468` records the GVI source packet and blockers. `ec06fac` prepares lease-scoped
   staged-region enrichment; its GitHub CI passes. `f15523f` (saved-item
   hardening/deferred account harness) and `a7450ea` (post-GVI model guards)
   also pass GitHub CI.
@@ -98,6 +100,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   three-point minimum. Sampling QA/golden pass. A regional251-query metadata
   run was blocked by automatic approval review for precise-location egress;
   explicit user approval is pending and zero regional queries were sent.
+- Phase11 now also has a pure NumPy semantic-mask reducer: explicit vegetation
+  metadata, full valid semantic-pixel denominator, unknown-class refusal and
+  void-only missing values. Seventeen research tests pass. Public README/class/
+  preprocessor evidence pins candidate21b3847; vegetation8/terrain9 and stored
+  resize512 are verified, not inferred from its1024name. Candidate/source
+  licenses remain research-limited/unresolved for product use. No weights,
+  images, packages or real inference were downloaded/run; all prior gates stay.
 - Clean GitHub install caught the existing Nitro prerelease peer-range mismatch.
   Project `.npmrc` now records the lockfile's `legacy-peer-deps=true` mode as
   npm documents. Isolated fresh `npm ci`, all71 app tests and production build
@@ -111,7 +120,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   for protected actions. See `docs/account-acceptance.md`.
 - Current verification: app77 tests/2opt-in integrations skipped, live read-only
   Discovery timing check passed separately, TypeScript, lint0errors/6existing warnings
-  and Cloudflare build pass; latest full pipeline116 passed/2opt-in skipped,
+  and Cloudflare build pass; latest full pipeline124 passed/2opt-in skipped,
   including live golden checks; nine focused GVI tests pass after final QA fixes;
   operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
   acceptance stays deferred; Better Auth secret/Turnstile configuration remain
