@@ -1,6 +1,6 @@
 # Codex Handoff
 
-Generated: 2026-08-26, America/New_York.
+Updated: 2026-10-19, America/New_York.
 
 ## 1. Project Goal
 
@@ -13,7 +13,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; latest pushed `60e8843` adds the one-minute PMMS outage cache
+- Branch `main`; recent pushed `a5e49ba` adds the offline vegetation-mask
+  reducer and pinned research metadata; its GitHub CI passes.
+  `60e8843` adds the one-minute PMMS outage cache
   and repeatable read-only Discovery latency checks; its GitHub CI passes.
   `a763468` records the GVI source packet and blockers. `ec06fac` prepares lease-scoped
   staged-region enrichment; its GitHub CI passes. `f15523f` (saved-item
@@ -23,7 +25,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
-- Satellite GVI ingestion is active, **not promoted**. Fixed 2025 summer,
+- Satellite GVI is staged for PA and blocked for HV, **not promoted**. Fixed 2025 summer,
   max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
   three-day floor and exact-shape 50 m OSM corridors are implemented. PA has
   36 selected scenes/128 candidates, 206,731 deduplicated road geometries and
@@ -39,8 +41,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   complete HVroadcache/composite/validation/staging exists; partial chunks
   cannot support Phase11 regional sampling. No retries/processes remain active.
   Evidence: `data/reports/gvi_source_access_hudson-valley_latest.json`; logs:
-  `/private/tmp/groundtruth-gvi-hv-{retry,alias,mirror}.log`. Both-region validation/
-  QA/promote, paired green QA and the post-GVI model rebuild remain next.
+  `/private/tmp/groundtruth-gvi-hv-{retry,alias,mirror}.log`. PA paired/local QA
+  is complete. HV coverage/QA, both-region promotion and the post-GVI model
+  rebuild remain next, subject to the gates above.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
   A fixed invoker-rights input function avoids a dependency blocking the
@@ -70,8 +73,8 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   excluded. The PMMS outage fallback now caches for one minute before retrying
   instead of repeating the upstream timeout on each warm request; value and
   provenance unchanged. See `docs/qa/2026-10-19-discovery-performance.md`.
-- User approved **Geocodio free tier only**, then explicitly chose to leave it
-  disabled until tomorrow. Adapter/UI/atomic1,000-per-day quota are implemented;
+- User approved **Geocodio free tier only**, then deferred the key and requested
+  the October19 reminder. Adapter/UI/atomic1,000-per-day quota are implemented;
   migration012 installed; no provider request made. Key absent and flag off.
   One-time chat reminder created for October19 at9AM Eastern (`add-geocodio-key`).
   Never enable paid usage. See `docs/geocoding.md`.
@@ -128,9 +131,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 - Local GVI implementation/CLI wiring/tests and paired/local QA helpers remain
   intentionally uncommitted while its strict staged-data gate is red. Preserve
   these files. The source packet/manifest record the evidence and blockers;
-  they do not imply promotion readiness. First blocking audit: source access,
+  they do not imply promotion readiness. Blocking audit2: source access,
   explicit source-gap policy, migration013 and Mapillary-egress decisions are
-  pending. Post-GVI rebuild and full account acceptance remain deferred.
+  still pending. This turn completed additional unblocked rate/performance and
+  mask/metadata work. Fresh read-only verification confirms4505 listings,
+  zero promoted GVI rows, zero operator roles/jobs/baseline members/private
+  pointers and013guard absent. Geocodio key/gate are still absent/off.
+  Post-GVI rebuild and full account acceptance remain deferred.
 
 ## 2. Current Phase Or Feature Area
 
