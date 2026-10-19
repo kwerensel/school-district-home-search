@@ -7,11 +7,13 @@ from typing import Any
 import geopandas as gpd
 import psycopg
 
+from gt.region_read_context import connect_layer_database, assert_public_promotion_context
 from gt.db.migrate import database_url, repo_root
 from gt.manifests import LayerManifest, load_layer_manifest
 
 
 def promote_layer(manifest_path: Path, region_slug: str) -> None:
+    assert_public_promotion_context()
     manifest = load_layer_manifest(manifest_path)
     with psycopg.connect(database_url(), autocommit=False) as conn:
         with conn.cursor() as cur:
@@ -31,7 +33,7 @@ def render_layer_qa(manifest_path: Path, region_slug: str) -> Path:
 
     import matplotlib.pyplot as plt
 
-    with psycopg.connect(database_url()) as conn:
+    with connect_layer_database(region_slug) as conn:
         frame = gpd.read_postgis(
             """
             SELECT r.slug, r.name, r.geom, s.value

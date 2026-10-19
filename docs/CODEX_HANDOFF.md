@@ -13,7 +13,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; `8701f40` contains guided Discovery,
+- Branch `main`; latest pushed checkpoints `f15523f` (saved-item hardening/
+  deferred account harness) and `a7450ea` (post-GVI model guards) pass GitHub CI.
+  `8701f40` contains guided Discovery,
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
@@ -23,9 +25,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   36 selected scenes/128 candidates, 206,731 deduplicated road geometries and
   a 9,736 × 8,240 10 m composite. PA staged validation is **not promotable**:
   495/495 tracts and251/251 500m listing buffers are complete, but100m buffers
-  are missing for listings159/161/214. Diagnose source corridor/reduction
-  coverage; do not lower the gate or fill values. Hudson Valley ingestion is
-  running. Log: `/private/tmp/groundtruth-gvi-run.log`. Both-region validation/
+  are missing for listings159/161/214. Exact source QA confirms genuine
+  no-road-corridor cases: nearest road159–169m away, outside100m+50m, zero
+  corridor pixels; reducer/cloud checks pass. User review of an explicit
+  Unknown/source-gap policy is pending; do not lower the gate or fill values.
+  Hudson Valley road retrieval hit repeated Overpass connection refusals;
+  bounded retry log: `/private/tmp/groundtruth-gvi-hv-retry.log`. Original log:
+  `/private/tmp/groundtruth-gvi-run.log`. Both-region validation/
   QA/promote, paired green QA and the post-GVI model rebuild remain next.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
@@ -62,6 +68,12 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   passes; frozen4505 baseline and public readers are unchanged. Actual provider,
   terms, credits, sender/telephony and administrator identity remain gates.
   Region enrichment before new scaffold promotion is recorded in `docs/operator.md`.
+- Guarded staged-region readers/worker/migration013 are rollback-verified
+  (8tests, including003→013→013→003 replay, absent/expired/revoked context
+  refusal and unchanged public staging). **Migration013 is not installed**:
+  automatic approval review rejected the shared-schema mutation before
+  execution and requires direct human authorization. User approval is pending;
+  do not retry or apply indirectly until it arrives. No public rows changed.
 - A rollback fixture's DDL lock temporarily blocked browser reads. It was
   released; corrected tests run golden before DDL and coordinate short lock
   windows. No application data changed.

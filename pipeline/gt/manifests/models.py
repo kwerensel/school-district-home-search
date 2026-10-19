@@ -119,7 +119,8 @@ def load_manifest(path: Path, model: type[ManifestT]) -> ManifestT:
 
 
 def load_region_manifest(path: Path) -> RegionManifest:
-    return load_manifest(path, RegionManifest)
+    from gt.region_read_context import resolve_worker_region_manifest
+    return load_manifest(resolve_worker_region_manifest(path), RegionManifest)
 
 
 def load_layer_manifest(path: Path) -> LayerManifest:

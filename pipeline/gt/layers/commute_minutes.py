@@ -16,6 +16,7 @@ import pandas as pd
 import psycopg
 from shapely.geometry import Point
 
+from gt.region_read_context import connect_layer_database, assert_staged_write_lease
 from gt.db.migrate import database_url, repo_root
 from gt.manifests import LayerManifest, load_layer_manifest, load_region_manifest
 from gt.reports import ValidationReport, write_report
@@ -90,7 +91,7 @@ def run_commute_minutes(
         raise RuntimeError(f"{region_slug} must have exactly one approved fixed anchor")
     anchor = region_manifest.anchors[0]
 
-    with psycopg.connect(database_url(), autocommit=True) as conn:
+    with connect_layer_database(region_slug, autocommit=True) as conn:
         tracts = _read_tracts(conn, region_slug)
     if tracts.empty:
         raise RuntimeError(f"No census tract regions found for {region_slug}")
@@ -106,7 +107,7 @@ def run_commute_minutes(
         api_key,
     )
 
-    with psycopg.connect(database_url(), autocommit=False) as conn:
+    with connect_layer_database(region_slug, autocommit=False) as conn:
         with conn.cursor() as cur:
             _clear_staging(cur, region_slug, manifest.metric_key)
             _stage_region_metrics(cur, region_slug, manifest, metrics)
@@ -407,6 +408,7 @@ def _matrix_durations(payload: dict[str, Any], expected: int) -> list[float | No
 
 
 def _clear_staging(cur: psycopg.Cursor[Any], region_slug: str, metric_key: str) -> None:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         "DELETE FROM staging.layer_region_metrics WHERE region_group = %s AND metric_key = %s",
         (region_slug, metric_key),
@@ -447,6 +449,7 @@ def _validation_checks(
     anchor_label: str,
     anchor: tuple[float, float],
 ) -> dict[str, Any]:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         """
         SELECT count(*), coalesce(min(value), 0), coalesce(max(value), 0),

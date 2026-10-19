@@ -8,6 +8,7 @@ import csv
 
 import psycopg
 
+from gt.region_read_context import connect_layer_database, assert_staged_write_lease
 from gt.db.migrate import database_url, repo_root
 from gt.manifests import LayerManifest, load_layer_manifest
 from gt.reports import ValidationReport, write_report
@@ -82,7 +83,7 @@ def run_median_home_value(
         raise ValueError("median_home_value supports regional grain only")
 
     _require_sources()
-    with psycopg.connect(database_url(), autocommit=False) as conn:
+    with connect_layer_database(region_slug, autocommit=False) as conn:
         with conn.cursor() as cur:
             districts = _read_district_sources(cur, region_slug)
             if not districts:
@@ -337,6 +338,7 @@ def _write_crosswalk_artifact(region_slug: str, zcta_district_hu: dict[tuple[str
 
 
 def _clear_staging(cur: psycopg.Cursor[Any], region_slug: str, metric_key: str) -> None:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         "DELETE FROM staging.layer_region_metrics WHERE region_group = %s AND metric_key = %s",
         (region_slug, metric_key),
@@ -376,6 +378,7 @@ def _validation_checks(
     metrics: list[DistrictMetric],
     stats: CrosswalkStats,
 ) -> dict[str, Any]:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         """
         SELECT count(*)

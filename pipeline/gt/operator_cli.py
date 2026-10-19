@@ -44,6 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     work.add_argument("--run-official-scaffold",action="store_true")
     work.add_argument("--explicit-promote",action="store_true")
     work.add_argument("--job-id",type=int)
+    work.add_argument("--run-approved-layers",action="store_true",help="Run one missing approved tract layer in staged geometry context")
     args = parser.parse_args(argv)
     actor = os.environ.get("GROUNDTRUTH_OPERATOR_USER_ID","")
     if not actor:
@@ -71,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 result = run_region_job_once(conn,authenticated_user_id=actor,worker_id=args.worker_id,
                     repo_root=repo_root(),allow_official_scaffold=args.run_official_scaffold,
-                    explicit_promote=args.explicit_promote,job_id=args.job_id)
+                    explicit_promote=args.explicit_promote,job_id=args.job_id,run_approved_layers=args.run_approved_layers)
         print(json.dumps(result,sort_keys=True))
         return 0
     except Exception:

@@ -13,6 +13,7 @@ from rasterio.features import rasterize
 from rasterio.transform import rowcol
 from rasterio.windows import Window, from_bounds
 
+from gt.region_read_context import connect_layer_database, assert_staged_write_lease
 from gt.db.migrate import database_url, repo_root
 from gt.manifests import LayerManifest, load_layer_manifest
 from gt.reports import ValidationReport, write_report
@@ -53,7 +54,7 @@ def run_light_pollution(
         raise ValueError("light_pollution_radiance supports tract grain only")
 
     raster_path = _raster_path()
-    with psycopg.connect(database_url(), autocommit=False) as conn:
+    with connect_layer_database(region_slug, autocommit=False) as conn:
         tracts = _read_tracts(conn, region_slug)
         if tracts.empty:
             raise RuntimeError(f"No census tract regions found for {region_slug}")
@@ -232,6 +233,7 @@ def _intersection_window(window: Window, full: Window) -> Window:
 
 
 def _clear_staging(cur: psycopg.Cursor[Any], region_slug: str, metric_key: str) -> None:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         "DELETE FROM staging.layer_region_metrics WHERE region_group = %s AND metric_key = %s",
         (region_slug, metric_key),
@@ -270,6 +272,7 @@ def _validation_checks(
     grain: str,
     source_stats: SourceStats,
 ) -> dict[str, Any]:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         """
         SELECT count(*)

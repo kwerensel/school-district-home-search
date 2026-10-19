@@ -194,6 +194,8 @@ def draft_region_manifest(
 ) -> dict[str, Any]:
     if not official_selection_evidence.strip():
         raise ValueError("Official county selection evidence is required")
+    if any(not re.fullmatch(r"[a-z][a-z0-9_]*",key) for key in layers):
+        raise ValueError("Layer keys must name approved manifest identifiers")
     counties = sorted(set(county_fips))
     manifest = RegionManifest(slug=slug, name=name, state_fips=sorted({c[:2] for c in counties}),
                               counties=counties, layers=sorted(set(layers)), anchors=[])
@@ -528,7 +530,7 @@ def claim_region_job(
           SELECT id FROM operator_jobs WHERE kind='region_expansion'
             AND (phase IN ('draft','scaffolding','coverage') OR (%s AND phase='validated'))
             AND (%s::bigint IS NULL OR id=%s::bigint)
-            AND (lease_expires_at IS NULL OR lease_expires_at < now())
+            AND (lease_expires_at IS NULL OR lease_expires_at < clock_timestamp())
           ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1
         ) UPDATE operator_jobs j SET lease_owner=%s,
           lease_expires_at=now()+make_interval(secs => %s), attempts=j.attempts+1,updated_at=now()
@@ -547,7 +549,7 @@ def advance_region_job(
     from psycopg.types.json import Jsonb
     with conn.transaction():
         with conn.cursor() as cur:
-            cur.execute("SELECT target,phase,lease_owner,lease_expires_at>now() FROM operator_jobs WHERE id=%s FOR UPDATE", (job_id,))
+            cur.execute("SELECT target,phase,lease_owner,lease_expires_at>clock_timestamp() FROM operator_jobs WHERE id=%s FOR UPDATE", (job_id,))
             row = cur.fetchone()
             if row is None or row[2] != worker_id or row[3] is not True:
                 raise ValueError("A current worker lease is required")
@@ -580,12 +582,15 @@ def retry_blocked_region_job(conn: Any, *, authenticated_user_id: str, job_id: i
             raise ValueError("Only an unleased blocked job can be explicitly retried")
 
 
-def region_layer_coverage(repo_root: Any, manifest: RegionManifest) -> dict[str, Any]:
+def region_layer_coverage(repo_root: Any, manifest: RegionManifest, *, required_staged_fingerprint: str | None = None) -> dict[str, Any]:
     """Inventory actual report/QA evidence; source-manifest presence alone is not coverage."""
     from pathlib import Path
     root = Path(repo_root)
     layers: dict[str, Any] = {}
     for key in manifest.layers:
+        if not re.fullmatch(r"[a-z][a-z0-9_]*",key):
+            layers[key]={"complete":False,"reason":"invalid_layer_key"}
+            continue
         path = root / "data" / "reports" / f"layer_{key}_{manifest.slug}_latest.json"
         qa = root / "data" / "reports" / "qa" / f"{key}_{manifest.slug}.png"
         manifest_path = root / "pipeline" / "manifests" / "layers" / f"{key}.yaml"
@@ -595,6 +600,9 @@ def region_layer_coverage(repo_root: Any, manifest: RegionManifest) -> dict[str,
             raw = path.read_bytes()
             report = json.loads(raw)
             source_matches = report.get("target") == f"{key}:{manifest.slug}"
+            checks=report.get("checks",{})
+            if required_staged_fingerprint is not None:
+                source_matches = source_matches and checks.get("region_read_context")=="staging" and checks.get("staged_source_fingerprint")==required_staged_fingerprint
             accepted = source_matches and report.get("promotable") is True and qa.is_file()
             if accepted:
                 from PIL import Image
@@ -605,6 +613,7 @@ def region_layer_coverage(repo_root: Any, manifest: RegionManifest) -> dict[str,
                     accepted = False
             entry = {"complete": accepted,"reason": None if accepted else "validation_or_qa_not_green",
                      "report_sha256":sha256(raw).hexdigest(),"report_target":report.get("target"),
+                     "requested_grain":checks.get("requested_grain"),"listing_scope_status":checks.get("listing_scope_status"),
                      "qa_artifact":str(qa.relative_to(root)) if qa.is_file() else None}
         layers[key] = entry
     # Expansion does not add Explorer listings. Listing coverage remains a
@@ -681,11 +690,13 @@ def _stage_region_with_evidence(conn: Any, manifest_path: Any, repo_root: Any) -
 def run_region_job_once(
     conn: Any, *, authenticated_user_id: str, worker_id: str, repo_root: Any,
     allow_official_scaffold: bool = False, explicit_promote: bool = False, job_id: int | None = None,
+    run_approved_layers: bool = False,
 ) -> dict[str, Any]:
     """Claim and execute one persisted phase; owns commits for lease visibility.
 
-    Never fetches listings or starts enrichment provider calls. Missing staged
-    layer reports block coverage until approved layer runs are completed.
+    Never fetches listings. An explicit run_approved_layers option runs one
+    approved tract layer in a lease-scoped child; missing reports otherwise
+    block coverage. No geometry is promoted before matching validation/QA.
     """
     from pathlib import Path
     import yaml
@@ -715,10 +726,25 @@ def run_region_job_once(
             _stage_region_with_evidence(conn,manifest_path,root)
             desired,kwargs = "coverage",{}
         elif phase == "coverage":
-            coverage = region_layer_coverage(root,manifest)
+            fingerprint,_=_staged_region_fingerprint(conn,target)
+            coverage = region_layer_coverage(root,manifest,required_staged_fingerprint=fingerprint)
             if coverage["complete"]:
                 evidence = verify_local_promotion_evidence(report_path,target=target,repo_root=root)
                 desired,kwargs = "validated",{"coverage_report":coverage,"evidence":evidence}
+            elif run_approved_layers:
+                missing=next((key for key in manifest.layers if not coverage["layers"][key]["complete"]),None)
+                if missing is None:
+                    raise ValueError("A region job requires at least one approved layer")
+                succeeded=_run_scoped_layer_subprocess(root,region_slug=target,job_id=job_id,worker_id=worker_id,
+                    actor_user_id=authenticated_user_id,layer=missing)
+                coverage=region_layer_coverage(root,manifest,required_staged_fingerprint=fingerprint)
+                if succeeded:
+                    _record_region_coverage_progress(conn,authenticated_user_id=authenticated_user_id,
+                        job_id=job_id,worker_id=worker_id,coverage=coverage)
+                    conn.commit()
+                    return {"id":job_id,"phase":"coverage","layer_attempted":missing,"layer_staged":True,
+                            "promoted":False,"provider_listing_requests_made":False}
+                desired,kwargs="blocked",{"coverage_report":coverage}
             else:
                 desired,kwargs = "blocked",{"coverage_report":coverage}
         elif phase == "validated":
@@ -732,7 +758,7 @@ def run_region_job_once(
                 validated_hash,validated_coverage = cur.fetchone()
                 if validated_hash != evidence.report_hash:
                     raise ValueError("Region report changed after job validation")
-            coverage = region_layer_coverage(root,manifest)
+            coverage = region_layer_coverage(root,manifest,required_staged_fingerprint=evidence.source_content_hash)
             fingerprint,count = _staged_region_fingerprint(conn,target)
             if not coverage["complete"] or coverage != validated_coverage or evidence.source_content_hash != fingerprint or count != evidence.actual_count:
                 raise ValueError("Staged source/coverage changed after validation")
@@ -813,3 +839,42 @@ def validate_listing_dataset(conn: Any, *, authenticated_user_id: str, version: 
         path = root/"data/reports"/f"operator_listing_{sha256(version.encode()).hexdigest()[:16]}.json"
         path.write_text(json.dumps(report,indent=2,sort_keys=True))
     return {"version":version,"report_path":str(path.relative_to(root)),"promotable":promotable,"published":False}
+
+
+def _record_region_coverage_progress(conn: Any, *, authenticated_user_id: str, job_id: int, worker_id: str, coverage: Mapping[str,Any]) -> None:
+    require_operator(conn,authenticated_user_id)
+    from psycopg.types.json import Jsonb
+    with conn.cursor() as cur:
+        cur.execute("""UPDATE operator_jobs SET coverage_report=%s,lease_owner=NULL,lease_expires_at=NULL,updated_at=clock_timestamp()
+          WHERE id=%s AND phase='coverage' AND lease_owner=%s AND lease_expires_at>clock_timestamp()""",
+                    (Jsonb(dict(coverage)),job_id,worker_id))
+        if cur.rowcount!=1:
+            raise PermissionError("Layer result cannot persist after worker lease loss")
+
+
+def _run_scoped_layer_subprocess(root: Any, *, region_slug: str, job_id: int, worker_id: str, actor_user_id: str, layer: str) -> bool:
+    import subprocess
+    from gt.region_read_context import StagedRegionContext,staged_worker_environment,renew_staged_worker_lease
+    env=staged_worker_environment(os.environ,region_slug=region_slug,job_id=job_id,worker_id=worker_id,actor_user_id=actor_user_id)
+    context=StagedRegionContext(region_slug,job_id,worker_id,actor_user_id)
+    process=subprocess.Popen([str(root/"pipeline/.venv/bin/python"),"-m","gt.operator_layer_worker","--layer",layer,"--region",region_slug],
+        cwd=root/"pipeline",env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    try:
+        while True:
+            try:
+                return process.wait(timeout=30)==0
+            except subprocess.TimeoutExpired:
+                # Separate short transaction renews only this matching active
+                # lease. Role revocation or lease loss stops the child; fresh
+                # checks inside reducers also guard the actual staging writes.
+                with psycopg.connect(database_url(),autocommit=True,connect_timeout=10,
+                                     options="-c statement_timeout=5000") as heartbeat:
+                    renew_staged_worker_lease(heartbeat,context,seconds=300)
+    except Exception:
+        process.terminate()
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=5)
+        return False

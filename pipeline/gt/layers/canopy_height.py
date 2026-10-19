@@ -18,6 +18,7 @@ from affine import Affine
 from shapely.geometry import box
 from shapely.geometry.base import BaseGeometry
 
+from gt.region_read_context import connect_layer_database, assert_staged_write_lease, ensure_listing_crs
 from gt.db.migrate import database_url
 from gt.manifests import LayerManifest, load_layer_manifest
 from gt.reports import ValidationReport, write_report
@@ -48,12 +49,12 @@ def run_canopy_height(manifest_path: Path, region_slug: str, grain: str) -> tupl
     if grain not in {"tract", "listing", "both"}:
         raise ValueError("grain must be tract, listing, or both")
 
-    with psycopg.connect(database_url(), autocommit=False) as conn:
+    with connect_layer_database(region_slug, autocommit=False) as conn:
         tracts = _read_tracts(conn, region_slug)
         listings = _read_listings(conn, region_slug)
         if tracts.empty:
             raise RuntimeError(f"No census tract regions found for {region_slug}")
-        if listings.empty:
+        if listings.empty and grain in {"listing", "both"}:
             raise RuntimeError(f"No frozen listings found for {region_slug}")
 
         bbox = tuple(tracts.total_bounds)
@@ -117,7 +118,7 @@ def _read_tracts(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoData
 
 
 def _read_listings(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoDataFrame:
-    return gpd.read_postgis(
+    return ensure_listing_crs(gpd.read_postgis(
         """
         SELECT id, geom
         FROM listings
@@ -127,7 +128,7 @@ def _read_listings(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoDa
         conn,
         params=(region_slug,),
         geom_col="geom",
-    )
+    ))
 
 
 def _tiles_for_bbox(bbox: tuple[float, float, float, float]) -> list[str]:
@@ -325,6 +326,7 @@ def _intersection_window(window: Window, full: Window) -> Window:
 
 
 def _clear_staging(cur: psycopg.Cursor[Any], region_slug: str, metric_key: str) -> None:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         "DELETE FROM staging.layer_region_metrics WHERE region_group = %s AND metric_key = %s",
         (region_slug, metric_key),
@@ -387,6 +389,7 @@ def _stage_listing_metrics(
 def _validation_checks(
     cur: psycopg.Cursor[Any], region_slug: str, manifest: LayerManifest, grain: str
 ) -> dict[str, Any]:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         """
         SELECT count(*)

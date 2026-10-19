@@ -11,6 +11,7 @@ import psycopg
 from psycopg import sql
 from shapely.geometry.base import BaseGeometry
 
+from gt.region_read_context import assert_public_promotion_context
 from gt.db.migrate import database_url, repo_root
 from gt.manifests import RegionManifest, load_region_manifest
 from gt.normalize import normalize_district_name
@@ -92,6 +93,7 @@ def validate_region_report(region_slug: str) -> tuple[ValidationReport, Path]:
 
 
 def promote_region(region_slug: str) -> None:
+    assert_public_promotion_context()
     with psycopg.connect(database_url(), autocommit=False) as conn:
         with conn.cursor() as cur:
             _promote(cur, region_slug)

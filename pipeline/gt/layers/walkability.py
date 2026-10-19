@@ -13,6 +13,7 @@ import psycopg
 from shapely.geometry import LinearRing, MultiPolygon, Point, Polygon
 from shapely.geometry.base import BaseGeometry
 
+from gt.region_read_context import connect_layer_database, assert_staged_write_lease, ensure_listing_crs
 from gt.db.migrate import database_url
 from gt.manifests import LayerManifest, RegionManifest, load_layer_manifest, load_region_manifest
 from gt.reports import ValidationReport, write_report
@@ -52,12 +53,12 @@ def run_walkability(manifest_path: Path, region_slug: str, grain: str) -> tuple[
         raise ValueError("grain must be tract, listing, or both")
 
     region_manifest = load_region_manifest(Path("manifests") / "regions" / f"{region_slug}.yaml")
-    with psycopg.connect(database_url(), autocommit=True) as conn:
+    with connect_layer_database(region_slug, autocommit=True) as conn:
         tracts = _read_tracts(conn, region_slug)
         listings = _read_listings(conn, region_slug)
     if tracts.empty:
         raise RuntimeError(f"No census tract regions found for {region_slug}")
-    if listings.empty:
+    if listings.empty and grain in {"listing", "both"}:
         raise RuntimeError(f"No frozen listings found for {region_slug}")
 
     source = _fetch_nwi_block_groups(region_manifest)
@@ -72,7 +73,7 @@ def run_walkability(manifest_path: Path, region_slug: str, grain: str) -> tuple[
     if grain in {"listing", "both"}:
         listing_metrics, listing_stats = _compute_listing_metrics(listings, source)
 
-    with psycopg.connect(database_url(), autocommit=False) as conn:
+    with connect_layer_database(region_slug, autocommit=False) as conn:
         with conn.cursor() as cur:
             _clear_staging(cur, region_slug, manifest.metric_key)
             _stage_region_metrics(cur, region_slug, manifest, region_metrics)
@@ -127,7 +128,7 @@ def _read_tracts(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoData
 
 
 def _read_listings(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoDataFrame:
-    return gpd.read_postgis(
+    return ensure_listing_crs(gpd.read_postgis(
         """
         SELECT id, geom AS geometry
         FROM listings
@@ -137,7 +138,7 @@ def _read_listings(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoDa
         conn,
         params=(region_slug,),
         geom_col="geometry",
-    )
+    ))
 
 
 def _fetch_nwi_block_groups(region_manifest: RegionManifest) -> gpd.GeoDataFrame:
@@ -362,6 +363,7 @@ def _compute_listing_metrics(
 
 
 def _clear_staging(cur: psycopg.Cursor[Any], region_slug: str, metric_key: str) -> None:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         "DELETE FROM staging.layer_region_metrics WHERE region_group = %s AND metric_key = %s",
         (region_slug, metric_key),
@@ -429,6 +431,7 @@ def _validation_checks(
     overlap_stats: dict[str, Any],
     listing_stats: dict[str, Any],
 ) -> dict[str, Any]:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         """
         SELECT count(*)

@@ -20,6 +20,7 @@ from rasterio.windows import Window, from_bounds
 from shapely.geometry import box
 from shapely.geometry.base import BaseGeometry
 
+from gt.region_read_context import connect_layer_database, assert_staged_write_lease, ensure_listing_crs
 from gt.db.migrate import database_url, repo_root
 from gt.manifests import LayerManifest, load_layer_manifest
 from gt.reports import ValidationReport, write_report
@@ -106,12 +107,12 @@ def run_noise(
     if grain not in {"tract", "listing", "both"}:
         raise ValueError("grain must be tract, listing, or both")
 
-    with psycopg.connect(database_url(), autocommit=True) as conn:
+    with connect_layer_database(region_slug, autocommit=True) as conn:
         tracts = _read_tracts(conn, region_slug)
         listings = _read_listings(conn, region_slug)
     if tracts.empty:
         raise RuntimeError(f"No census tract regions found for {region_slug}")
-    if listings.empty:
+    if listings.empty and grain in {"listing", "both"}:
         raise RuntimeError(f"No frozen listings found for {region_slug}")
 
     tracts_3857 = tracts.to_crs("EPSG:3857")
@@ -131,7 +132,7 @@ def run_noise(
             listings, listings_3857, listing_buffers, values, transform
         )
 
-    with psycopg.connect(database_url(), autocommit=False) as conn:
+    with connect_layer_database(region_slug, autocommit=False) as conn:
         with conn.cursor() as cur:
             _clear_staging(cur, region_slug, manifest.metric_key)
             _stage_region_metrics(cur, region_slug, manifest, region_metrics)
@@ -186,7 +187,7 @@ def _read_tracts(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoData
 
 
 def _read_listings(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoDataFrame:
-    return gpd.read_postgis(
+    return ensure_listing_crs(gpd.read_postgis(
         """
         SELECT id, geom AS geometry
         FROM listings
@@ -196,7 +197,7 @@ def _read_listings(conn: psycopg.Connection[Any], region_slug: str) -> gpd.GeoDa
         conn,
         params=(region_slug,),
         geom_col="geometry",
-    )
+    ))
 
 
 def _listing_buffers(listings_3857: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -287,6 +288,8 @@ def _combined_bounds(
     tracts_3857: gpd.GeoDataFrame, listing_buffers: gpd.GeoDataFrame
 ) -> tuple[float, float, float, float]:
     tract_bounds = tracts_3857.total_bounds
+    if listing_buffers.empty:
+        return tuple(float(value) for value in tract_bounds)
     listing_bounds = listing_buffers.total_bounds
     return (
         float(min(tract_bounds[0], listing_bounds[0])),
@@ -437,6 +440,7 @@ def _intersection_window(window: Window, full: Window) -> Window:
 
 
 def _clear_staging(cur: psycopg.Cursor[Any], region_slug: str, metric_key: str) -> None:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         "DELETE FROM staging.layer_region_metrics WHERE region_group = %s AND metric_key = %s",
         (region_slug, metric_key),
@@ -503,6 +507,7 @@ def _validation_checks(
     grain: str,
     source_stats: SourceStats,
 ) -> dict[str, Any]:
+    assert_staged_write_lease(cur, region_slug)
     cur.execute(
         """
         SELECT count(*) FROM regions

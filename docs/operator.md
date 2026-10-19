@@ -1,12 +1,16 @@
 # Private operator track
 
-Status: private workflow foundations and explicit local commands implemented.
-`sql/migrations/011_operator.sql` was exercised in a rollback-only Neon test;
-it **has not been durably applied**. No permanent role has been granted, no provider request made, no permanent
-listing version loaded/published, no region expanded, no attendance polygon
-imported and no external message or call sent. The rollback test temporarily
-registered snapshots, staged two fixture records and selected a private pointer;
-all database effects rolled back.
+Status: the operator foundation in `sql/migrations/011_operator.sql` is installed
+in Neon. Migration 013 prepares the guarded staged-region metric path described below.
+It is rollback-verified but **not installed**: automatic approval review rejected
+its durable application before execution and requires direct human approval
+for the shared-database schema change. No workaround or retry was attempted.
+The operator feature flag remains off, administrator roles remain zero, and the
+4,505-listing baseline has not been registered, refreshed or overwritten.
+No real expansion job, attendance import, provider fetch, email or call has run.
+Temporary users, roles, snapshots, supplied-record versions and pointers created
+by integration fixtures are rolled back; this is separate from the installed
+foundation schema.
 
 ## Security boundary
 
@@ -113,12 +117,49 @@ official region importer, renders **staged** QA and runs golden checks. It
 hashes all staged polygons, district inputs and overlap rows. Coverage checks
 actual matching layer reports and QA PNGs, not just source packet existence.
 Missing/failed layers block the job; `retry-region` explicitly requeues coverage.
-Enrichment runs themselves remain operator-controlled existing pipeline commands;
-the worker never invents a provider call or listing import. Existing layer
-reducers read public region rows, so genuinely new-region layer staging may
-require separate geometry-foundation promotion or a future staging-aware layer
-reader; this ordering gate is recorded as blocked coverage rather than bypassed.
-An empty layer list cannot pass coverage.
+`work-region --run-approved-layers` runs one missing approved **tract** layer in
+a scoped child process, then releases the lease so the next invocation resumes
+coverage. The new `region_read_context` helper uses connection-local TEMP views
+for `regions` and `region_overlaps`, selected by the trusted job/worker/actor
+context. It validates the deployment flag, database administrator role, exact
+job target and active worker lease before exposing staged geometry. Ordinary
+connections without this context read public tables exactly as before. Other
+region groups remain public; listings are never shadowed or fabricated.
+Deterministic negative scratch region IDs exist only inside the temporary views,
+while metric writes continue to use source slugs.
+
+Once explicitly approved and installed, migration 013 corrects the original staging table's premature FK to public
+`regions`: staging must be possible before public geometry exists. A constraint
+trigger accepts an exact existing public `(region_group, slug)` on the ordinary
+path, or a matching staged pair plus trusted connection-local job/worker/actor
+settings and a live administrator lease. Missing context, unknown geometry,
+wrong worker, expired lease and revoked role are rejected in SQL as well as by
+Python. A scoped expansion worker cannot stage existing public-region targets.
+All live metric/listing FKs remain intact. Delete cleanup preserves the former
+public-region cascade and removes orphaned staged-only metric rows when staged
+source geometry is deleted.
+
+The child rechecks authorization before clearing/staging metrics and again
+before validation/commit, using wall-clock time rather than transaction-start
+`now()`. The parent renews only the same active lease every 30 seconds during
+long source work; failed renewal or lost authorization stops the child. A failed
+layer blocks coverage and cached inputs remain available for an explicit
+`retry-region` and fresh authorized claim. No expired lease is resurrected.
+Source geometry, district inputs and overlap fingerprints are compared before
+and after each layer. Reports identify staged scope, job, tract grain and
+successful golden/QA checks; coverage requires that exact source fingerprint.
+Listing-only layers remain blocked without a separately approved listing
+version. Dual-grain sources can stage tract results while explicitly recording
+`blocked_no_listing_dataset` for listing coverage. New-region listings remain
+absent and the 4,505 baseline is untouched. An empty layer list cannot pass.
+No early public geometry promotion is needed for tract enrichment.
+
+**Shared-region boundary:** the current schema has globally unique region slugs
+and one `region_group` per region. An expansion whose tract/district identifiers
+collide with existing public rows is rejected. Supporting overlapping group
+membership requires a separate reviewed schema design; the worker never
+reassigns ownership, duplicates identifiers or rewrites the live group to make a
+job pass. Fixed-anchor commute metric restrictions likewise remain explicit.
 
 A validated job is skipped by normal worker claims and waits for a targeted
 `--explicit-promote --job-id ID`. It rechecks the stored report hash, exact layer
@@ -190,6 +231,7 @@ cd pipeline
 ./.venv/bin/python -m gt.operator_cli enqueue-region --input ../data/operator/region-draft.json
 ./.venv/bin/python -m gt.operator_cli work-region --worker-id local-worker
 ./.venv/bin/python -m gt.operator_cli work-region --worker-id local-worker --run-official-scaffold
+./.venv/bin/python -m gt.operator_cli work-region --worker-id local-worker --run-approved-layers
 ./.venv/bin/python -m gt.operator_cli retry-region --job-id 123
 ./.venv/bin/python -m gt.operator_cli work-region --worker-id local-worker --explicit-promote --job-id 123
 ```
@@ -199,7 +241,8 @@ All commands require server-side `GROUNDTRUTH_OPERATOR_ENABLED=true`, the existi
 role. The latter is a configured worker audit identity, not a public-session
 login mechanism. Public app endpoints must derive identity from the verified
 session; they must never forward a client-selected user ID into these functions.
-Schema application and initial role provisioning remain explicit owner actions.
+The foundation schema is installed; future migrations, baseline registration
+and initial role provisioning remain separate explicit owner actions.
 CLI exceptions are sanitized and never print connection strings or raw provider
 responses.
 
@@ -229,8 +272,9 @@ live fixture timing with browser QA and keep the locked test section short.
 Production validation, after durable migration completion, runs independent
 golden connections normally.
 
-Before any durable operator rollout: apply the schema intentionally, register
-real baseline evidence, grant the intended administrator role, verify the app's
+Before enabling the private operator surface: keep installed schema separate
+from intentional baseline registration, grant the intended administrator role
+only with approval, verify the app's
 server-session checks and flag, and complete real region/attendance acceptance.
 Actual provider fetching, paid credits, external communications and production
 release remain separately gated. No segmentation dependency/model gate is
@@ -241,3 +285,38 @@ fixture enabled (8.17 seconds), including staged source tamper refusal, real QA
 rendering and private publication. The independent golden suite ran before DDL
 locks. The fixture rolled back and closed its connection. Combined pure operator
 and research suites: 19 passed, one opt-in live test skipped by default.
+
+
+Migration 013 verification includes rerunning historical migration 003 before
+and after the correction: its `CREATE TABLE IF NOT EXISTS` does not restore the
+removed FK on an existing table. Migration 001 never references
+`staging.layer_region_metrics`; its unrelated table creation cannot restore that
+FK. Its materialized-view rebuild is deliberately excluded from this targeted
+live rollback test to avoid unnecessary live view locks. The normal sorted
+migration sequence finishes with 013. The guarded staging constraint and cleanup
+triggers themselves are rerunnable.
+
+
+### Current migration 013 gate
+
+A read-only post-rejection check confirms the original staging FK is still
+present and the new scope trigger is absent. Live counts are 4,505 listings,
+17,409 staged region metrics and 81,579 staged listing metrics. Administrators,
+operator jobs, registered baseline members and private dataset pointers are all
+zero. The operator flag remains off. These counts describe the check time;
+approved ingestion jobs may subsequently change staging metric counts.
+The local evidence is `data/reports/operator_migration_013_gate.json`.
+
+The 003 → 013 → 003 rollback fixture passed all eight tests in 3.17 seconds,
+including correction rerun, unchanged public staging, scope/lease/role refusals,
+negative scratch IDs, tax overlap mapping and staged-deletion cleanup. All test
+DDL/data rolled back and the connection closed. The normal Neon-backed full
+suite passed 114 tests with two opt-in fixtures skipped. Source data jobs and
+public behavior remain on the existing schema; genuinely new-region metric
+staging must stay blocked until the user explicitly authorizes migration 013.
+Do not run a different command or a parent task to circumvent that rejection.
+
+The staged connection helper also checks that migration 013's SQL scope guard
+is installed and enabled before source work. It fails closed at that preflight
+while the migration gate is pending, so a job cannot waste external source
+requests and discover the missing schema only at the final staging insert.
