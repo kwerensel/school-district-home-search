@@ -296,7 +296,79 @@ B = P·[(1−d)·m + t/12 + i/12 + (d<0.2 ? (1−d)·p/12 : 0)]
 
 ## 8. Tradeoff / archetype engine
 
-Strict split: **deterministic numbers, LLM language.**
+Strict split: **deterministic facts and financial calculations, LLM-led conversation and tool orchestration.**
+
+### Conversational Discovery product direction (clarified 2026-10-18)
+
+Discovery must support an ongoing conversation that changes the analysis, not
+only generate prose about a fixed ranking. A user can describe neighborhood
+preferences, talk through competing priorities, and bring in long-term goals:
+leaving money available to invest, preserving capital or monthly flexibility
+for a personal business, or potentially renting the home out later.
+
+The assistant should ask targeted follow-up questions, translate explicit
+preferences into inspectable profile changes, call deterministic search and
+scenario tools, and explain how and why the shortlist changes. Users must be
+able to inspect and undo inferred preference changes. A tentative question
+such as "what if I rented it later?" creates a comparison scenario rather than
+silently replacing the user's baseline goals. Subjective preferences must not
+be presented as measured neighborhood facts.
+
+Financial tools, implemented as tested pure TypeScript, should compare housing
+cash flows, investable surplus, upfront capital commitments, and opportunity
+costs over user-selected horizons and explicit assumptions. Future rental
+scenarios need explicit rent, vacancy, maintenance, management, and other cost
+assumptions; current frozen sale listings do not establish achievable rent,
+legal rental eligibility, appreciation, or investment returns. Unsupported
+inputs must be requested or labeled as assumptions, never invented by the
+model. Show sensitivity to uncertain assumptions instead of presenting a
+single forecast as fact. Do not double-count taxes already included in housing
+costs.
+
+Rental use means assessing **rentability and restrictions**, not just projecting
+rental cash flow. Distinguish area rental demand, suitability of the particular
+home, and permission to rent it. Ask whether the user means a long-term lease,
+short-term stays, or another arrangement. Relevant checks include applicable
+local rules, permits or registration, owner-occupancy requirements, and
+property-specific co-op/condo/HOA or deed restrictions, including sublet limits
+and approval requirements. These are research dimensions, not blanket claims
+that a property type or city allows or prohibits a use. Area-level evidence
+cannot establish a particular home's eligibility; missing building documents
+or unresolved restrictions must remain explicitly unknown. Do not produce a
+confident rentability score from sale prices or environmental metrics alone.
+
+Optional external research may help investigate rental demand, restrictions,
+and other user questions beyond the app's verified coverage. Clearly distinguish
+**Groundtruth verified data**, **external research**, **user-provided information**,
+and **scenario assumptions** at the claim level. External findings need links,
+retrieval dates, applicable geography/property and rental type, and effective
+dates where available; prefer current official rules and actual building
+documents for restrictions. Distinguish authoritative documents from secondary
+summaries, surface conflicts and missing evidence, and never interpret a failed
+search as proof that there are no restrictions. Describe externally sourced
+results as research outside Groundtruth's validated pipeline, not as verified
+app metrics. Research does not automatically enter promoted data or canonical
+rankings: any scenario or shortlist effect must be explicit and inspectable.
+The optional research path must be identifiable when used and must preserve
+the existing source/provider approval and data-promotion gates. No new research
+provider or paid data integration is selected by this product clarification.
+
+The agent loop is conversation → validated profile/scenario change → tools →
+updated comparison → explanation/follow-up. Tool results must carry units,
+source/vintage or assumption provenance, and scenario identity; checking that
+a numeral appears somewhere in a payload is insufficient to verify that it
+is attributed to the right region, metric, or scenario.
+
+Conversation remains usable signed out. Existing URL state stays canonical
+for supported search fields; raw conversation and detailed personal goals
+must not be appended to shareable URLs or logged. Persistence, new scenario
+fields, provider configuration, and live UI integration require their scoped
+implementation work. The original profile and narrative endpoint alone do not
+implement this conversational product; the initial local conversation/tool slice
+is tracked in CODEX_HANDOFF.md and still needs live verification. The existing archetype-labeling gate
+does not conceptually gate a conversation grounded in promoted metrics.
+
+### Existing archetype and narrative foundation
 
 Deterministic (Python job, `gt archetypes build`):
 1. Build the district × metric matrix from `district_metrics`; percentile-normalize each metric within the active region set (percentiles, not z-scores — geospatial metrics are heavy-tailed).
@@ -307,7 +379,9 @@ LLM (Claude API via a small script, cached in DB):
 4. **Labeling:** for each cluster, send the centroid's top-5 distinguishing percentiles (vs. global median) and receive `{label, one_line_description}` — e.g., centroid high in canopy/low in transit → "Quiet Green Suburb". Human approves labels before promote (they're product copy).
 5. **Tradeoff narratives:** at request time, `discover` computes the structured delta between two regions under the user's profile (P_max difference, sqft-per-dollar via ZHVI, commute delta, top metric gaps) and the LLM renders it as one paragraph. The numbers in the prompt are the numbers in the output — a post-check regex-verifies every numeral in the response appears in the input payload; on mismatch, fall back to a deterministic template. Cache by (regionA, regionB, profile-bucket).
 
-This is where LLM reasoning earns its place: translation of verified numbers into human framing — never generation of the numbers.
+This narrative endpoint is one tool within conversational Discovery. The LLM
+also interprets goals and selects comparisons; verified facts and calculated
+numbers still come exclusively from the data and financial tools.
 
 ## 9. Frontend architecture
 

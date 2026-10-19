@@ -1,3 +1,4 @@
+import { DiscoveryConversation } from "./DiscoveryConversation";
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -284,6 +285,22 @@ export function DiscoveryEngine() {
       <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)]">
         <aside className="min-h-0 overflow-y-auto border-b border-border md:border-r md:border-b-0">
           <div className="space-y-6 p-5">
+            {urlHydrated && (
+              <DiscoveryConversation
+                districts={ranked}
+                profile={{
+                  monthlyBudget,
+                  downPayment: downPaymentAmount,
+                  creditBand,
+                  regionGroup,
+                  weights,
+                }}
+                onApply={(profile) => {
+                  setWeights(profile.weights);
+                  setRegionGroup(profile.regionGroup);
+                }}
+              />
+            )}
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-primary" />

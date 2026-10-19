@@ -265,7 +265,8 @@ export function MapView({
       const regionFeatures = districts.features.filter(
         (feature) => feature.properties.region_group === initialRegionGroup,
       );
-      const bounds = L.geoJSON({ type: "FeatureCollection", features: regionFeatures }).getBounds();
+      const regionalDistricts: DistrictFC = { ...districts, features: regionFeatures };
+      const bounds = L.geoJSON(regionalDistricts).getBounds();
       if (bounds.isValid()) map.fitBounds(bounds, { padding: [36, 36] });
       hasInitialFitRef.current = true;
     }

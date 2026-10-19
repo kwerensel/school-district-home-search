@@ -64,7 +64,7 @@ export async function requestTradeoffNarrative(
 ) {
   const payload = TradeoffPayloadSchema.parse(payloadInput);
   const fetcher = options.fetcher ?? fetch;
-  const model = options.model ?? "claude-sonnet-4-20250514";
+  const model = options.model ?? "claude-sonnet-4-6";
   const response = await fetcher("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {

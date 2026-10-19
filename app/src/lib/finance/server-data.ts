@@ -38,7 +38,19 @@ export type SqlFragment = {
 
 export type QueryExecutor<T> = (queryWithPlaceholders: string, params?: unknown[]) => Promise<T[]>;
 
+export const MetricProvenanceSchema = z.object({
+  metricKey: z.string(),
+  regionName: z.string().optional(),
+  source: z.string().nullable(),
+  vintage: z.string(),
+  units: z.string().nullable(),
+  nativeResolution: z.string().nullable(),
+  value: z.number().finite().nullable(),
+});
+export type MetricProvenance = z.infer<typeof MetricProvenanceSchema>;
+
 export type DistrictPurchasingPowerRow = {
+  metric_provenance?: unknown;
   district_region_id: number;
   district_slug: string;
   district_name: string;
@@ -86,6 +98,7 @@ export type DistrictEnvironmentMetrics = {
 };
 
 export type DistrictPurchasingPower = {
+  metricProvenance?: MetricProvenance[];
   districtRegionId: number;
   districtSlug: string;
   districtName: string;
@@ -175,10 +188,15 @@ export function buildDistrictTaxRateSql(input: Pick<PurchasingPowerQuery, "regio
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_nightlife_density') AS noise_nightlife_density,
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_industrial_land_pct') AS noise_industrial_land_pct,
         max(dm.value) FILTER (WHERE dm.metric_key = 'noise_freight_rail_density') AS noise_freight_rail_density,
+        jsonb_agg(jsonb_build_object(
+          'metricKey', dm.metric_key, 'value', dm.value, 'vintage', dm.vintage,
+          'source', md.source, 'units', md.units, 'nativeResolution', md.native_resolution
+        ) ORDER BY dm.metric_key, dm.vintage) AS metric_provenance,
         max(archetype.label) AS archetype_label,
         max(archetype.one_line_description) AS archetype_description
       FROM district_metrics dm
       JOIN regions d ON d.id = dm.district_region_id
+      LEFT JOIN metric_definitions md ON md.metric_key = dm.metric_key
       LEFT JOIN LATERAL (
         SELECT a.label, a.one_line_description
         FROM region_archetypes ra
@@ -249,6 +267,7 @@ function computeDistrictPurchasingPower(
       : null;
 
   return {
+    metricProvenance: z.array(MetricProvenanceSchema).safeParse(row.metric_provenance).data ?? [],
     districtRegionId: Number(row.district_region_id),
     districtSlug: row.district_slug,
     districtName: row.district_name,

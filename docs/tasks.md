@@ -72,6 +72,37 @@ For each of `canopy_height_m` (Meta/WRI 1 m canopy height — **the street-level
 
 ## Phase 10 — Discovery UI + handoff
 
+**Product clarification, 2026-10-18:** the wizard and narrative drawer below
+are a foundation, not the complete Discovery experience. Implement the
+conversational Discovery direction in architecture-spec §8 as a scoped follow-on:
+validated, inspectable and reversible preference updates; tool-driven reranking;
+separate baseline and what-if scenarios; and tested financial comparisons for
+investable surplus, business flexibility, and potential future rental use.
+Do not substitute a chat wrapper around unchanged rankings. Before live
+integration, specify scenario inputs/assumptions, tool contracts, sensitive-state
+handling, and provider setup. Acceptance must include a multi-turn preference
+change that updates the shortlist, an opportunity-cost comparison whose numbers
+come from tested code, and a rental scenario that requests missing assumptions
+without claiming unsupported rents or rental eligibility. Existing data and
+promotion gates remain in force; archetype labels are optional context for
+this conversation, not a prerequisite to it.
+
+**Local implementation checkpoint:** conversational tools, reversible preference
+previews, session goals, district-pair comparison, metric provenance, key-free
+scenario controls, housing-cost opportunity calculations, and simulated multi-turn
+checks are implemented. Both-region read-only data smoke and signed-out key-free
+browser checks pass. Live Claude conversation/preview/undo evaluation and external
+research remain unimplemented or unverified; see CODEX_HANDOFF.md for exact gates.
+
+Rental acceptance also covers area demand, home suitability, and rental
+restrictions separately, with long-term and short-term use distinguished.
+Missing co-op/condo/HOA documents must leave property eligibility unknown even
+when area-level rules are known. Optional external research must visibly carry
+citations, retrieval dates, scope, and evidence status distinct from verified
+Groundtruth metrics and scenario assumptions. Verify that conflicting sources
+and an empty search do not become an unsupported "renting is allowed" claim,
+and that research cannot silently alter canonical rankings or promoted data.
+
 Wizard at `/discover` (budget, optional Level 1–2 fields, ≤ 2 anchors via geocode + ORS at request time, weight sliders), results at `/discover/results` (ranked cards, choropleth, compare drawer with narratives), profile as typed search params per spec §3.4, "See listings" → `/explore?profile=...` applying shortlist polygons + per-region P_max price caps.
 **AC:** full journey clickable: budget in → shortlist → Explorer pre-filtered; every wizard state is a shareable URL; works on mobile sheet layout (existing pattern).
 

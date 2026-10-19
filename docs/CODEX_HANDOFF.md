@@ -13,6 +13,27 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
+Product clarification (2026-10-18): the user wants real conversational
+Discovery, including discussion that revises neighborhood preferences and
+analysis, and long-term goals around investing, personal-business flexibility,
+and potential future rental use. Architecture-spec §8 and tasks Phase 10 now
+record this direction. Existing deterministic rankings and guarded paragraphs
+are a foundation, not the full intended product. Financial math and source
+facts remain deterministic; the LLM interprets goals and orchestrates tools.
+The initial conversational implementation is now local (see checkpoint below).
+Live model verification remains blocked by the unresolved API key/credit setup;
+the archetype-labeling blocker does not block this conversational foundation.
+
+Rental clarification: assess area demand, home suitability, and restrictions
+(including local rules and property-specific co-op/condo/HOA requirements),
+distinguishing long-term from short-term use. Do not reduce this to cash-flow
+projections. Optional outside research is part of the intended direction, with
+citations, dates, scope, and clear separation from Groundtruth's verified data,
+user information, and assumptions. Unknown property permissions stay unknown;
+research cannot silently become verified metrics or alter canonical rankings.
+These requirements are recorded in architecture-spec §8 and tasks Phase 10;
+no research provider or live integration has been added.
+
 Phases 0–7 are complete. The approved Phase 8 AQI, BTS transportation-noise,
 and supplemental `noise_sources` slices are implemented, promoted, verified,
 and wired into Discovery/Explorer. Satellite GVI remains explicitly deferred
@@ -1097,6 +1118,76 @@ Checks last run after repaired `flood_sfha` promotion:
 - App verification: `32 passed`; lint has zero errors and the same six
   pre-existing shadcn fast-refresh warnings; the Cloudflare Nitro production
   bundle passes.
+
+### Conversational Discovery foundation (2026-10-18)
+
+Current worktree branch: `codex/conversational-discovery`. Green checkpoint
+covers this conversational foundation and the preceding product clarifications.
+Local UI QA artifact: `data/reports/qa/discovery-conversation-no-key.png`
+(gitignored); local preview: http://127.0.0.1:5178/discover.
+
+- Added signed-out Discovery conversation panel and bounded Claude client-tool
+  loop using the existing Anthropic Messages integration; no new dependencies,
+  providers, schema changes, database writes, or deployments. User confirmed
+  Anthropic API credits; Console currently shows zero and the user is resolving
+  the promotional-credit claim. User authorized continuing without a key. No API key was
+  created, written, or used in this session.
+- Tools search promoted district rankings through the existing purchasing-power
+  server function, preview weight/region changes, calculate same-price housing
+  costs, model hypothetical investment contributions, and identify rental
+  evidence gaps. Preview application is explicit and undoable; stale previews
+  cannot replace a newer profile. Tool arguments cannot set financial assumptions:
+  users supply these in optional fields. What-if previews leave baseline intact.
+- Financial code/tests cover tax differences without double-counting, mortgage,
+  estimated insurance/PMI, additional monthly allowances, housing-budget headroom,
+  and effective-annual compounding with end-of-month contributions. Headroom is
+  not disposable income; investment scenarios are not total-wealth forecasts.
+- Evidence cards render server-owned data/calculations separately from model
+  interpretation. The model is instructed not to state regional or financial
+  facts in free prose; a numeral guard adds a narrow check, not a semantic
+  guarantee. Cards now attach matching metric values, district names, source,
+  vintage, units, and native resolution from promoted district_metrics joined
+  to metric_definitions. If multiple vintages match the displayed aggregate,
+  list them; do not claim a latest vintage. Live adversarial evaluation remains
+  necessary before release.
+- Outside research is not enabled and is explicitly labeled not performed.
+  Rental demand, home suitability and permission remain unknown; the assistant
+  requests intended rental use and relevant local/property documents.
+- Input/history/tool-loop bounds, provider timeouts, safe error messages, and
+  no-store responses added. Raw conversation/scenario inputs stay out of shared
+  URLs and application logs; user sees disclosure of transmission to Claude.
+- Existing dependencies restored from lockfile with npm ci --legacy-peer-deps
+  (Nitro prerelease peer conflict otherwise prevents install); lockfile unchanged.
+  Fixed two existing TypeScript errors in MapView GeoJSON typing and finance
+  query row typing discovered during verification.
+- The data/scenario tools are also exposed through a key-free POST endpoint and
+  direct UI controls. Select up to two districts; stale/out-of-scope selections
+  produce errors instead of silently substituting a ranking. A same-price pair
+  plus investment assumptions produces a difference-only investment scenario,
+  excluding standalone contributions/upfront capital to avoid double-counting.
+  Session-only long-term goals (investing/business flexibility/future rental)
+  and intended rental use are explicit controls, independent of truncated chat
+  history. Changed scenario inputs label old results as stale.
+- Verification: app suite 63 passed (one opt-in live test skipped by default),
+  TypeScript, lint (zero errors, six existing shadcn warnings), and Cloudflare
+  production build pass. The opt-in read-only database smoke test also passed
+  separately for both regions, checking metric metadata and financial tools.
+  Signed-out browser QA loaded all 139 districts, displayed key-unavailable
+  state, and completed Lower Merion/Radnor district and housing/opportunity
+  comparisons with source/vintage labels. No model requests were made.
+- For live data/browser QA only DATABASE_URL and MAPBOX_PUBLIC_TOKEN were
+  inherited in memory from the primary checkout's existing .env.local; model
+  keys were excluded and no secrets were copied to this worktree. The local
+  dev server is on http://127.0.0.1:5178. Test financial inputs were synthetic.
+- App defaults/example now use claude-sonnet-4-6; the earlier Sonnet 4 model is
+  retired per https://platform.claude.com/docs/en/about-claude/model-deprecations.
+  Explicit ANTHROPIC_MODEL overrides are preserved; verify the configured model
+  when credentials are enabled. Existing pipeline archetype-label defaults
+  still need a separate lifecycle review before running that phase.
+- Remaining: live multi-turn model QA against promoted data; browser QA of
+  assistant preview/apply/undo; optional cited research; deployment cost/rate
+  controls. No release/deployment or provider-credit success is claimed.
+  This is an initial slice, not a release-ready claim of the whole product.
 
 ### Phase 9 Archetype And Narrative Foundation
 
