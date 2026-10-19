@@ -72,7 +72,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   samples are24–87ms. Local only; browser rendering, commute and narratives
   excluded. The PMMS outage fallback now caches for one minute before retrying
   instead of repeating the upstream timeout on each warm request; value and
-  provenance unchanged. See `docs/qa/2026-10-19-discovery-performance.md`.
+  provenance unchanged. Concurrent failed requests cannot replace a newly
+  successful PMMS observation; both request-start orders are regression-tested.
+  See `docs/qa/2026-10-19-discovery-performance.md`.
 - User approved **Geocodio free tier only**, then deferred the key and requested
   the October19 reminder. Adapter/UI/atomic1,000-per-day quota are implemented;
   migration012 installed; no provider request made. Key absent and flag off.
@@ -121,7 +123,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   district join, with retry/error states for saves/favorites. Missing auth
   configuration returns signed-out for optional session reads and fails closed
   for protected actions. See `docs/account-acceptance.md`.
-- Current verification: app77 tests/2opt-in integrations skipped, live read-only
+- Current verification: app79 tests/2opt-in integrations skipped, live read-only
   Discovery timing check passed separately, TypeScript, lint0errors/6existing warnings
   and Cloudflare build pass; latest full pipeline124 passed/2opt-in skipped,
   including live golden checks; nine focused GVI tests pass after final QA fixes;

@@ -46,7 +46,9 @@ not cache it: every subsequent request could wait through the same upstream
 timeout. The fallback is now reused for one minute before retrying. Its value,
 `fallback` label and absent observation date are preserved. A regression test
 proves reuse during the retry window and recovery to PMMS at expiry; no live
-source outage is induced.
+source outage is induced. Concurrent success/failure regressions also prove
+that a valid PMMS observation wins over a fallback regardless of which request
+started first.
 
 ## Repeating the data-path check
 
@@ -61,7 +63,7 @@ The test is read-only and skipped during ordinary `npm test`. It requires each
 of its nine warm samples to remain below 500 ms and writes only timing, count,
 source-label and scope evidence. It does not load `.env.local` automatically.
 
-Verification: 77 unit tests pass, with account acceptance and the live timing
+Verification: 79 unit tests pass, with account acceptance and the live timing
 check skipped by default. The live timing check passes independently.
 TypeScript, lint (zero errors, six existing component warnings) and the
 Cloudflare production build pass. Full optional-account acceptance remains

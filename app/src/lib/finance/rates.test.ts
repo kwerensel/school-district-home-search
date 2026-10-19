@@ -70,4 +70,42 @@ describe("PMMS mortgage-rate assumption", () => {
     expect(recovered.annualRate).toBe(0.0665);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
+  it.each([true, false])(
+    "preserves concurrent PMMS success (success starts first: %s)",
+    async (successStartsFirst) => {
+      let rejectSlowFetch!: (error: Error) => void;
+      let resolveFreshFetch!: (response: Response) => void;
+      const slowFetch = vi.fn(
+        () =>
+          new Promise<Response>((_resolve, reject) => {
+            rejectSlowFetch = reject;
+          }),
+      );
+      const freshFetch = vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFreshFetch = resolve;
+          }),
+      );
+      let pending: ReturnType<typeof getMortgageRateAssumption>;
+      let freshPromise: ReturnType<typeof getMortgageRateAssumption>;
+      if (successStartsFirst) {
+        freshPromise = getMortgageRateAssumption({ fetchImpl: freshFetch, now: () => 1000 });
+        pending = getMortgageRateAssumption({ fetchImpl: slowFetch, now: () => 1001 });
+      } else {
+        pending = getMortgageRateAssumption({ fetchImpl: slowFetch, now: () => 1000 });
+        freshPromise = getMortgageRateAssumption({ fetchImpl: freshFetch, now: () => 1001 });
+      }
+      resolveFreshFetch(new Response(csv, { status: 200 }));
+      const fresh = await freshPromise;
+      rejectSlowFetch(new Error("offline"));
+      expect(await pending).toEqual(fresh);
+      const unexpectedFetch = vi.fn(async () => new Response(csv, { status: 200 }));
+      expect(
+        await getMortgageRateAssumption({ fetchImpl: unexpectedFetch, now: () => 1002 }),
+      ).toEqual(fresh);
+      expect(unexpectedFetch).not.toHaveBeenCalled();
+    },
+  );
 });

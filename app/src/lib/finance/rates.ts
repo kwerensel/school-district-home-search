@@ -69,6 +69,12 @@ export async function getMortgageRateAssumption({
     cachedRate = { ...assumption, fetchedAt: currentTime };
     return assumption;
   } catch {
+    // Another request may have refreshed the observation while this one failed.
+    // Preserve that valid rate regardless of which request started first.
+    if (cachedRate?.source === "pmms" && now() - cachedRate.fetchedAt < RATE_CACHE_TTL_MS) {
+      const { fetchedAt: _fetchedAt, ...assumption } = cachedRate;
+      return assumption;
+    }
     const assumption: MortgageRateAssumption = {
       annualRate: DEFAULT_ANNUAL_RATE,
       source: "fallback",
