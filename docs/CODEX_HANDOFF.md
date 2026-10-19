@@ -13,7 +13,8 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; recent pushed `a5e49ba` adds the offline vegetation-mask
+- Branch `main`; recent pushed `13a4e2f` preserves concurrent PMMS success
+  during failures; its GitHub CI passes. `a5e49ba` adds the offline vegetation-mask
   reducer and pinned research metadata; its GitHub CI passes.
   `60e8843` adds the one-minute PMMS outage cache
   and repeatable read-only Discovery latency checks; its GitHub CI passes.
@@ -133,10 +134,13 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 - Local GVI implementation/CLI wiring/tests and paired/local QA helpers remain
   intentionally uncommitted while its strict staged-data gate is red. Preserve
   these files. The source packet/manifest record the evidence and blockers;
-  they do not imply promotion readiness. Blocking audit2: source access,
+  they do not imply promotion readiness. Blocking audit3: source access,
   explicit source-gap policy, migration013 and Mapillary-egress decisions are
-  still pending. This turn completed additional unblocked rate/performance and
-  mask/metadata work. Fresh read-only verification confirms4505 listings,
+  still pending across three consecutive goal turns. All source agents are
+  terminal, latest implementation CI is green, and the Geocodio key/gate remain
+  absent/off. No further approved implementation can proceed without user
+  input or source recovery; retain the full goal scope. Latest unblocked work
+  completed rate/performance and mask/metadata work. Read-only verification confirms4505 listings,
   zero promoted GVI rows, zero operator roles/jobs/baseline members/private
   pointers and013guard absent. Geocodio key/gate are still absent/off.
   Post-GVI rebuild and full account acceptance remain deferred.
