@@ -121,6 +121,7 @@ export function CommuteControls({
                   {candidate.lat}, {candidate.lng} · confidence{" "}
                   {(candidate.accuracy * 100).toFixed(0)}%
                 </p>
+                <p className="text-muted-foreground">Geocodio · Source: {candidate.source}</p>
                 <Button
                   size="sm"
                   variant="outline"

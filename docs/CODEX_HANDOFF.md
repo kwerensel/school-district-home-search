@@ -89,7 +89,12 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   See `docs/qa/2026-10-19-discovery-performance.md`.
 - User approved **Geocodio free tier only**, then deferred the key and requested
   the October19 reminder. Adapter/UI/atomic1,000-per-day quota are implemented;
-  migration012 installed; no provider request made. Key saved by user October19; flag remains off pending provider-side no-paid-use confirmation. Two mocked adapter tests pass; no live request yet.
+  migration012 installed. User saved the key and confirmed provider-side no-paid-use configuration October19.
+  Local flag enabled; live public City Hall lookup, candidate selection and URL anchor
+  passed, and the45-minute cap returned27 districts. Five quota-counted attempts
+  include two failures in the old dev server plus successful provider/adapter/UI
+  checks; restarting the local server resolved the failure. No paid appends or
+  billing changes. Source attribution is displayed on candidate cards.
   One-time chat reminder created for October19 at9AM Eastern (`add-geocodio-key`).
   Never enable paid usage. See `docs/geocoding.md`.
 - Private operator schema011 installed, **flag off/no admin grants/no baseline
@@ -156,8 +161,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   golden checks. Operator13 opt-in live tests and quota SQL fixture passed earlier.
   No production deployment, account billing change, admin grant or poor model release.
 - Remaining gates: post-GVI model quality/design, existing Anthropic credit/billing,
-  photographic inference dependencies/rights, Geocodio provider-side no-paid-use
-  confirmation/live check, and deferred full account acceptance. OSM and HV GVI
+  photographic inference dependencies/rights, deferred full account acceptance. Geocodio local live acceptance is complete. OSM and HV GVI
   promotion are complete. Preserve roadmap order and keep accounts optional.
 
 ## 2. Current Phase Or Feature Area

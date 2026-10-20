@@ -38,5 +38,21 @@ lookups are private/no-store responses. Saved/shareable user anchors may retain
 the chosen coordinates. Keep source attribution with displayed candidates.
 Manual coordinate entry remains available without the key.
 
-No Geocodio requests or paid-account actions were performed during implementation
-because no Geocodio key was configured. Unit tests use mock responses.
+## Live acceptance — October 19, 2026
+
+The user saved the key locally and confirmed paid usage is disabled or no payment
+method is attached. `GEOCODIO_FREE_TIER_ONLY=true` is enabled locally. The private
+environment file remains gitignored; no account billing settings were changed.
+
+The Philadelphia City Hall public address returned one candidate with valid
+coordinates and confidence 1. Selecting the candidate filled the destination;
+adding it persisted the anchor in the shareable URL. The existing 45-minute ORS
+filter returned 27 districts. The initial dev server failed twice; direct provider
+and Node adapter checks passed, and restarting the local server resolved the UI
+failure. Five total attempts were reserved in the atomic daily counter, including
+the failed calls and diagnostics; no paid appends were requested. No further
+lookup requests were needed. Candidate cards now display provider/source attribution.
+
+All 79 app tests pass (two unrelated opt-in skips), with TypeScript/build and focused
+component lint checks passing. Local proof:
+`data/reports/qa/geocodio-live-commute.png`. No production deployment.
