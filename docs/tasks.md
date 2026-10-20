@@ -101,7 +101,9 @@ taxes, canopy and walkability; allow expansion for comfortable comparison. Highl
 row extrema using active preferences with explicit direction/weight, neutral
 unsupported/disabled factors, shared ties, and unknown data excluded. Allow all
 preference weights to be edited within the expanded comparison, synchronizing
-sidebar/URL and updating rankings/highlights without closing or refetching facts. Preserve mobile navigation and Discovery/Explorer state.
+sidebar/URL and updating rankings/highlights without closing or refetching facts.
+Reset preferences restores weights captured on that dialog opening, not factory
+defaults, with a disabled unchanged state and a fresh baseline on each reopening. Preserve mobile navigation and Discovery/Explorer state.
 
 **Local implementation checkpoint:** conversational tools, reversible preference
 previews, session goals, district-pair comparison, metric provenance, key-free

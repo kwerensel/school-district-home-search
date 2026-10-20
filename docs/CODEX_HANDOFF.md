@@ -13,6 +13,15 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
+Latest reset addition (2026-10-19, following `1992373`): expanded comparison
+captures a copy of canonical weights on each open. Reset preferences restores
+that opening snapshot atomically, updating sliders/URL/ranking/highlights in place;
+it is disabled when unchanged. Closing keeps current edits; reopening establishes
+a new baseline, including custom weights (not factory defaults). Browser verified
+multiple edits/reset and custom walkability baseline 3 -> 10 -> reset 3, then
+restored original weights. 77 tests, typecheck, lint (six existing warnings), build
+pass. Screenshots: docs/screenshots/2026-10-19-comparison-reset/README.md.
+
 Latest expanded-controls addition (2026-10-19, following `067b0ef`): all seven
 preference weights are editable inside the expanded comparison. Shared accessible
 range controls update canonical weights immediately, synchronizing sidebar,

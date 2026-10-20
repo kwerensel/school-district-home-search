@@ -336,7 +336,10 @@ These row highlights explain individual values and do not replace match scoring.
 The expanded comparison allows editing all seven preference weights in place;
 controls share canonical state with the sidebar and URL. Recompute deterministic
 match order and highlights locally from loaded facts on weight changes so the
-dialog remains open, without refetching unchanged data.
+dialog remains open, without refetching unchanged data. Reset preferences restores
+a copied snapshot of weights from the current dialog opening, including customized
+weights. Disable reset when unchanged; closing retains edits and reopening creates
+a new reset baseline. Reset updates the canonical state atomically.
 
 The assistant should ask targeted follow-up questions, translate explicit
 preferences into inspectable profile changes, call deterministic search and

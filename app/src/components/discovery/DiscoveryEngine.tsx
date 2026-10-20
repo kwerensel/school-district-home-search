@@ -439,6 +439,7 @@ export function DiscoveryEngine() {
               <ShortlistComparison
                 districts={comparisonDistricts}
                 weights={weights}
+                onResetWeights={setWeights}
                 onWeightChange={(key, value) =>
                   setWeights((current) => ({ ...current, [key]: value }))
                 }

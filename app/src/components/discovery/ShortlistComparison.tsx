@@ -5,7 +5,7 @@ import {
   type CellHighlight,
 } from "@/lib/discovery/comparison-highlights";
 import type { WeightKey } from "@/lib/discovery/profile";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -301,7 +301,15 @@ export function ShortlistComparison({
   districts,
   weights,
   onWeightChange,
-}: ComparisonProps & PreferenceWeightsProps) {
+  onResetWeights,
+}: ComparisonProps &
+  PreferenceWeightsProps & { onResetWeights: (weights: Record<WeightKey, number>) => void }) {
+  const [openingWeights, setOpeningWeights] = useState<Record<WeightKey, number> | null>(null);
+  const changed =
+    openingWeights !== null &&
+    (Object.keys(openingWeights) as WeightKey[]).some(
+      (key) => weights[key] !== openingWeights[key],
+    );
   if (districts.length < 2) return null;
   return (
     <section
@@ -313,7 +321,7 @@ export function ShortlistComparison({
         Actual values from Groundtruth's verified data. District-level context, not address-level
         measurements. Unavailable values are not zero. Scroll sideways for more districts.
       </p>
-      <Dialog>
+      <Dialog onOpenChange={(open) => setOpeningWeights(open ? { ...weights } : null)}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
             Expand comparison
@@ -328,6 +336,23 @@ export function ShortlistComparison({
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[30vh] shrink-0 overflow-y-auto">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!changed}
+                aria-describedby="comparison-reset-help"
+                onClick={() => {
+                  if (openingWeights) onResetWeights({ ...openingWeights });
+                }}
+              >
+                Reset preferences
+              </Button>
+              <p id="comparison-reset-help" className="text-xs text-muted-foreground">
+                Restores weights from when you opened this comparison.
+              </p>
+            </div>
             <PreferenceWeights weights={weights} onWeightChange={onWeightChange} expanded />
           </div>
           <div className="shrink-0">
