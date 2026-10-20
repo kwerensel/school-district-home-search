@@ -55,7 +55,11 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   tests; no PBF node bbox filtering. Road QA visually passes for111833 ways. All4254 listing supports are covered;
   one coastal tract (36119007600) is source-unsupported and omitted under the
   unchanged99% gate. Road recovery is complete; the44-scene satellite composite is active:
-  `/private/tmp/gt-geofabrik-hv.log`. No HV validation or promotion yet. Source
+  `/private/tmp/gt-geofabrik-hv-concurrent.log`. Serial run was safely stopped
+  before staging and restarted after exact multi-window serial/concurrent
+  pixel/statistics equivalence tests. Four independent scene readers overlap
+  I/O; main-thread merges preserve input/day order.166 tests pass,2 skipped.
+  No HV validation or promotion yet. Source
   packet: `docs/layer-onboarding/gvi_ndvi_street.md`. HV offline Phase11
   sampling is complete:20131 points,4027/4254 listings have>=3 road samples,
   204 have none. No HV Mapillary request or imagery/inference. Sampling/road

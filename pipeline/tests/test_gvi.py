@@ -234,3 +234,41 @@ def test_missing_buffer_qa_handles_complete_coverage_without_opening_sources(tmp
     monkeypatch.setattr(gvi_qa,'_qa_setup',lambda region:tmp_path)
     path=gvi_qa.render_gvi_missing_qa('test')
     assert json.loads(path.read_text())['status']=='no_missing_listing_buffers'
+
+
+def test_concurrent_composite_is_identical_to_serial_with_day_overlap(tmp_path):
+    import geopandas as gpd
+    import rasterio
+    from shapely.geometry import Point,LineString
+    from gt.layers.gvi import _composite
+    x,y=500000,4500000
+    tracts=gpd.GeoDataFrame({'slug':['tract']},geometry=[box(x-2700,y-100,x+2700,y+100)],crs=32618).to_crs(4326)
+    listings=gpd.GeoDataFrame({'id':[1]},geometry=[Point(x,y)],crs=32618).to_crs(4326)
+    roads=gpd.GeoDataFrame(geometry=[LineString([(x-3000,y),(x+3000,y)])],crs=32618).to_crs(4326)
+    scenes=[]
+    for i,(day,nir) in enumerate([('2025-06-01',4000),('2025-06-01',6000),('2025-06-02',5000),('2025-06-03',9000)]):
+        scene=item(str(i),day=day,tile='18TWM' if i==1 else '18TWL')
+        for key,value in [('red',2000),('nir',nir),('scl',4),('cloud',0)]:
+            path=tmp_path/f'{i}-{key}.tif'
+            data=np.full((160,700),value,dtype='uint16')
+            if key=='scl': data[76:81,60:65]=9
+            with rasterio.open(path,'w',driver='GTiff',width=700,height=160,count=1,dtype='uint16',crs=32618,transform=Affine(10,0,x-3500,0,-10,y+800),nodata=0) as out:
+                out.write(data,1)
+            scene['assets'][key]={'href':str(path),'raster:bands':[{'scale':.0001,'offset':-.1}]}
+        scenes.append(scene)
+    outputs=[]
+    stats=[]
+    for workers in (1,4):
+        cache=tmp_path/f'workers-{workers}';cache.mkdir()
+        roads.to_file(cache/'osm-roads.geojson',driver='GeoJSON')
+        path,summary=_composite(cache,scenes,tracts,listings,roads,workers=workers)
+        with rasterio.open(path) as source:
+            outputs.append(source.read())
+            assert source.crs.to_epsg()==32618
+            assert np.max(outputs[-1][1])==3  # Duplicate same-day scene is not a fourth day.
+            finite=outputs[-1][0][outputs[-1][0]!=-9999]
+            assert len(finite)>0
+            assert np.median(finite)==pytest.approx(.6)
+        stats.append(summary)
+    np.testing.assert_array_equal(outputs[0],outputs[1])
+    assert stats[0]==stats[1]

@@ -229,3 +229,13 @@ use `_page-002` and later suffixes. The companion JSON lists every page and
 every missing buffer diagnostic. This keeps large source-gap reviews bounded
 without dropping evidence; single-case, multi-page, alternate CRS/500m and
 complete-coverage branches are tested.
+
+The composite reads up to four independent scenes concurrently. Each scene
+owns separate dataset handles, every window's reads finish before the next,
+and only the main thread merges acquisition days and writes output. Ordered
+results preserve overlap precedence. Serial/four-reader multi-window tests
+produce exactly identical bands and diagnostics with same-day tile overlap
+and cloud holes. No model/algorithm fingerprint or scientific rule changes.
+Source requests now have bounded connection/read timeouts and existing retry
+limits. [Rasterio concurrency guidance](https://rasterio.readthedocs.io/en/stable/topics/concurrency.html)
+explains the independent-dataset I/O model; shared dataset writes stay serial.

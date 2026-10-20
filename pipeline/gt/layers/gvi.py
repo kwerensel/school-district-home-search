@@ -1,7 +1,9 @@
 """Seasonal Sentinel-2 street-corridor proxy; never photographic/address GVI."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
+from itertools import repeat
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -172,7 +174,20 @@ def _band(item: dict, key: str) -> dict:
     return bands[0]
 
 
-def _composite(cache: Path, items: list[dict], tracts, listings, roads) -> tuple[Path, dict]:
+def _scene_window(reader, expanded: Window, window: Window) -> np.ndarray:
+    """Read one scene's private datasets; no dataset is used concurrently twice."""
+    item, assets = reader
+    with rasterio.Env(GDAL_HTTP_MAX_RETRY=4, GDAL_HTTP_RETRY_DELAY=2,
+                      GDAL_HTTP_CONNECTTIMEOUT=20, GDAL_HTTP_TIMEOUT=60):
+        data = {key: source.read(1, window=expanded) for key, source in assets.items()}
+    ndvi = scene_ndvi(**data, red_band=_band(item, "red"), nir_band=_band(item, "nir"))
+    row, col = int(window.row_off - expanded.row_off), int(window.col_off - expanded.col_off)
+    return ndvi[row:row + int(window.height), col:col + int(window.width)]
+
+
+def _composite(cache: Path, items: list[dict], tracts, listings, roads, *, workers: int = 4) -> tuple[Path, dict]:
+    if not 1 <= workers <= 4:
+        raise ValueError("GVI source-read concurrency must be between 1 and 4")
     target_crs = tracts.estimate_utm_crs()
     if target_crs is None:
         raise RuntimeError("Cannot derive meter-based UTM CRS")
@@ -195,7 +210,7 @@ def _composite(cache: Path, items: list[dict], tracts, listings, roads) -> tuple
     profile = dict(driver="GTiff", width=width, height=height, count=2, dtype="float32", crs=target_crs, transform=transform, nodata=NODATA, tiled=True, compress="deflate", blockxsize=512, blockysize=512, BIGTIFF="IF_SAFER")
     stats = {"fingerprint": fingerprint, "algorithm": ALGORITHM, "target_crs": str(target_crs), "source_crs": [], "selected_scene_ids": [i["id"] for i in items], "minimum_unique_acquisition_days": MIN_OBSERVATIONS, "road_features": len(roads), "corridor_pixels": 0, "valid_corridor_pixels": 0, "valid_observation_histogram": {}, "mask_invalid_scene_pixels": 0, "scene_pixels": 0}
     temporary = path.with_suffix(".partial.tif")
-    with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif", GDAL_HTTP_MAX_RETRY=4, GDAL_HTTP_RETRY_DELAY=2), ExitStack() as handles:
+    with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif", GDAL_HTTP_MAX_RETRY=4, GDAL_HTTP_RETRY_DELAY=2, GDAL_HTTP_CONNECTTIMEOUT=20, GDAL_HTTP_TIMEOUT=60), ExitStack() as handles:
         started = time.monotonic()
         print(f"GVI opening {len(items)} scenes; grid {width} x {height}", flush=True)
         readers = []
@@ -209,6 +224,9 @@ def _composite(cache: Path, items: list[dict], tracts, listings, roads) -> tuple
                 # Cloud probability 0 is a valid clear value, despite STAC's nodata=0.
                 assets[key] = handles.enter_context(WarpedVRT(source, crs=target_crs, transform=transform, width=width, height=height, resampling=Resampling.nearest, src_nodata=0 if key != "cloud" else 255, nodata=255 if key == "cloud" else 0))
             readers.append((item, assets))
+        # Each scene owns its readers. All results finish before the next
+        # window; only the main thread merges days and writes the output.
+        pool = handles.enter_context(ThreadPoolExecutor(max_workers=workers))
         with rasterio.open(temporary, "w", **profile) as out:
             out.set_band_description(1, "Street corridor NDVI summer median")
             out.set_band_description(2, "Valid unique acquisition days")
@@ -227,10 +245,9 @@ def _composite(cache: Path, items: list[dict], tracts, listings, roads) -> tuple
                 x0, y0 = max(0, col - 2), max(0, row - 2)
                 expanded = Window(x0, y0, min(width, col + int(window.width) + 2) - x0, min(height, row + int(window.height) + 2) - y0)
                 days: dict[str, np.ndarray] = {}
-                for item, assets in readers:
-                    data = {k: reader.read(1, window=expanded) for k, reader in assets.items()}
-                    ndvi = scene_ndvi(**data, red_band=_band(item, "red"), nir_band=_band(item, "nir"))
-                    ndvi = ndvi[row-y0:row-y0+int(window.height), col-x0:col-x0+int(window.width)]
+                observations = pool.map(_scene_window, readers, repeat(expanded), repeat(window))
+                # map yields in input order, retaining deterministic tile/day precedence.
+                for (item, _), ndvi in zip(readers, observations, strict=True):
                     stats["scene_pixels"] += int(mask.sum())
                     stats["mask_invalid_scene_pixels"] += int((mask & ~np.isfinite(ndvi)).sum())
                     day = item["properties"]["datetime"][:10]
@@ -240,7 +257,7 @@ def _composite(cache: Path, items: list[dict], tracts, listings, roads) -> tuple
                     else:
                         days[day] = ndvi
                 processed += 1
-                if processed % 25 == 0:
+                if processed % 10 == 0:
                     print(f"GVI corridor blocks {processed}; elapsed {time.monotonic() - started:.0f}s; valid pixels {stats['valid_corridor_pixels']}", flush=True)
                 median, counts = summer_median(list(days.values()))
                 valid = mask & np.isfinite(median)
