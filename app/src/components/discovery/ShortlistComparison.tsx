@@ -1,3 +1,4 @@
+import { PreferenceWeights, type PreferenceWeightsProps } from "./PreferenceWeights";
 import {
   compareRowValues,
   ROW_PREFERENCES,
@@ -145,7 +146,11 @@ function HighlightLegend() {
   );
 }
 
-function ComparisonTable({ districts, weights }: ComparisonProps) {
+function ComparisonTable({
+  districts,
+  weights,
+  expanded = false,
+}: ComparisonProps & { expanded?: boolean }) {
   const affordabilityActive = weights.affordability > 0;
   const taxHighlights = compareRowValues(
     districts.map((district) => district.effectiveTaxRate),
@@ -154,7 +159,7 @@ function ComparisonTable({ districts, weights }: ComparisonProps) {
   );
   return (
     <div
-      className="max-h-[55vh] overflow-auto rounded-md border focus-visible:outline-2 focus-visible:outline-ring"
+      className={`${expanded ? "min-h-0 flex-1" : "max-h-[55vh]"} overflow-auto rounded-md border focus-visible:outline-2 focus-visible:outline-ring`}
       role="region"
       aria-label="Scrollable district values"
       tabIndex={0}
@@ -269,7 +274,7 @@ function ComparisonTable({ districts, weights }: ComparisonProps) {
 
 function Sources({ districts }: { districts: DistrictPurchasingPower[] }) {
   return (
-    <details className="text-xs text-muted-foreground">
+    <details className="max-h-[20vh] shrink-0 overflow-y-auto text-xs text-muted-foreground">
       <summary className="cursor-pointer">Sources and vintages</summary>
       {districts.map((district) => (
         <div key={district.districtSlug} className="mt-3">
@@ -292,7 +297,11 @@ function Sources({ districts }: { districts: DistrictPurchasingPower[] }) {
   );
 }
 
-export function ShortlistComparison({ districts, weights }: ComparisonProps) {
+export function ShortlistComparison({
+  districts,
+  weights,
+  onWeightChange,
+}: ComparisonProps & PreferenceWeightsProps) {
   if (districts.length < 2) return null;
   return (
     <section
@@ -310,7 +319,7 @@ export function ShortlistComparison({ districts, weights }: ComparisonProps) {
             Expand comparison
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-6xl overflow-y-auto">
+        <DialogContent className="flex h-[90vh] w-[calc(100vw-2rem)] max-w-6xl flex-col gap-3">
           <DialogHeader>
             <DialogTitle>Your shortlist, side by side</DialogTitle>
             <DialogDescription>
@@ -318,8 +327,13 @@ export function ShortlistComparison({ districts, weights }: ComparisonProps) {
               values. Unavailable means missing data. Scroll across for more districts.
             </DialogDescription>
           </DialogHeader>
-          <HighlightLegend />
-          <ComparisonTable districts={districts} weights={weights} />
+          <div className="max-h-[30vh] shrink-0 overflow-y-auto">
+            <PreferenceWeights weights={weights} onWeightChange={onWeightChange} expanded />
+          </div>
+          <div className="shrink-0">
+            <HighlightLegend />
+          </div>
+          <ComparisonTable districts={districts} weights={weights} expanded />
           <Sources districts={districts} />
         </DialogContent>
       </Dialog>

@@ -1,3 +1,4 @@
+import { PreferenceWeights } from "./PreferenceWeights";
 import { ShortlistComparison } from "./ShortlistComparison";
 import { addMatchScores } from "@/lib/finance/match-scoring";
 import { DistrictMapSelection } from "./DistrictMapSelection";
@@ -60,16 +61,6 @@ const percent = new Intl.NumberFormat("en-US", {
 const oneDecimal = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
-
-const weightControls: Array<{ key: WeightKey; label: string }> = [
-  { key: "affordability", label: "Local price reach" },
-  { key: "green", label: "Tree cover" },
-  { key: "walkability", label: "EPA walkability" },
-  { key: "lowerRisk", label: "Lower risk" },
-  { key: "lowerFlood", label: "Lower flood" },
-  { key: "darkSkies", label: "Darker skies" },
-  { key: "parkAccess", label: "Park access" },
-];
 
 function formatCurrency(value: number) {
   return currency.format(Math.round(value));
@@ -176,7 +167,6 @@ export function DiscoveryEngine() {
       downPaymentAmount,
       creditBand,
       regionGroup,
-      weights,
     ],
     queryFn: () =>
       getPurchasingPower({
@@ -184,7 +174,6 @@ export function DiscoveryEngine() {
           monthlyBudget,
           downPaymentAmount,
           creditBand,
-          environmentWeights: weights,
           ...(regionGroup === "all" ? {} : { regionGroup }),
         },
       }),
@@ -204,13 +193,13 @@ export function DiscoveryEngine() {
   };
   const ranked = useMemo(
     () =>
-      [...purchasingPower].sort(
+      addMatchScores(purchasingPower, weights).sort(
         (a, b) =>
           b.matchScore - a.matchScore ||
           b.maxPurchasePrice - a.maxPurchasePrice ||
           a.districtName.localeCompare(b.districtName),
       ),
-    [purchasingPower],
+    [purchasingPower, weights],
   );
   const visibleMapSlugs = mapSelection.filter((slug) =>
     ranked.some((district) => district.districtSlug === slug),
@@ -447,7 +436,13 @@ export function DiscoveryEngine() {
               onChange={setMapSelection}
             />
             {hasShortlist && (
-              <ShortlistComparison districts={comparisonDistricts} weights={weights} />
+              <ShortlistComparison
+                districts={comparisonDistricts}
+                weights={weights}
+                onWeightChange={(key, value) =>
+                  setWeights((current) => ({ ...current, [key]: value }))
+                }
+              />
             )}
             {selected ? (
               <SelectedDistrictPanel
@@ -466,31 +461,12 @@ export function DiscoveryEngine() {
               />
             ) : null}
 
-            <section className="space-y-4">
-              <h2 className="text-sm font-semibold text-foreground">Priorities</h2>
-              <div className="space-y-4">
-                {weightControls.map((control) => (
-                  <div key={control.key} className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <Label htmlFor={`weight-${control.key}`}>{control.label}</Label>
-                      <span className="w-6 text-right text-sm font-medium text-foreground">
-                        {weights[control.key]}
-                      </span>
-                    </div>
-                    <Slider
-                      id={`weight-${control.key}`}
-                      min={0}
-                      max={10}
-                      step={1}
-                      value={[weights[control.key]]}
-                      onValueChange={(value) =>
-                        setWeights((current) => ({ ...current, [control.key]: value[0] }))
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
+            <PreferenceWeights
+              weights={weights}
+              onWeightChange={(key, value) =>
+                setWeights((current) => ({ ...current, [key]: value }))
+              }
+            />
 
             <section className="grid grid-cols-2 gap-3">
               <MetricBox label="Districts" value={String(comparisonDistricts.length)} />

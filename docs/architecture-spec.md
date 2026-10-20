@@ -333,6 +333,10 @@ strongest/weakest for active mapped preferences, showing weight and preferred
 direction; unmapped or disabled preferences use neutral extrema. Ties use displayed
 precision, unknowns are excluded, and different commute anchors are not ranked.
 These row highlights explain individual values and do not replace match scoring.
+The expanded comparison allows editing all seven preference weights in place;
+controls share canonical state with the sidebar and URL. Recompute deterministic
+match order and highlights locally from loaded facts on weight changes so the
+dialog remains open, without refetching unchanged data.
 
 The assistant should ask targeted follow-up questions, translate explicit
 preferences into inspectable profile changes, call deterministic search and

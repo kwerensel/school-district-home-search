@@ -13,6 +13,17 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
+Latest expanded-controls addition (2026-10-19, following `067b0ef`): all seven
+preference weights are editable inside the expanded comparison. Shared accessible
+range controls update canonical weights immediately, synchronizing sidebar,
+URL, shortlist match order, highlights and map ranks. Matching recomputes locally
+with the existing pure scorer; weight-only changes no longer refetch district
+facts or unmount the dialog. Budget/region data fetching remains intact. Browser
+verified walkability 2 -> 10 moves Lower Merion to #1 with dialog open, tree cover
+2 -> 0 removes preference colors, and sidebar sync; restored both to 2. 77 tests,
+typecheck, lint (six existing warnings), production build pass. Catalogue:
+docs/screenshots/2026-10-19-comparison-controls/README.md.
+
 Latest preference-highlight addition (2026-10-19, following `067065d`): comparison
 rows now mark shortlist strongest (green) / weakest (amber) for active mapped
 priorities, with text labels, weight /10 and direction. Affordability maps to lower
