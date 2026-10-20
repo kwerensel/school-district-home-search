@@ -184,9 +184,21 @@ def build_archetypes() -> tuple[ArchetypeBuildResult, str]:
             ) = select_hdbscan(matrix)
             algorithm = "hdbscan-nearest-core"
         if silhouette < MIN_ACCEPTABLE_SILHOUETTE:
+            rejected = ValidationReport(
+                report_type="archetypes", target="post-gvi-candidate", status="blocked_quality",
+                promotable=False,
+                checks={"district_count": len(district_ids), "metric_keys": list(METRIC_KEYS),
+                        "missing_by_metric": missing_by_metric, "algorithm": algorithm,
+                        "cluster_count": best_k, "silhouette": silhouette,
+                        "required_silhouette": MIN_ACCEPTABLE_SILHOUETTE,
+                        "core_silhouette": core_silhouette, "noise_count": hdbscan_noise_count,
+                        "selected_hdbscan_parameters": hdbscan_parameters,
+                        "model_persisted": False},
+            )
+            failure_path = write_report(rejected, "archetypes_post_gvi_rejected_latest.json")
             raise RuntimeError(
                 f"Complete archetype partition silhouette {silhouette:.3f} is below "
-                f"{MIN_ACCEPTABLE_SILHOUETTE}; no model persisted"
+                f"{MIN_ACCEPTABLE_SILHOUETTE}; no model persisted; report: {failure_path}"
             )
         model_version = _model_version(
             district_ids,
@@ -195,6 +207,8 @@ def build_archetypes() -> tuple[ArchetypeBuildResult, str]:
             parameters={
                 "kmeans_range": [MIN_K, MAX_K],
                 "hdbscan_noise_assignment": "nearest_core_centroid_only_noise_v2",
+                "hdbscan_selection_objective": "complete_partition_silhouette_v1",
+                "cohort": "districts_with_observed_model_metrics_v1",
                 "selected_hdbscan_parameters": hdbscan_parameters,
                 "hdbscan_selection_methods": ["eom", "leaf"],
                 "hdbscan_min_cluster_sizes": [4, min(30, max(4, len(district_ids) // 4))],
@@ -333,9 +347,9 @@ def select_hdbscan(
     """Select a deterministic HDBSCAN fallback and assign every district.
 
     HDBSCAN may identify noise points, but the product contract requires a
-    complete partition. Candidate quality is therefore measured on the dense
-    cores, then noise points are assigned to the nearest core centroid and the
-    returned silhouette is recomputed over the complete persisted partition.
+    complete partition. Rank candidates on that complete partition after assigning
+    noise to the nearest core centroid. Dense-core quality is a diagnostic and
+    secondary tie-break, not a substitute for the release objective.
     """
     try:
         import hdbscan
@@ -346,7 +360,7 @@ def select_hdbscan(
     if matrix.ndim != 2 or not np.isfinite(matrix).all():
         raise ValueError("HDBSCAN requires a finite two-dimensional matrix")
 
-    candidates: list[tuple[float, int, int, str, int, np.ndarray]] = []
+    candidates: list[tuple[float, float, int, int, str, int, np.ndarray, np.ndarray]] = []
     max_cluster_size = min(30, max(4, matrix.shape[0] // 4))
     for selection_method in ("eom", "leaf"):
         for min_cluster_size in range(4, max_cluster_size + 1):
@@ -363,27 +377,29 @@ def select_hdbscan(
                 core_mask = raw_labels >= 0
                 core_score = silhouette_score(matrix[core_mask], raw_labels[core_mask])
                 noise_count = int(np.sum(~core_mask))
+                complete_labels = assign_hdbscan_noise(matrix, raw_labels)
+                complete_score = silhouette_score(matrix, complete_labels)
                 candidates.append(
                     (
+                        complete_score,
                         core_score,
                         -noise_count,
                         -int(clusters.size),
                         selection_method,
                         min_cluster_size * 100 + min_samples,
                         raw_labels,
+                        complete_labels,
                     )
                 )
     if not candidates:
         raise RuntimeError("HDBSCAN produced no candidate with 4-9 dense clusters")
 
-    core_score, neg_noise, _, method, encoded_parameters, raw_labels = max(
-        candidates, key=lambda item: item[:5]
+    complete_score, core_score, neg_noise, _, method, encoded_parameters, raw_labels, labels = max(
+        candidates, key=lambda item: item[:6]
     )
     raw_clusters = sorted(int(value) for value in np.unique(raw_labels) if value >= 0)
-    labels = assign_hdbscan_noise(matrix, raw_labels)
     centroids = np.array([matrix[labels == cluster].mean(axis=0) for cluster in range(len(raw_clusters))])
     distances = np.linalg.norm(matrix - centroids[labels], axis=1)
-    complete_score = silhouette_score(matrix, labels)
     return (
         labels,
         centroids,
@@ -562,8 +578,13 @@ def _load_district_matrix(
             """
         )
         district_ids = [int(row[0]) for row in cur.fetchall()]
+    # A registered boundary-only neighbor can have a home-value row but no
+    # planned model observations. Do not fabricate an all-neutral archetype
+    # vector for it. Partially observed districts still use normal imputation.
+    observed_ids = {int(district_id) for district_id, _, value in rows if value is not None and math.isfinite(float(value))}
+    district_ids = [district_id for district_id in district_ids if district_id in observed_ids]
     if not district_ids:
-        raise RuntimeError("No active school-district regions are available")
+        raise RuntimeError("No active school-district regions with model observations are available")
     values_by_district: dict[int, dict[str, float]] = {district_id: {} for district_id in district_ids}
     for district_id, metric_key, value in rows:
         if int(district_id) not in values_by_district:

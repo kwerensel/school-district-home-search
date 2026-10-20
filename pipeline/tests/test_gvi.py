@@ -150,6 +150,7 @@ def source_gap_checks():
             'pixels_with_any_observations': 0,
             'pixels_with_minimum_observations': 0,
             'maximum_valid_observation_days': 0,
+            'minimum_unique_acquisition_days': 3,
         }],
     }
 
@@ -178,6 +179,7 @@ def test_unknown_policy_requires_complete_accounting_without_imputation():
     ('pixels_with_minimum_observations', 1),
     ('corridor_pixel_centers_in_buffer', 1),
     ('maximum_valid_observation_days', 1),
+    ('minimum_unique_acquisition_days', 2),
     ('listing_id', 99),
     ('grain', 'buffer_500m'),
 ])
@@ -272,3 +274,35 @@ def test_concurrent_composite_is_identical_to_serial_with_day_overlap(tmp_path):
         stats.append(summary)
     np.testing.assert_array_equal(outputs[0],outputs[1])
     assert stats[0]==stats[1]
+
+
+@pytest.mark.parametrize('distance,accepted', [(149.9,True),(140.4,True),(130,False),(151,False)])
+def test_native_pixel_gap_is_unknown_only_at_a_verified_grid_edge(distance,accepted):
+    from gt.layers.gvi import listing_source_gap_policy
+    checks=source_gap_checks()
+    gap=checks['missing_buffer_diagnostics'][0]
+    gap.update(source_gap_category='road_corridor_without_pixel_centers',
+               corridor_buffer_geometric_intersection=True,
+               nearest_cached_drive_road_m=distance)
+    result=listing_source_gap_policy(checks)
+    assert result['passed'] is accepted
+    if accepted:
+        assert result['accepted_unknowns'][0]['reason']=='road_corridor_without_pixel_centers'
+    gap['pixels_with_any_observations']=1
+    assert not listing_source_gap_policy(checks)['passed']
+
+
+def test_tract_source_gaps_distinguish_missing_roads_from_reducer_failure():
+    import geopandas as gpd
+    from shapely.geometry import LineString
+    from gt.layers.gvi import missing_tract_diagnostics
+    tracts=gpd.GeoDataFrame({'slug':['tract'],'geom':[box(-50,-50,50,50)]},geometry='geom',crs=32618)
+    roads=gpd.GeoDataFrame(geometry=[LineString([(180,-100),(180,100)])],crs=32618)
+    with MemoryFile() as memory:
+        with memory.open(driver='GTiff',width=40,height=40,count=2,dtype='float32',crs=32618,transform=Affine(10,0,-200,0,-10,200),nodata=-9999) as source:
+            source.write(np.zeros((40,40),dtype='float32'),2)
+            assert missing_tract_diagnostics(source,tracts,roads,set(),set())[0]['reason']=='no_road_corridor'
+            source.write(np.full((40,40),3,dtype='float32'),2)
+            assert missing_tract_diagnostics(source,tracts,roads,set(),set())[0]['reason']=='reducer_inconsistency'
+            assert missing_tract_diagnostics(source,tracts,roads,set(),{'tract'})[0]['reason']=='outside_complete_road_extract_support'
+            assert missing_tract_diagnostics(source,tracts,roads,{'tract'},set())==[]

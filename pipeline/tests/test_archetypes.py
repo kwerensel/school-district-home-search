@@ -144,3 +144,63 @@ def test_label_request_uses_available_model_without_retired_sampling_parameters(
     assert 'temperature' not in body
     archetypes._request_anthropic_label([],api_key='test-only-key',model='explicit-model-override')
     assert 'thinking' not in json.loads(requests[1].data)
+
+
+def test_hdbscan_selects_full_partition_quality_instead_of_pure_sparse_cores(monkeypatch):
+    import hdbscan
+    from gt.archetypes import assign_hdbscan_noise
+    rng=np.random.default_rng(17)
+    matrix=np.vstack([rng.normal(center,.003,size=(4,2)) for center in ((0,0),(1,0),(0,1),(1,1))]+[rng.normal((.5,.5),.03,size=(24,2))])
+    pure_cores=np.concatenate([np.repeat(np.arange(4),4),np.full(24,-1)])
+    representative=np.concatenate([np.full(4,-1),np.repeat(np.arange(1,4),4),np.zeros(24,dtype=int)])
+    pure_full=assign_hdbscan_noise(matrix,pure_cores)
+    representative_full=assign_hdbscan_noise(matrix,representative)
+    assert silhouette_score(matrix[pure_cores>=0],pure_cores[pure_cores>=0])>silhouette_score(matrix[representative>=0],representative[representative>=0])
+    assert silhouette_score(matrix,pure_full)<silhouette_score(matrix,representative_full)
+    class Candidate:
+        def __init__(self,**kwargs):self.options=kwargs
+        def fit_predict(self,values):
+            if self.options['min_cluster_size']==4 and self.options['min_samples'] in (2,3):
+                return pure_cores if self.options['min_samples']==2 else representative
+            return np.full(len(values),-1)
+    monkeypatch.setattr(hdbscan,'HDBSCAN',Candidate)
+    result=select_hdbscan(matrix)
+    np.testing.assert_array_equal(result[0],representative_full)
+    assert result[7]['min_samples']==3
+    assert result[4]==silhouette_score(matrix,representative_full)
+
+
+def test_model_cohort_omits_all_unobserved_boundaries_without_dropping_partial_rows():
+    from unittest.mock import MagicMock
+    from gt.archetypes import _load_district_matrix
+    conn=MagicMock();cur=conn.cursor.return_value.__enter__.return_value
+    cur.fetchall.side_effect=[[(1,'tree_canopy_pct',10),(1,'gvi_ndvi_street',.6),(2,'tree_canopy_pct',20)],[(1,),(2,),(3,)]]
+    ids,matrix,missing=_load_district_matrix(conn)
+    assert ids==[1,2]
+    assert matrix.shape==(2,len(METRIC_KEYS))
+    assert missing['tree_canopy_pct']==0
+    assert missing['gvi_ndvi_street']==1
+    assert np.isnan(matrix[1,METRIC_KEYS.index('gvi_ndvi_street')])
+
+
+def test_rejected_complete_partition_writes_red_evidence_without_persisting(monkeypatch,tmp_path):
+    from unittest.mock import MagicMock
+    import pytest
+    from gt import archetypes as a
+    conn=MagicMock();conn.__enter__.return_value=conn
+    monkeypatch.setenv('DATABASE_URL','postgresql://test-only')
+    monkeypatch.setattr(a.psycopg,'connect',lambda *args,**kwargs:conn)
+    labels=np.array([0,0,1,1,2,3]);centroids=np.zeros((4,len(METRIC_KEYS)));distances=np.zeros(6)
+    monkeypatch.setattr(a,'_load_district_matrix',lambda conn:([1,2,3,4,5,6],np.ones((6,len(METRIC_KEYS))),{'gvi_ndvi_street':0}))
+    monkeypatch.setattr(a,'select_kmeans',lambda matrix:(labels,centroids,distances,4,.19))
+    monkeypatch.setattr(a,'select_hdbscan',lambda matrix:(labels,centroids,distances,4,.17,.4,2,{}))
+    reports=[]
+    monkeypatch.setattr(a,'write_report',lambda report,name:reports.append(report) or tmp_path/name)
+    persist=MagicMock();monkeypatch.setattr(a,'_persist_model',persist)
+    with pytest.raises(RuntimeError,match='no model persisted'):
+        a.build_archetypes()
+    assert len(reports)==1 and reports[0].promotable is False
+    assert reports[0].checks['silhouette']==.17
+    assert reports[0].checks['required_silhouette']==.25
+    assert reports[0].checks['model_persisted'] is False
+    persist.assert_not_called();conn.commit.assert_not_called()

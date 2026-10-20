@@ -28,12 +28,13 @@ notes: >
   satellite proxy for street-adjacent vegetation, not a literal eye-level
   photograph or address-specific assertion. Store geometry in EPSG:4326 and
   use an appropriate projected CRS for meter buffers.
-  On 2026-10-19 the user approved explicit Unknowns for proven absent road
-  corridors. Every expected listing buffer must have a computed value or
-  one matching diagnostic proving no geometric corridor intersection, nearest
-  road beyond buffer radius plus 50 m, and zero corridor/observation pixels.
-  Missing rows remain Unknown; cloud insufficiency, raster bounds errors,
-  unmatched diagnostics and reducer inconsistencies still block promotion.
+  On 2026-10-19 the user approved explicit Unknowns for genuine source gaps.
+  Every expected listing buffer must have a computed value or exactly one
+  matching zero-support diagnostic: absent road corridor, or a grazing
+  corridor with no native pixel centers within one 10 m grid diagonal of its
+  nominal reach. Both require zero observations and the unchanged three-day
+  floor. Cloud insufficiency, deep-interior gaps, unmatched diagnostics,
+  raster bounds errors and reducer inconsistencies still block promotion.
   The approved Geofabrik fallback reconstructs full OSM way geometry locally
   with the same drive access rules. Neighbor extracts supply border-buffer
   road context without adding listing regions. Source-unsupported tracts stay

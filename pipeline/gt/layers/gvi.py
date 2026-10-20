@@ -338,22 +338,61 @@ def run_gvi(manifest_path: Path, region_slug: str, grain: str) -> tuple[Validati
             checks = _validation_checks(cur, region_slug, manifest, grain)
         conn.commit()
     checks["road_source_provenance"] = road_provenance
-    checks["tract_source_gaps"] = [{"slug": slug, "reason": "outside_complete_road_extract_support"} for slug in sorted(excluded_tracts)]
     values = [m.value for m in [*region_metrics, *listing_metrics]]
     seen = {(m.listing_id, m.grain) for m in listing_metrics}
     checks |= {"nonfinite_values": sum(not math.isfinite(v) for v in values), "source": source_stats, "selection_manifest": str(cache / "selected-scenes.json"), "source_retrieved_at": selection["retrieved_at"], "raster_path": str(raster_path), "missing_listing_buffers": [{"listing_id": int(i), "grain": g} for i in listings.id for g in ("buffer_100m", "buffer_500m") if (int(i), g) not in seen] if grain in {"listing", "both"} else []}
     with rasterio.open(raster_path) as source:
         checks["missing_buffer_diagnostics"] = missing_buffer_diagnostics(source, listings, roads, checks["missing_listing_buffers"])
+        checks["tract_source_gaps"] = missing_tract_diagnostics(
+            source, tracts, roads, {metric.region_slug for metric in region_metrics}, excluded_tracts,
+        ) if grain in {"tract", "both"} else []
+    checks["tract_gap_processing_errors"] = sum(
+        row["reason"] in {"reducer_inconsistency", "outside_composite_bounds"}
+        for row in checks["tract_source_gaps"]
+    )
     checks["listing_source_gap_policy"] = listing_source_gap_policy(checks)
-    promotable = bool(values) and checks["nonfinite_values"] == 0 and -1 <= checks["range_min"] <= checks["range_max"] <= 1 and (grain == "listing" or checks["tract_coverage"] >= manifest.coverage_threshold) and (grain == "tract" or checks["listing_source_gap_policy"]["passed"])
+    promotable = bool(values) and checks["nonfinite_values"] == 0 and checks["tract_gap_processing_errors"] == 0 and -1 <= checks["range_min"] <= checks["range_max"] <= 1 and (grain == "listing" or checks["tract_coverage"] >= manifest.coverage_threshold) and (grain == "tract" or checks["listing_source_gap_policy"]["passed"])
     report = ValidationReport(report_type="layer", target=f"{manifest.metric_key}:{region_slug}", status="staged", promotable=promotable, checks=checks)
     return report, write_report(report, f"layer_{manifest.metric_key}_{region_slug}_latest.json")
 
 
-def listing_source_gap_policy(checks: dict) -> dict:
-    """Account for every listing buffer, accepting only proven no-road Unknowns.
+def missing_tract_diagnostics(source, tracts, roads, computed_slugs: set[str], excluded_slugs: set[str]) -> list[dict]:
+    """Account for missing tract support; flag processing failures separately."""
+    from rasterio.features import geometry_mask
+    from rasterio.windows import from_bounds
+    if not source.crs or not source.crs.is_projected:
+        raise ValueError("Tract diagnostics require projected source geometry")
+    projected_roads = roads.to_crs(source.crs)
+    gaps = []
+    for row in tracts.loc[~tracts.slug.isin(computed_slugs)].to_crs(source.crs).itertuples():
+        window = from_bounds(*row.geom.bounds, transform=source.transform).round_offsets().round_lengths()
+        try:
+            window = window.intersection(Window(0, 0, source.width, source.height))
+        except rasterio.errors.WindowError:
+            gaps.append({"slug": str(row.slug), "reason": "outside_composite_bounds"})
+            continue
+        counts = source.read(2, window=window)
+        inside = geometry_mask([row.geom], out_shape=counts.shape, transform=source.window_transform(window), invert=True)
+        local = projected_roads.iloc[projected_roads.sindex.query(row.geom.buffer(50), predicate="intersects")]
+        intersects = bool(local.geometry.buffer(50).intersects(row.geom).any()) if len(local) else False
+        supported = int((inside & (counts >= MIN_OBSERVATIONS)).sum())
+        reason = (
+            "outside_complete_road_extract_support" if str(row.slug) in excluded_slugs else
+            "reducer_inconsistency" if supported else
+            "no_road_corridor" if not intersects else
+            "no_valid_source_pixels"
+        )
+        gaps.append({"slug": str(row.slug), "reason": reason,
+                     "road_corridor_intersects": intersects,
+                     "pixels_with_any_observation": int((inside & (counts > 0)).sum()),
+                     "pixels_with_minimum_observations": supported})
+    return gaps
 
-    User approved this source-gap policy on 2026-10-19. Cloud insufficiency,
+
+def listing_source_gap_policy(checks: dict) -> dict:
+    """Account for every listing buffer, accepting proven structural source gaps.
+
+    User approved explicit source-gap Unknowns on 2026-10-19. Cloud insufficiency,
     raster bounds and reducer inconsistencies still fail closed. Missing values
     stay absent metric rows, never zero or an interpolated estimate.
     """
@@ -368,15 +407,28 @@ def listing_source_gap_policy(checks: dict) -> dict:
     for row in diagnostics:
         radius = {"buffer_100m": 100, "buffer_500m": 500}.get(row["grain"])
         distance = row.get("nearest_cached_drive_road_m")
-        if (radius is not None and row.get("source_gap_category") == "no_road_corridor"
-                and row.get("corridor_buffer_geometric_intersection") is False
-                and isinstance(distance, (int, float)) and math.isfinite(distance)
-                and distance > radius + 50
-                and all(row.get(field) == 0 for field in (
-                    "corridor_pixel_centers_in_buffer", "pixels_with_any_observations",
-                    "pixels_with_minimum_observations", "maximum_valid_observation_days"))):
+        zero_support = all(row.get(field) == 0 for field in (
+            "corridor_pixel_centers_in_buffer", "pixels_with_any_observations",
+            "pixels_with_minimum_observations", "maximum_valid_observation_days"))
+        if (radius is None or not isinstance(distance, (int, float))
+                or not math.isfinite(distance) or not zero_support
+                or row.get("minimum_unique_acquisition_days") != MIN_OBSERVATIONS):
+            continue
+        category = row.get("source_gap_category")
+        absent_road = (category == "no_road_corridor"
+                       and row.get("corridor_buffer_geometric_intersection") is False
+                       and distance > radius + 50)
+        # A corridor can graze the buffer without containing a native pixel
+        # center. Restrict that exception to its 10m grid-edge neighborhood;
+        # a deep interior gap still signals a processing inconsistency.
+        absent_native_centers = (
+            category == "road_corridor_without_pixel_centers"
+            and row.get("corridor_buffer_geometric_intersection") is True
+            and radius + 50 - math.hypot(10, 10) < distance <= radius + 50
+        )
+        if absent_road or absent_native_centers:
             accepted.append({"listing_id": row["listing_id"], "grain": row["grain"],
-                             "reason": "no_road_corridor"})
+                             "reason": category})
     accounting = {}
     for grain in ("buffer_100m", "buffer_500m"):
         computed = checks[f"listing_{grain}_computed"]
@@ -384,7 +436,7 @@ def listing_source_gap_policy(checks: dict) -> dict:
         accounting[grain] = {"computed": computed, "explicit_unknown": unknown,
                              "expected": checks["listings_expected"],
                              "complete": computed + unknown == checks["listings_expected"]}
-    return {"policy": "verified_no_road_corridor_unknown_v1", "approved_on": "2026-10-19",
+    return {"policy": "verified_structural_source_gap_unknown_v2", "approved_on": "2026-10-19",
             "diagnostics_match_missing": matched, "accepted_unknowns": accepted,
             "accounting": accounting,
             "passed": matched and len(accepted) == len(missing)

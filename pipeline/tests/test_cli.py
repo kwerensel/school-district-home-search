@@ -469,3 +469,25 @@ notes: Neighborhood context only at this native resolution.
 
     assert result.exit_code == 0
     assert "light_pollution_radiance" in result.output
+
+
+def test_promote_configures_timeouts_inside_the_transaction_for_neon_pooling(monkeypatch):
+    from pathlib import Path
+    from unittest.mock import MagicMock
+    from gt.layers import runner
+    conn=MagicMock()
+    conn.__enter__.return_value=conn
+    cur=conn.cursor.return_value.__enter__.return_value
+    connect=MagicMock(return_value=conn)
+    monkeypatch.setenv('DATABASE_URL','postgresql://test-only')
+    monkeypatch.setattr(runner.psycopg,'connect',connect)
+    monkeypatch.setattr(runner,'assert_public_promotion_context',lambda:None)
+    runner.promote_layer(Path(__file__).resolve().parents[1]/'manifests/layers/gvi_ndvi_street.yaml','hudson-valley')
+    # A pooler must receive no unsupported timeout startup options.
+    assert connect.call_args.kwargs=={'autocommit':False}
+    statements=[call.args[0] for call in cur.execute.call_args_list]
+    assert statements[0].startswith('SET LOCAL lock_timeout')
+    assert statements[1].startswith('SET LOCAL statement_timeout')
+    assert any('INSERT INTO metric_definitions' in text for text in statements[2:])
+    assert 'REFRESH MATERIALIZED VIEW district_metrics' in statements[-1]
+    conn.commit.assert_called_once()

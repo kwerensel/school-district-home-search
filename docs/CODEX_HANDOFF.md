@@ -28,45 +28,31 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
-- PA satellite GVI is **promoted**, HV composite is processing. Fixed 2025 summer,
-  max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
-  three-day floor and exact-shape 50 m OSM corridors are implemented. PA has
-  36 selected scenes/128 candidates, 206,731 road geometries and a 9,736×8,240
-  composite. On October19 the user approved genuine source gaps as Unknown.
-  Fresh staging/validation is promotable:495/495 tracts,251/251 500m buffers,
-  248/251 100m buffers plus three proven no-road Unknowns (159/161/214).
-  Diagnostics must match missing ID/grain pairs uniquely, prove absent
-  intersection/zero pixels and account for every buffer; cloud/reducer/bounds
-  failures remain red. No zero/imputation/corridor change. Fresh tract,
-  paired/divergence, same-street and missing-source QA passed visual review;
-  explicit `gt promote --report layer_gvi_ndvi_street_pa-mainline_latest.json`
-  completed and refreshed district rollups. Public verification:495 tract,
-  499 listing-buffer values,61 district divergence values,4505 frozen listings.
-  Twelve post-promotion spatial goldens pass. Evidence:
-  `docs/qa/2026-10-19-gvi-pa-promotion.md`.
-  The former HV Overpass blocker is resolved through approved Geofabrik
-  recovery below. HV still needs composite completion, fresh validation/QA,
-  explicit promotion and model rebuild. Prior endpoint failures/cache evidence
-  remain recorded; no partial Overpass chunk is used as complete coverage.
-- October19: user approved free Geofabrik OSM recovery and continued build.
-  Pinned NY/CT/NJ/PA October18 extracts are downloaded/checksum-verified; adjacent
-  states supply only existing HV boundary buffers. No new listing regions or
-  dependencies. Local full-way importer has filter/geometry/checksum/coverage
-  tests; no PBF node bbox filtering. Road QA visually passes for111833 ways. All4254 listing supports are covered;
-  one coastal tract (36119007600) is source-unsupported and omitted under the
-  unchanged99% gate. Road recovery is complete; the44-scene satellite composite is active:
-  `/private/tmp/gt-geofabrik-hv-concurrent.log`. Serial run was safely stopped
-  before staging and restarted after exact multi-window serial/concurrent
-  pixel/statistics equivalence tests. Four independent scene readers overlap
-  I/O; main-thread merges preserve input/day order.166 tests pass,2 skipped.
-  No HV validation or promotion yet. Source
-  packet: `docs/layer-onboarding/gvi_ndvi_street.md`. HV offline Phase11
-  sampling is complete:20131 points,4027/4254 listings have>=3 road samples,
-  204 have none. No HV Mapillary request or imagery/inference. Sampling/road
-  QA PNGs visually pass;12 post-spatial goldens pass.163 pipeline tests pass
-  (2 opt-in skipped);48 focused GVI/import tests pass. Source-gap closeups now
-  paginate rather than exceeding image-size limits;30 GVI tests pass after
-  single/multi-page/complete-coverage regressions.
+- Satellite GVI is **promoted in both regions**, including the recovered Hudson
+  Valley source. Explicit promotion refreshed public district rollups; verification
+  preserves all4,505 frozen listings. Public GVI:930 tract rows,8,789 listing-buffer
+  values and139 district rollups (61 PA/78 HV). HV has435/437 tracts,4,042/4,254
+  100m and4,248/4,254 500m values. PA remains495/495 tracts,248/251 100m,
+  251/251 500m. Genuine absent-road/native-grid-edge source gaps remain Unknown:
+  HV212 small and6 large buffers; PA3 small buffers. No imputation or widened
+  corridors. The verified structural-source-gap policy requires exact diagnostic
+  accounting and zero observation pixels; processing/cloud/bounds failures stay red.
+  HV coastal tract36119007600 is outside complete extract support; tract36119005600
+  has no road support. The unchanged99% tract gate passes.
+- Approved free Geofabrik recovery uses checksum-verified October18 NY/CT/NJ/PA
+  extracts, with border states supplying existing HV supports only. The full-way
+  importer produced111,833 HV roads without node bbox truncation. PA corridor
+  comparison on the shared10m grid has99.9777% intersection-over-union. The44-scene
+  HV composite completed with deterministic four-scene concurrent reads, proven
+  pixel/statistics-equivalent to serial processing. Fresh reports are promotable;
+  tract, paired/divergence, same-street and37 paginated source-gap QA images were
+  generated and visually reviewed. Explicit HV promotion succeeded; transaction-local
+  timeouts avoid Neon pooler startup-option rejection. Twelve post-promotion spatial
+  goldens and the live Discovery timing check pass. Full pipeline177 passed/2 skipped.
+  Evidence: `docs/qa/2026-10-19-gvi-hv-promotion.md` and
+  `data/reports/qa/gvi_both_regions_promotion_verification.json`.
+  HV offline Phase11 sampling:20,131 points,4,027/4,254 listings have>=3 road samples,
+  204 have none. No HV Mapillary request, image download or inference.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
   A fixed invoker-rights input function avoids a dependency blocking the
@@ -78,12 +64,15 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   two-district comparison and guarded/cache-resilient narratives. Scoring uses
   empirical percentiles with fair ties. GVI enters green only with complete
   promoted finite coverage; divergence never scores.
-- Post-GVI archetype scaffolding preserves density-cluster core assignments
-  and extends only noise points to the nearest core centroid. Rebuilds require
-  promoted GVI coverage and a complete-partition silhouette>=0.25. Explicit
-  pre-GVI label requests and public pre-GVI label reads are refused; repeated
-  identical builds preserve reviewed copy. No post-GVI build or label approval
-  has occurred.
+- Post-GVI archetype release is **blocked by the unchanged0.25 silhouette gate**.
+  The corrected139-district/16-feature build scores0.171887; no model was persisted
+  or labeled. Loader excludes only districts with zero observed model metrics
+  (Solanco remains registered/public); partial observations retain median imputation.
+  HDBSCAN selects by complete-partition score, preserves core assignments and assigns
+  only noise to core centroids. All139 deterministic KMeans starts for each k4–9
+  still peak at0.210875. No feature removal, threshold reduction or poor model release.
+  Failed builds now emit a non-promotable diagnostic report without DB writes:
+  `data/reports/archetypes_post_gvi_rejected_latest.json`. Regression tests pass.
 - Signed-out desktop and390×844 browser QA passed: public Center City45min cap
   yields27 PA districts; comparison returns trusted differences; Lower Merion/
   Radnor caps produce44 frozen listings, then16 at3+beds, confirmed independently
@@ -100,7 +89,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   See `docs/qa/2026-10-19-discovery-performance.md`.
 - User approved **Geocodio free tier only**, then deferred the key and requested
   the October19 reminder. Adapter/UI/atomic1,000-per-day quota are implemented;
-  migration012 installed; no provider request made. Key absent and flag off.
+  migration012 installed; no provider request made. Key saved by user October19; flag remains off pending provider-side no-paid-use confirmation. Two mocked adapter tests pass; no live request yet.
   One-time chat reminder created for October19 at9AM Eastern (`add-geocodio-key`).
   Never enable paid usage. See `docs/geocoding.md`.
 - Private operator schema011 installed, **flag off/no admin grants/no baseline
@@ -161,21 +150,15 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   district join, with retry/error states for saves/favorites. Missing auth
   configuration returns signed-out for optional session reads and fails closed
   for protected actions. See `docs/account-acceptance.md`.
-- Current verification: app79 tests/2opt-in integrations skipped, live read-only
-  Discovery timing check passed separately, TypeScript, lint0errors/6existing warnings
-  and Cloudflare build pass; latest full pipeline142 passed/2opt-in skipped,
-  including live golden checks;27 focused GVI tests pass including source-gap
-  accounting/failure refusals;
-  operator13 opt-in live tests and quota SQL fixture also pass. Full account/save/reset/delete
-  acceptance stays deferred; Better Auth secret/Turnstile configuration remain
-  missing. No pending labels approved and no production deployment performed.
-- GVI implementation/CLI/QA helpers are committed and pushed in `63ac41b`;
-  the former strict source-gap gate is resolved by explicit user
-  approval and fresh validated evidence. Remaining gates:HV composite/validation/QA completion,
-  photographic inference dependency/rights review, deferred Geocodio key,
-  post-GVI rebuild/label review and full account acceptance. Production remains
-  excluded. Preserve roadmap scope; do not infer complete Phase8/9 from PA-only
-  promotion or candidate metadata coverage.
+- Current verification: app79 tests/2 opt-in integrations skipped, live read-only
+  Discovery timing check passed separately, TypeScript, lint0 errors/6 existing warnings
+  and Cloudflare build pass. Full pipeline177 passed/2 opt-in skipped, including live
+  golden checks. Operator13 opt-in live tests and quota SQL fixture passed earlier.
+  No production deployment, account billing change, admin grant or poor model release.
+- Remaining gates: post-GVI model quality/design, existing Anthropic credit/billing,
+  photographic inference dependencies/rights, Geocodio provider-side no-paid-use
+  confirmation/live check, and deferred full account acceptance. OSM and HV GVI
+  promotion are complete. Preserve roadmap order and keep accounts optional.
 
 ## 2. Current Phase Or Feature Area
 

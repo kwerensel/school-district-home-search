@@ -248,3 +248,39 @@ slivers). The existing/Geofabrik 50m masks intersect in 23,923,991 pixels, with
 raw ways can retain isolated rings. The comparison checks corridor support,
 not optical or photographic values, and changes no PA metrics. PNG/JSON QA:
 `data/reports/qa/gvi_geofabrik_pa_corridor_comparison.*`; visual review passes.
+
+## Hudson Valley source gaps and fresh validation — October 19
+
+The completed composite has99.541% valid road-corridor pixels under the
+three-unique-day floor. It yields435/437 tract means,4,042/4,254 100m means,
+and4,248/4,254 500m means, all finite in0.09234–0.88751.
+
+There are218 missing listing/grain pairs:207 absent-road cases and11 grazing
+corridors with no native10m pixel centers. Ten grazing cases are100m buffers;
+one is the500m buffer for listing614. All have zero corridor pixel centers,
+zero observation pixels and zero maximum observed days. Their nearest roads
+are within one native pixel diagonal of nominal buffer+50m reach. Native-grid
+closeups confirm that polygon contact does not create an observed raster cell.
+
+The user's approved genuine-source-gap-as-Unknown policy now accounts for
+these two structural cases (`verified_structural_source_gap_unknown_v2`).
+It requires unique exact ID/grain diagnostic matching, zero support, a recorded
+three-day floor, and computed+Unknown=expected for each grain. A grid-edge case
+must have geometric intersection and distance in(radius+50−sqrt(2)*10,
+radius+50]; a deep-interior missing mask remains a failure. No pixel, road,
+buffer, observation floor or value is widened/interpolated. Cloud insufficiency,
+reducer failures and out-of-bounds listing buffers remain blocking.
+
+The two missing tracts are36119005600 (no corridor/observation support) and
+36119007600 (partly outside the complete extract). The latter has some valid
+pixels but its entire value is deliberately omitted. Tract coverage is99.542%,
+above the unchanged99% threshold. Missing-tract diagnostics now independently
+block reducer inconsistencies and raster bounds failures. There are zero such
+processing errors. Both regions receive fresh reports; no old red report is
+edited to become green.
+
+QA includes standard/paired maps, a direct same-street raster check and37
+paginated PNGs covering all218 missing listing/grain pairs, with a complete
+JSON ledger. Representative native-edge100m/500m closeups and final-page cases
+were visually inspected. HV listings913/917 show0.478/0.854 NDVI with plausible
+local road/raster variation; this is never photographic vegetation evidence.

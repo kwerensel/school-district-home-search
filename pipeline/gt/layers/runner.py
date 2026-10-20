@@ -17,6 +17,10 @@ def promote_layer(manifest_path: Path, region_slug: str) -> None:
     manifest = load_layer_manifest(manifest_path)
     with psycopg.connect(database_url(), autocommit=False) as conn:
         with conn.cursor() as cur:
+            # Neon transaction pooling rejects timeout startup parameters.
+            # Set them within this intentional, atomic promotion instead.
+            cur.execute("SET LOCAL lock_timeout = '5s'")
+            cur.execute("SET LOCAL statement_timeout = '120s'")
             _promote_metric_definition(cur, manifest)
             _promote_region_metrics(cur, manifest, region_slug)
             _promote_listing_metrics(cur, manifest, region_slug)
