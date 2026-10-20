@@ -13,7 +13,10 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; pushed `6176273` recovers HV roads via approved Geofabrik;
+- Branch `main`; pushed `f20406e` verifies Geocodio free-tier live acceptance;
+  `3f70e20` records HV promotion and model-quality safeguards. Current diagnostic
+  checkpoint adds read-only `gt archetypes audit`; product direction is pending.
+  Earlier pushed `6176273` recovers HV roads via approved Geofabrik;
   app and pipeline CI pass. `63ac41b` contains PA GVI promotion/verified Unknowns
   and installed migration013 evidence; app and pipeline CI pass. Earlier `13a4e2f` preserves concurrent PMMS success
   during failures; its GitHub CI passes. `a5e49ba` adds the offline vegetation-mask
@@ -73,6 +76,16 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   still peak at0.210875. No feature removal, threshold reduction or poor model release.
   Failed builds now emit a non-promotable diagnostic report without DB writes:
   `data/reports/archetypes_post_gvi_rejected_latest.json`. Regression tests pass.
+- October19 read-only model-design audit is repeatable via `gt archetypes audit`.
+  No missing values in139×16 matrix. Correlations canopy/height0.922 and
+  walkability/transit0.914; noise dimensions contribute31.2% of current distance.
+  Proposed equal-theme experiment retains all metrics: silhouette0.217167 still
+  fails0.25; median subsample adjusted-Rand agreement0.961 vs current0.816
+  (24 seeded90% subsamples, fixed cohort percentiles; diagnostic, not independent
+  validation). Weights and release gate remain unchanged. Recommendation and
+  concrete overlapping-traits proposal await product approval:
+  `docs/archetype-design-review.md`. No new model, labels or live UI behavior.
+  Full pipeline181 passed/2 skipped, including read-only and diagnostic regressions.
 - Signed-out desktop and390×844 browser QA passed: public Center City45min cap
   yields27 PA districts; comparison returns trusted differences; Lower Merion/
   Radnor caps produce44 frozen listings, then16 at3+beds, confirmed independently

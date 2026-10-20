@@ -67,6 +67,13 @@ archetypes_app = typer.Typer(help="Deterministic district archetype commands.")
 app.add_typer(archetypes_app, name="archetypes")
 
 
+@archetypes_app.command("audit")
+def archetypes_audit() -> None:
+    """Write non-promotable read-only feature-balance and stability diagnostics."""
+    from gt.archetype_audit import audit_archetypes
+    typer.echo(json_dumps({"report_path": str(audit_archetypes()), "promotable": False}))
+
+
 @archetypes_app.command("build")
 def archetypes_build() -> None:
     """Build and atomically persist a versioned district archetype model."""
