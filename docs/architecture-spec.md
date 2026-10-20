@@ -325,7 +325,10 @@ districts, with the scope named in the UI. An empty shortlist compares the full
 active region; a singleton prompts selection of another district and makes no
 relative tradeoff claims. The map color scale retains the regional scope for
 visual continuity. Repeated max-price labels are omitted from result cards and
-the selected map summary; district details and hover retain the value.
+the selected map summary; district details and hover retain the value. A shortlist
+comparison table presents actual verified values side by side with units, explicit
+missing data, source/vintage context, and an expanded view. District context and
+named commute anchors retain their geographic limitations.
 
 The assistant should ask targeted follow-up questions, translate explicit
 preferences into inspectable profile changes, call deterministic search and

@@ -95,7 +95,9 @@ and state whether relative tradeoffs use the full regional peer set or explicit
 selected places. Selecting districts now explicitly changes the match/tradeoff
 baseline to the shortlist (2026-10-19 follow-up); clearing it restores regional
 comparison. Keep map colors on the regional scale and avoid repeated max-price
-labels in selected summaries/result cards. Preserve mobile navigation and Discovery/Explorer state.
+labels in selected summaries/result cards. Show shortlisted districts side by
+side with actual verified metric values, units and source context, including
+taxes, canopy and walkability; allow expansion for comfortable comparison. Preserve mobile navigation and Discovery/Explorer state.
 
 **Local implementation checkpoint:** conversational tools, reversible preference
 previews, session goals, district-pair comparison, metric provenance, key-free

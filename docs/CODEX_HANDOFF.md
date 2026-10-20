@@ -13,6 +13,17 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
+Latest UI addition (2026-10-19, following `3992001`): shortlist values now appear
+in a side-by-side table directly below selection, with an expanded dialog for
+more room. Taxes, tree cover, walkability and all existing environmental/context
+metrics use actual verified values, labeled units, missing-data labels, named
+commute anchors, and expandable source/vintage metadata. No repeated max price
+column. Sticky metric/header cells and keyboard-focusable scrolling support wide
+shortlists. Browser verified three columns -> two -> restored three and modal
+layering above the map. 73 tests, typecheck, lint (six existing warnings), build
+passed. No finance logic, DB, dependencies or model changes. Catalogue:
+docs/screenshots/2026-10-19-comparison-table/README.md.
+
 Latest UI checkpoint (2026-10-19 follow-up to `a1d84a2`): selected districts now
 form the direct comparison baseline. Match ordering and factor scores recalculate
 within the shortlist using the same pure scoring code as the server. No selection

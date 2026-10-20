@@ -1,3 +1,4 @@
+import { ShortlistComparison } from "./ShortlistComparison";
 import { addMatchScores } from "@/lib/finance/match-scoring";
 import { DistrictMapSelection } from "./DistrictMapSelection";
 import { DiscoveryConversation } from "./DiscoveryConversation";
@@ -445,6 +446,7 @@ export function DiscoveryEngine() {
               selectedSlugs={visibleMapSlugs}
               onChange={setMapSelection}
             />
+            {hasShortlist && <ShortlistComparison districts={comparisonDistricts} />}
             {selected ? (
               <SelectedDistrictPanel
                 selected={selected}
