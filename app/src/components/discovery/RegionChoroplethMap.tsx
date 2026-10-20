@@ -26,6 +26,7 @@ interface Props {
   selectedSlug: string | null;
   selectionSlugs: string[];
   rankBySlug: Map<string, number>;
+  comparisonCount: number;
   activeMetric: MapMetricKey;
   onActiveMetricChange: (metric: MapMetricKey) => void;
   onDistrictSelect: (slug: string | null) => void;
@@ -59,6 +60,7 @@ export function RegionChoroplethMap({
   selectedSlug,
   selectionSlugs,
   rankBySlug,
+  comparisonCount,
   activeMetric,
   onActiveMetricChange,
   onDistrictSelect,
@@ -180,13 +182,13 @@ export function RegionChoroplethMap({
       if (district) {
         const rank = rankBySlug.get(district.districtSlug);
         path.bindTooltip(
-          `${district.districtName} · ${rank ? `#${rank} of ${purchasingPower.length} · ` : ""}${formatMapMetricValue(activeMetric, value)}`,
+          `${district.districtName} · ${rank ? `#${rank} of ${comparisonCount} · ` : ""}${formatMapMetricValue(activeMetric, value)}`,
           { sticky: true },
         );
       }
       if (isSelected) path.bringToFront();
     });
-  }, [activeMetric, max, min, powerBySlug, purchasingPower.length, rankBySlug, selectedSlug]);
+  }, [activeMetric, max, min, powerBySlug, comparisonCount, rankBySlug, selectedSlug]);
 
   return (
     <div className="absolute inset-0 isolate">
@@ -231,7 +233,7 @@ export function RegionChoroplethMap({
           <div className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
             <p>District details</p>
             <p>
-              #{rankBySlug.get(selected.districtSlug) ?? "-"} of {purchasingPower.length}
+              #{rankBySlug.get(selected.districtSlug) ?? "-"} of {comparisonCount}
             </p>
           </div>
           <p className="mt-1 truncate text-sm font-semibold text-foreground">
@@ -249,13 +251,17 @@ export function RegionChoroplethMap({
           className="absolute top-32 left-3 z-[500] max-h-28 md:max-h-40 max-w-[min(22rem,calc(100%-1.5rem))] overflow-y-auto rounded-md border bg-background/95 p-3 text-xs shadow-sm"
           aria-label="Selected districts comparison"
         >
-          <p className="mb-1 font-semibold">Selected districts · {scale.shortLabel}</p>
+          <p className="mb-1 font-semibold">
+            Selected districts{activeMetric !== "purchasingPower" ? ` · ${scale.shortLabel}` : ""}
+          </p>
           {selectionSlugs.map((slug) => {
             const district = powerBySlug.get(slug);
             return district ? (
               <p key={slug}>
-                {district.districtName}:{" "}
-                {formatMapMetricValue(activeMetric, metricValue(district, activeMetric))}
+                {district.districtName}
+                {activeMetric !== "purchasingPower"
+                  ? `: ${formatMapMetricValue(activeMetric, metricValue(district, activeMetric))}`
+                  : ""}
               </p>
             ) : null;
           })}

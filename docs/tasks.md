@@ -92,7 +92,10 @@ vocabulary. Conversational comparison supports the verified place catalog
 (towns/tracts/districts) with geographic gaps explicit. Multi-district map
 selection is independent of color layers. Label rankings as preference matches
 and state whether relative tradeoffs use the full regional peer set or explicit
-selected places. Preserve mobile navigation and Discovery/Explorer state.
+selected places. Selecting districts now explicitly changes the match/tradeoff
+baseline to the shortlist (2026-10-19 follow-up); clearing it restores regional
+comparison. Keep map colors on the regional scale and avoid repeated max-price
+labels in selected summaries/result cards. Preserve mobile navigation and Discovery/Explorer state.
 
 **Local implementation checkpoint:** conversational tools, reversible preference
 previews, session goals, district-pair comparison, metric provenance, key-free

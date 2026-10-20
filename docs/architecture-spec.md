@@ -319,10 +319,13 @@ district metrics or apply district tax estimates to a smaller geography.
 
 Map selection and map coloring are independent controls. Users may select
 multiple districts while viewing purchasing power or another available layer.
-The match ranking and color scale retain the stated active regional scope;
-selecting districts to display does not silently change the peer population.
-Relative strengths and compromises must name that peer scope. A direct selected
-pair comparison is a separate operation.
+Selecting districts creates an explicit comparison shortlist: preference match
+order, factor strengths and compromises recalculate only within those selected
+districts, with the scope named in the UI. An empty shortlist compares the full
+active region; a singleton prompts selection of another district and makes no
+relative tradeoff claims. The map color scale retains the regional scope for
+visual continuity. Repeated max-price labels are omitted from result cards and
+the selected map summary; district details and hover retain the value.
 
 The assistant should ask targeted follow-up questions, translate explicit
 preferences into inspectable profile changes, call deterministic search and

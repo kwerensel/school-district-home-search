@@ -1,3 +1,4 @@
+import { addMatchScores } from "@/lib/finance/match-scoring";
 import { DistrictMapSelection } from "./DistrictMapSelection";
 import { DiscoveryConversation } from "./DiscoveryConversation";
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -114,7 +115,11 @@ const factorLabels: Record<WeightKey, string> = {
   parkAccess: "park access",
 };
 
-function districtReasons(district: DistrictPurchasingPower, weights: Record<WeightKey, number>) {
+function districtReasons(
+  district: DistrictPurchasingPower,
+  weights: Record<WeightKey, number>,
+  strict = false,
+) {
   const entries = (Object.keys(factorLabels) as WeightKey[])
     .map((key) => ({ key, score: district.matchComponents[key] }))
     .filter(
@@ -127,7 +132,7 @@ function districtReasons(district: DistrictPurchasingPower, weights: Record<Weig
   const tradeoffs = weakest.filter((entry) => entry.score <= 40).slice(0, 1);
 
   return {
-    strengths: (strengths.length ? strengths : strongest.slice(0, 1)).map(
+    strengths: (strengths.length || strict ? strengths : strongest.slice(0, 1)).map(
       (entry) => factorLabels[entry.key],
     ),
     tradeoffs: tradeoffs.map((entry) => factorLabels[entry.key]),
@@ -209,16 +214,34 @@ export function DiscoveryEngine() {
   const visibleMapSlugs = mapSelection.filter((slug) =>
     ranked.some((district) => district.districtSlug === slug),
   );
+  const shortlist = purchasingPower.filter((district) =>
+    visibleMapSlugs.includes(district.districtSlug),
+  );
+  const hasShortlist = shortlist.length > 0;
+  const comparisonDistricts = addMatchScores(
+    hasShortlist ? shortlist : purchasingPower,
+    weights,
+  ).sort(
+    (a, b) =>
+      b.matchScore - a.matchScore ||
+      b.maxPurchasePrice - a.maxPurchasePrice ||
+      a.districtName.localeCompare(b.districtName),
+  );
+  const comparisonScope = hasShortlist
+    ? `your ${shortlist.length}-district shortlist`
+    : comparisonScopeLabel(regionGroup);
   const selected =
-    ranked.find((district) => district.districtSlug === selectedSlug) ?? ranked[0] ?? null;
-  const rankBySlug = useMemo(
-    () => new Map(ranked.map((district, index) => [district.districtSlug, index + 1])),
-    [ranked],
+    comparisonDistricts.find((district) => district.districtSlug === selectedSlug) ??
+    comparisonDistricts[0] ??
+    null;
+  const rankBySlug = new Map(
+    comparisonDistricts.map((district, index) => [district.districtSlug, index + 1]),
   );
   const selectedRank = selected ? (rankBySlug.get(selected.districtSlug) ?? null) : null;
   const averagePower =
-    ranked.length > 0
-      ? ranked.reduce((sum, district) => sum + district.maxPurchasePrice, 0) / ranked.length
+    comparisonDistricts.length > 0
+      ? comparisonDistricts.reduce((sum, district) => sum + district.maxPurchasePrice, 0) /
+        comparisonDistricts.length
       : 0;
   const isBooting =
     !urlHydrated ||
@@ -427,8 +450,8 @@ export function DiscoveryEngine() {
                 selected={selected}
                 selectedExplorerHref={selectedExplorerHref}
                 rank={selectedRank}
-                districtCount={ranked.length}
-                comparisonScope={comparisonScopeLabel(regionGroup)}
+                districtCount={comparisonDistricts.length}
+                comparisonScope={comparisonScope}
                 monthlyBudget={monthlyBudget}
                 downPaymentAmount={downPaymentAmount}
                 creditBand={creditBand}
@@ -466,7 +489,7 @@ export function DiscoveryEngine() {
             </section>
 
             <section className="grid grid-cols-2 gap-3">
-              <MetricBox label="Districts" value={String(ranked.length)} />
+              <MetricBox label="Districts" value={String(comparisonDistricts.length)} />
               <MetricBox
                 label="Average max price"
                 value={averagePower ? formatCurrency(averagePower) : "-"}
@@ -478,20 +501,21 @@ export function DiscoveryEngine() {
                 How your preference matches work
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                These are your preference matches among {ranked.length} districts in{" "}
-                {comparisonScopeLabel(regionGroup)}, ordered by the budget and priorities you set.
-                The relative strengths and compromises below compare each district with this entire
-                region scope, including districts hidden from the map. They are not a direct
-                comparison with the district you last clicked. A match rank is not a percentage of
-                your requirements satisfied.
+                {shortlist.length === 1
+                  ? "One district is selected. Select at least two districts for direct tradeoffs."
+                  : hasShortlist
+                    ? `These matches compare only the ${shortlist.length} selected districts against each other. Strengths, compromises and match order recalculate when your shortlist or priorities change.`
+                    : `These matches compare all ${ranked.length} districts in ${comparisonScopeLabel(regionGroup)} using your budget and priorities. Select districts above to compare a shortlist instead.`}{" "}
+                A match rank is not a percentage of your requirements satisfied. Map colors retain
+                the regional scale.
               </p>
             </section>
 
             <section className="space-y-2">
               <h2 className="text-sm font-semibold text-foreground">Your preference matches</h2>
               <div className="space-y-2">
-                {ranked.map((district, index) => {
-                  const reasons = districtReasons(district, weights);
+                {comparisonDistricts.map((district, index) => {
+                  const reasons = districtReasons(district, weights, hasShortlist);
                   return (
                     <button
                       key={district.districtSlug}
@@ -518,16 +542,10 @@ export function DiscoveryEngine() {
                           ) : null}
                         </div>
                         <p className="shrink-0 text-xs font-semibold text-foreground">
-                          Match #{index + 1} of {ranked.length}
+                          Match #{index + 1} of {comparisonDistricts.length}
                         </p>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                        <div>
-                          <p className="text-muted-foreground">Estimated max price</p>
-                          <p className="mt-0.5 font-semibold text-foreground">
-                            {formatCurrency(district.maxPurchasePrice)}
-                          </p>
-                        </div>
                         <div>
                           <p className="text-muted-foreground">District median value</p>
                           <p className="mt-0.5 font-semibold text-foreground">
@@ -536,6 +554,9 @@ export function DiscoveryEngine() {
                         </div>
                       </div>
                       <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                        {hasShortlist && !reasons.strengths.length && !reasons.tradeoffs.length ? (
+                          <p>No differences on the available factors with active priorities.</p>
+                        ) : null}
                         {reasons.strengths.length ? (
                           <p>
                             <span className="font-medium text-foreground">Relative strengths:</span>{" "}
@@ -587,6 +608,7 @@ export function DiscoveryEngine() {
                   selectedSlug={selected?.districtSlug ?? null}
                   selectionSlugs={visibleMapSlugs}
                   rankBySlug={rankBySlug}
+                  comparisonCount={comparisonDistricts.length}
                   activeMetric={mapMetric}
                   onActiveMetricChange={setMapMetric}
                   onDistrictSelect={setSelectedSlug}

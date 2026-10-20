@@ -18,7 +18,7 @@ export function DistrictMapSelection({
   return (
     <section className="space-y-2 rounded-md border p-3" aria-label="District map selection">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Districts to show on the map</h2>
+        <h2 className="text-sm font-semibold">Your district shortlist</h2>
         {selectedSlugs.length > 0 && (
           <Button type="button" size="sm" variant="ghost" onClick={() => onChange([])}>
             Show all
@@ -30,7 +30,8 @@ export function DistrictMapSelection({
           ? `${selectedSlugs.length} selected`
           : `All ${districts.length} districts`}
         . Select any number of districts, then choose the map's color layer independently. Match
-        ranking still uses the full region scope.
+        ranking and tradeoffs compare your selected districts directly. Clear the selection to
+        compare the full region.
       </p>
       <Input
         aria-label="Find districts for the map"

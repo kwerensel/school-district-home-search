@@ -13,12 +13,17 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
-Latest UI checkpoint (2026-10-19): Explorer mobile overlay/navigation repaired;
-conversation goals are open-ended; verified place lookup supports town/tract
-context; multi-district map selection is independent of layer choice; match
-ranking explicitly states its regional peer basis. See the correction checkpoint
-below and docs/screenshots/2026-10-19-navigation/README.md. User wants before/after
-screenshots saved for UI iterations: capture the baseline before future edits.
+Latest UI checkpoint (2026-10-19 follow-up to `a1d84a2`): selected districts now
+form the direct comparison baseline. Match ordering and factor scores recalculate
+within the shortlist using the same pure scoring code as the server. No selection
+restores the region; a singleton is neutral and prompts another selection. Map
+colors retain the regional scale. Removed repeated max prices from match cards
+and multi-selected map summary; details/hover still show price. Browser checked
+3 -> 2 -> 1 -> all -> restored 3 districts. 73 unit tests, typecheck, lint (six
+existing UI warnings), and production build pass. No DB/data/model changes.
+See docs/screenshots/2026-10-19-shortlist/README.md for the before/after catalogue.
+Previous navigation/conversation checkpoint remains documented below. Capture
+before screenshots before future UI edits.
 
 
 Product clarification (2026-10-18): the user wants real conversational
