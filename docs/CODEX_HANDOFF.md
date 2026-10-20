@@ -13,7 +13,8 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## Active autonomous arc — 2026-10-18
 
-- Branch `main`; pushed `63ac41b` contains PA GVI promotion/verified Unknowns
+- Branch `main`; pushed `6176273` recovers HV roads via approved Geofabrik;
+  app and pipeline CI pass. `63ac41b` contains PA GVI promotion/verified Unknowns
   and installed migration013 evidence; app and pipeline CI pass. Earlier `13a4e2f` preserves concurrent PMMS success
   during failures; its GitHub CI passes. `a5e49ba` adds the offline vegetation-mask
   reducer and pinned research metadata; its GitHub CI passes.
@@ -59,7 +60,9 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   sampling is complete:20131 points,4027/4254 listings have>=3 road samples,
   204 have none. No HV Mapillary request or imagery/inference. Sampling/road
   QA PNGs visually pass;12 post-spatial goldens pass.163 pipeline tests pass
-  (2 opt-in skipped);48 focused GVI/import tests pass.
+  (2 opt-in skipped);48 focused GVI/import tests pass. Source-gap closeups now
+  paginate rather than exceeding image-size limits;30 GVI tests pass after
+  single/multi-page/complete-coverage regressions.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
   A fixed invoker-rights input function avoids a dependency blocking the

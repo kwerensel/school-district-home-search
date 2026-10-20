@@ -18,8 +18,10 @@ Official references reviewed on that date:
 
 Set `GEOCODIO_API_KEY` in the private environment and
 `GEOCODIO_FREE_TIER_ONLY=true` only after confirming that the provider account
-has **paid usage disabled/no payment method**. Keep a separate app key and
-configure the provider account's usage limit. Never paste the key into chat,
+has **paid usage disabled/no payment method**. Name the separate app key anything descriptive, such as `Groundtruth commute
+lookup`. Grant only **Geocoding → GET /v2/geocode**; batch POST, Lists, Distance
+and Jobs permissions are not needed. The key label does not affect the app;
+the environment variable must be named exactly `GEOCODIO_API_KEY`. Configure the provider account's usage limit. Never paste the key into chat,
 logs or version control. Apply `012_geocoder_quota.sql` before enabling.
 
 The server reserves one request atomically in `geocoder_daily_usage` before

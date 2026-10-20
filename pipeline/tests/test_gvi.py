@@ -97,7 +97,8 @@ def test_missing_buffer_diagnostics_separate_geometric_source_gap_from_cloud_gap
             assert missing_buffer_diagnostics(dataset, listings, nearby, missing)[0]['source_gap_category'] == 'reducer_inconsistency'
 
 
-def test_single_missing500m_qa_derives_non_zone18_crs_and_grain(tmp_path, monkeypatch):
+@pytest.mark.parametrize("listing_count,page_size", [(1,6),(3,2)])
+def test_missing500m_qa_preserves_crs_grain_and_paginated_evidence(tmp_path, monkeypatch, listing_count, page_size):
     from contextlib import nullcontext
     import json
     import geopandas as gpd
@@ -110,22 +111,25 @@ def test_single_missing500m_qa_derives_non_zone18_crs_and_grain(tmp_path, monkey
     (reports / 'qa').mkdir(parents=True)
     crs = 'EPSG:32617'
     x, y = 500000, 4500000
-    listings = gpd.GeoDataFrame({'id': [1], 'address': ['Test'], 'geom': [Point(x,y)]}, geometry='geom', crs=crs).to_crs(4326)
+    listings = gpd.GeoDataFrame({'id': list(range(1,listing_count+1)), 'address': ['Test']*listing_count, 'geom': [Point(x,y)]*listing_count}, geometry='geom', crs=crs).to_crs(4326)
     roads = gpd.GeoDataFrame(geometry=[LineString([(x+700,y-600),(x+700,y+600)])], crs=crs).to_crs(4326)
     roads.to_file(cache / 'osm-roads.geojson', driver='GeoJSON')
     path = cache / 'street-ndvi.tif'
     with rasterio.open(path, 'w', driver='GTiff', width=160, height=160, count=2, dtype='float32', crs=crs, transform=Affine(10,0,x-800,0,-10,y+800), nodata=-9999) as source:
         source.write(np.full((160,160), -9999, dtype='float32'), 1)
         source.write(np.zeros((160,160), dtype='float32'), 2)
-    (reports / 'layer_gvi_ndvi_street_test_latest.json').write_text(json.dumps({'checks': {'raster_path': str(path), 'missing_listing_buffers': [{'listing_id':1,'grain':'buffer_500m'}]}}))
+    (reports / 'layer_gvi_ndvi_street_test_latest.json').write_text(json.dumps({'checks': {'raster_path': str(path), 'missing_listing_buffers': [{'listing_id':i,'grain':'buffer_500m'} for i in range(1,listing_count+1)]}}))
     monkeypatch.setattr(gvi_qa, '_qa_setup', lambda region: tmp_path)
     monkeypatch.setattr(gvi_qa.psycopg, 'connect', lambda *args, **kwargs: nullcontext(None))
     monkeypatch.setattr(gvi_qa.gpd, 'read_postgis', lambda *args, **kwargs: listings)
     monkeypatch.setenv('DATABASE_URL', 'postgresql://unused-test')
-    image = gvi_qa.render_gvi_missing_qa('test')
+    image = gvi_qa.render_gvi_missing_qa('test',page_size=page_size)
     evidence = json.loads(image.with_suffix('.json').read_text())
     assert image.exists()
     assert evidence['source_crs'] == crs
+    assert len(evidence['pages']) == (listing_count+page_size-1)//page_size
+    assert all(__import__('pathlib').Path(page).exists() for page in evidence['pages'])
+    assert [row['listing_id'] for row in evidence['results']] == list(range(1,listing_count+1))
     assert evidence['results'][0]['buffer_radius_m'] == 500
     assert evidence['results'][0]['grain'] == 'buffer_500m'
     assert evidence['results'][0]['nearest_cached_drive_road_m'] == pytest.approx(700)
@@ -219,3 +223,14 @@ def test_geofabrik_cache_requires_complete_coverage_proof(tmp_path):
     with pytest.raises(RuntimeError,match='coverage proof is incomplete'):
         _roads(tmp_path,polygon)
     assert (tmp_path/'osm-roads.geojson').exists()
+
+
+def test_missing_buffer_qa_handles_complete_coverage_without_opening_sources(tmp_path,monkeypatch):
+    import json
+    from gt import gvi_qa
+    reports=tmp_path/'data/reports'
+    (reports/'qa').mkdir(parents=True)
+    (reports/'layer_gvi_ndvi_street_test_latest.json').write_text(json.dumps({'checks':{'missing_listing_buffers':[]}}))
+    monkeypatch.setattr(gvi_qa,'_qa_setup',lambda region:tmp_path)
+    path=gvi_qa.render_gvi_missing_qa('test')
+    assert json.loads(path.read_text())['status']=='no_missing_listing_buffers'

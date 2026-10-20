@@ -84,8 +84,10 @@ def render_gvi_spotcheck(region: str) -> Path:
         print(json.dumps(evidence, indent=2), flush=True)
     return path
 
-def render_gvi_missing_qa(region: str) -> Path:
+def render_gvi_missing_qa(region: str, *, page_size: int = 6) -> Path:
     """Render road/raster support for each missing 100m or 500m listing buffer."""
+    if not 1 <= page_size <= 8:
+        raise ValueError("Missing-buffer QA page size must be between 1 and 8")
     from gt.layers.gvi import missing_buffer_diagnostics
     root = _qa_setup(region)
     import matplotlib.pyplot as plt
@@ -106,40 +108,45 @@ def render_gvi_missing_qa(region: str) -> Path:
         points = listings.to_crs(source.crs)
         rows = {int(row.id): row for row in points.itertuples()}
         results = missing_buffer_diagnostics(source, listings, roads_4326, missing)
-        fig, axes = plt.subplots(len(missing), 2, figsize=(14, 6 * len(missing)), squeeze=False)
-        for entry, pair, evidence in zip(missing, axes, results, strict=True):
-            row = rows[int(entry['listing_id'])]
-            grain = entry['grain']
-            if grain not in {'buffer_100m', 'buffer_500m'}:
-                raise ValueError(f'Unsupported missing buffer grain: {grain}')
-            radius = 100 if grain == 'buffer_100m' else 500
-            distance = evidence['nearest_cached_drive_road_m']
-            extent_geom = row.geom.buffer(max(radius + 150, distance + 80)).envelope
-            window = from_bounds(*extent_geom.bounds, transform=source.transform).round_offsets().round_lengths().intersection(Window(0, 0, source.width, source.height))
-            ndvi = source.read(1, window=window, masked=True)
-            counts = source.read(2, window=window, masked=True)
-            minx, miny, maxx, maxy = window_bounds(window, source.transform)
-            local = roads.iloc[roads.sindex.query(extent_geom, predicate='intersects')]
-            evidence.update(address=row.address, buffer_radius_m=radius, buffer_reduction=_zonal(source, row.geom.buffer(radius)))
-            panels = [(pair[0], ndvi, 'Satellite NDVI', 'YlGn', -0.1, 0.9), (pair[1], counts, 'Valid observation days', 'viridis', 0, max(float(counts.max()), 3))]
-            for ax, data, title, cmap, vmin, vmax in panels:
-                raster = ax.imshow(data, extent=(minx, maxx, miny, maxy), cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest')
-                fig.colorbar(raster, ax=ax, shrink=0.6)
-                if not local.empty:
-                    local.plot(ax=ax, color='#374151', linewidth=0.8)
-                    local.geometry.buffer(50).boundary.plot(ax=ax, color='#6b7280', linewidth=0.5, alpha=0.7)
-                gpd.GeoSeries([row.geom.buffer(radius)], crs=source.crs).boundary.plot(ax=ax, color='#dc2626', linewidth=1.5)
-                ax.scatter([row.geom.x], [row.geom.y], c='#dc2626', s=60, edgecolor='white', zorder=5)
-                ax.set_xlim(minx, maxx)
-                ax.set_ylim(miny, maxy)
-                ax.set_aspect('equal')
-                ax.set_title(f'{row.id} · {title}\nnearest cached road {distance:.1f} m; red = {radius} m buffer')
-                ax.set_xlabel('Projected easting (m)')
-                ax.set_ylabel('Projected northing (m)')
-        fig.suptitle(f'{region}: missing street-corridor coverage investigation')
-        fig.tight_layout(rect=(0, 0, 1, 0.97))
-        path = stem.with_suffix('.png')
-        fig.savefig(path, dpi=170)
-        plt.close(fig)
-        path.with_suffix('.json').write_text(json.dumps({'region': region, 'source_crs': str(source.crs), 'results': results, 'limitation': 'Cached OSM drive road context; no missing value is imputed. Native 10m raster centers diagnose source support; each panel uses its declared buffer radius.'}, indent=2))
-    return path
+        pages = []
+        for page_start in range(0, len(missing), page_size):
+            page_missing = missing[page_start:page_start + page_size]
+            page_results = results[page_start:page_start + page_size]
+            fig, axes = plt.subplots(len(page_missing), 2, figsize=(14, 6 * len(page_missing)), squeeze=False)
+            for entry, pair, evidence in zip(page_missing, axes, page_results, strict=True):
+                row = rows[int(entry['listing_id'])]
+                grain = entry['grain']
+                if grain not in {'buffer_100m', 'buffer_500m'}:
+                    raise ValueError(f'Unsupported missing buffer grain: {grain}')
+                radius = 100 if grain == 'buffer_100m' else 500
+                distance = evidence['nearest_cached_drive_road_m']
+                extent_geom = row.geom.buffer(max(radius + 150, distance + 80)).envelope
+                window = from_bounds(*extent_geom.bounds, transform=source.transform).round_offsets().round_lengths().intersection(Window(0, 0, source.width, source.height))
+                ndvi = source.read(1, window=window, masked=True)
+                counts = source.read(2, window=window, masked=True)
+                minx, miny, maxx, maxy = window_bounds(window, source.transform)
+                local = roads.iloc[roads.sindex.query(extent_geom, predicate='intersects')]
+                evidence.update(address=row.address, buffer_radius_m=radius, buffer_reduction=_zonal(source, row.geom.buffer(radius)))
+                panels = [(pair[0], ndvi, 'Satellite NDVI', 'YlGn', -0.1, 0.9), (pair[1], counts, 'Valid observation days', 'viridis', 0, max(float(counts.max()), 3))]
+                for ax, data, title, cmap, vmin, vmax in panels:
+                    raster = ax.imshow(data, extent=(minx, maxx, miny, maxy), cmap=cmap, vmin=vmin, vmax=vmax, interpolation='nearest')
+                    fig.colorbar(raster, ax=ax, shrink=0.6)
+                    if not local.empty:
+                        local.plot(ax=ax, color='#374151', linewidth=0.8)
+                        local.geometry.buffer(50).boundary.plot(ax=ax, color='#6b7280', linewidth=0.5, alpha=0.7)
+                    gpd.GeoSeries([row.geom.buffer(radius)], crs=source.crs).boundary.plot(ax=ax, color='#dc2626', linewidth=1.5)
+                    ax.scatter([row.geom.x], [row.geom.y], c='#dc2626', s=60, edgecolor='white', zorder=5)
+                    ax.set_xlim(minx, maxx)
+                    ax.set_ylim(miny, maxy)
+                    ax.set_aspect('equal')
+                    ax.set_title(f'{row.id} · {title}\nnearest cached road {distance:.1f} m; red = {radius} m buffer')
+                    ax.set_xlabel('Projected easting (m)')
+                    ax.set_ylabel('Projected northing (m)')
+            fig.suptitle(f'{region}: missing street-corridor coverage investigation')
+            fig.tight_layout(rect=(0, 0, 1, 0.97))
+            path = (stem if page_start == 0 else stem.with_name(stem.name + f'_page-{page_start // page_size + 1:03d}')).with_suffix('.png')
+            fig.savefig(path, dpi=170)
+            plt.close(fig)
+            pages.append(str(path))
+        stem.with_suffix('.json').write_text(json.dumps({'region': region, 'source_crs': str(source.crs), 'pages': pages, 'page_size': page_size, 'results': results, 'limitation': 'Cached OSM drive road context; no missing value is imputed. Native 10m raster centers diagnose source support; each panel uses its declared buffer radius.'}, indent=2))
+    return Path(pages[0])

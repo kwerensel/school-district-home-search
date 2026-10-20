@@ -222,3 +222,10 @@ filter and GDAL configuration, enabling local retries without downloading or
 reconstructing completed extracts again. The final `osm-request.json` records
 served footprint coverage and excluded tract source gaps. The layer report
 retains that provenance and still needs fresh validation/QA before promotion.
+
+Missing-buffer closeups are paginated in groups of six (maximum eight per
+page). The first PNG keeps its existing canonical filename; subsequent PNGs
+use `_page-002` and later suffixes. The companion JSON lists every page and
+every missing buffer diagnostic. This keeps large source-gap reviews bounded
+without dropping evidence; single-case, multi-page, alternate CRS/500m and
+complete-coverage branches are tested.
