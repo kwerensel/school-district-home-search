@@ -446,7 +446,9 @@ export function DiscoveryEngine() {
               selectedSlugs={visibleMapSlugs}
               onChange={setMapSelection}
             />
-            {hasShortlist && <ShortlistComparison districts={comparisonDistricts} />}
+            {hasShortlist && (
+              <ShortlistComparison districts={comparisonDistricts} weights={weights} />
+            )}
             {selected ? (
               <SelectedDistrictPanel
                 selected={selected}

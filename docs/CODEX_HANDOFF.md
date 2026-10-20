@@ -13,6 +13,17 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
+Latest preference-highlight addition (2026-10-19, following `067065d`): comparison
+rows now mark shortlist strongest (green) / weakest (amber) for active mapped
+priorities, with text labels, weight /10 and direction. Affordability maps to lower
+tax/median value; green to higher canopy; walkability/parks higher; risk/flood/light
+lower. Zero-weight or unsupported rows show neutral highest/lowest, not inferred
+preferences. Equal displayed values tie; unknowns excluded; differing commute
+anchors are not ranked. Ranking/verified values/finance remain unchanged. Browser
+verified default highlights and green priority 2 -> 0 -> restored 2. 77 tests,
+typecheck, lint (six existing warnings), production build passed. Catalogue:
+docs/screenshots/2026-10-19-preference-highlights/README.md.
+
 Latest UI addition (2026-10-19, following `3992001`): shortlist values now appear
 in a side-by-side table directly below selection, with an expanded dialog for
 more room. Taxes, tree cover, walkability and all existing environmental/context

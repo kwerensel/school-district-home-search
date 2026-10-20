@@ -1,3 +1,10 @@
+import {
+  compareRowValues,
+  ROW_PREFERENCES,
+  type CellHighlight,
+} from "@/lib/discovery/comparison-highlights";
+import type { WeightKey } from "@/lib/discovery/profile";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -101,7 +108,50 @@ const rows: Array<{
   },
 ];
 
-function ComparisonTable({ districts }: { districts: DistrictPurchasingPower[] }) {
+type ComparisonProps = { districts: DistrictPurchasingPower[]; weights: Record<WeightKey, number> };
+
+function HighlightCell({ highlight, children }: { highlight: CellHighlight; children: ReactNode }) {
+  const style =
+    highlight?.tone === "strongest"
+      ? "bg-emerald-50 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-100"
+      : highlight?.tone === "weakest"
+        ? "bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-100"
+        : "";
+  return (
+    <td className={`border-b p-3 align-top tabular-nums ${style}`}>
+      {children}
+      {highlight && (
+        <span
+          className={`mt-1 block text-[10px] font-semibold ${highlight.tone === "neutral" ? "text-muted-foreground" : ""}`}
+        >
+          {highlight.label}
+        </span>
+      )}
+    </td>
+  );
+}
+
+function HighlightLegend() {
+  return (
+    <p className="text-xs leading-5 text-muted-foreground">
+      <span className="rounded bg-emerald-50 px-1 text-emerald-950">Strongest</span>
+      {" / "}
+      <span className="rounded bg-amber-50 px-1 text-amber-950">Weakest</span> within your shortlist
+      for active priorities. Row labels show priority weight out of 10 and preferred direction.
+      Other rows show neutral highest/lowest values. Ties use displayed precision; missing values
+      are excluded. Tax and median-value highlights follow local price reach; they are not the
+      overall affordability score.
+    </p>
+  );
+}
+
+function ComparisonTable({ districts, weights }: ComparisonProps) {
+  const affordabilityActive = weights.affordability > 0;
+  const taxHighlights = compareRowValues(
+    districts.map((district) => district.effectiveTaxRate),
+    affordabilityActive ? "lower" : null,
+    { scale: 100 },
+  );
   return (
     <div
       className="max-h-[55vh] overflow-auto rounded-md border focus-visible:outline-2 focus-visible:outline-ring"
@@ -136,49 +186,81 @@ function ComparisonTable({ districts }: { districts: DistrictPurchasingPower[] }
           <tr>
             <th scope="row" className="sticky left-0 z-10 border-b bg-background p-3 font-medium">
               Effective property-tax rate
+              <span className="mt-1 block text-primary">
+                {affordabilityActive
+                  ? `Local price reach ${weights.affordability}/10 · lower preferred`
+                  : "Local price reach off"}
+              </span>
               <span className="mt-1 block font-normal text-muted-foreground">
                 Area estimate; not a home's tax bill
               </span>
             </th>
-            {districts.map((district) => (
-              <td key={district.districtSlug} className="border-b p-3 align-top tabular-nums">
+            {districts.map((district, index) => (
+              <HighlightCell key={district.districtSlug} highlight={taxHighlights[index]}>
                 {percent.format(district.effectiveTaxRate)}
-              </td>
+              </HighlightCell>
             ))}
           </tr>
-          {rows.map((row) => (
-            <tr key={row.key}>
-              <th scope="row" className="sticky left-0 z-10 border-b bg-background p-3 font-medium">
-                {row.label}
-                {row.note && (
-                  <span className="mt-1 block font-normal text-muted-foreground">{row.note}</span>
-                )}
-              </th>
-              {districts.map((district) => {
-                const value = district.environmentMetrics[row.key];
-                const formatted =
-                  value === null
-                    ? "Unavailable"
-                    : row.currency
-                      ? dollars.format(value)
-                      : row.fraction
-                        ? percent.format(value)
-                        : `${decimal.format(value)}${row.unit ?? ""}`;
-                return (
-                  <td key={district.districtSlug} className="border-b p-3 align-top tabular-nums">
-                    {formatted}
-                    {row.key === "commuteMinutes" && (
-                      <span className="mt-1 block text-muted-foreground">
-                        {district.regionGroup === "pa-mainline"
-                          ? "Center City Philadelphia"
-                          : "Grand Central Terminal"}
-                      </span>
-                    )}
-                  </td>
+          {rows.map((row) => {
+            const preference = ROW_PREFERENCES[row.key];
+            const active = preference && weights[preference.key] > 0;
+            // Different city destinations are not a comparable commute benchmark.
+            const mixedAnchors =
+              row.key === "commuteMinutes" &&
+              new Set(districts.map((district) => district.regionGroup)).size > 1;
+            const highlights = mixedAnchors
+              ? districts.map(() => null)
+              : compareRowValues(
+                  districts.map((district) => district.environmentMetrics[row.key]),
+                  active ? preference.direction : null,
+                  { scale: row.fraction ? 100 : 1, digits: row.currency ? 0 : 2 },
                 );
-              })}
-            </tr>
-          ))}
+            return (
+              <tr key={row.key}>
+                <th
+                  scope="row"
+                  className="sticky left-0 z-10 border-b bg-background p-3 font-medium"
+                >
+                  {row.label}
+                  <span className="mt-1 block text-primary">
+                    {preference
+                      ? active
+                        ? `${preference.label} ${weights[preference.key]}/10 · ${preference.direction} preferred`
+                        : `${preference.label} off`
+                      : mixedAnchors
+                        ? "Different destinations; not ranked"
+                        : "Context only · no matching priority"}
+                  </span>
+                  {row.note && (
+                    <span className="mt-1 block font-normal text-muted-foreground">{row.note}</span>
+                  )}
+                </th>
+                {districts.map((district, index) => {
+                  const value = district.environmentMetrics[row.key];
+                  const formatted =
+                    value === null
+                      ? "Unavailable"
+                      : row.currency
+                        ? dollars.format(value)
+                        : row.fraction
+                          ? percent.format(value)
+                          : `${decimal.format(value)}${row.unit ?? ""}`;
+                  return (
+                    <HighlightCell key={district.districtSlug} highlight={highlights[index]}>
+                      {formatted}
+                      {row.key === "commuteMinutes" && (
+                        <span className="mt-1 block text-muted-foreground">
+                          {district.regionGroup === "pa-mainline"
+                            ? "Center City Philadelphia"
+                            : "Grand Central Terminal"}
+                        </span>
+                      )}
+                    </HighlightCell>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -210,7 +292,7 @@ function Sources({ districts }: { districts: DistrictPurchasingPower[] }) {
   );
 }
 
-export function ShortlistComparison({ districts }: { districts: DistrictPurchasingPower[] }) {
+export function ShortlistComparison({ districts, weights }: ComparisonProps) {
   if (districts.length < 2) return null;
   return (
     <section
@@ -236,11 +318,13 @@ export function ShortlistComparison({ districts }: { districts: DistrictPurchasi
               values. Unavailable means missing data. Scroll across for more districts.
             </DialogDescription>
           </DialogHeader>
-          <ComparisonTable districts={districts} />
+          <HighlightLegend />
+          <ComparisonTable districts={districts} weights={weights} />
           <Sources districts={districts} />
         </DialogContent>
       </Dialog>
-      <ComparisonTable districts={districts} />
+      <HighlightLegend />
+      <ComparisonTable districts={districts} weights={weights} />
       <Sources districts={districts} />
     </section>
   );

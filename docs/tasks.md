@@ -97,7 +97,9 @@ baseline to the shortlist (2026-10-19 follow-up); clearing it restores regional
 comparison. Keep map colors on the regional scale and avoid repeated max-price
 labels in selected summaries/result cards. Show shortlisted districts side by
 side with actual verified metric values, units and source context, including
-taxes, canopy and walkability; allow expansion for comfortable comparison. Preserve mobile navigation and Discovery/Explorer state.
+taxes, canopy and walkability; allow expansion for comfortable comparison. Highlight
+row extrema using active preferences with explicit direction/weight, neutral
+unsupported/disabled factors, shared ties, and unknown data excluded. Preserve mobile navigation and Discovery/Explorer state.
 
 **Local implementation checkpoint:** conversational tools, reversible preference
 previews, session goals, district-pair comparison, metric provenance, key-free

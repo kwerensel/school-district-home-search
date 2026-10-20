@@ -328,7 +328,11 @@ visual continuity. Repeated max-price labels are omitted from result cards and
 the selected map summary; district details and hover retain the value. A shortlist
 comparison table presents actual verified values side by side with units, explicit
 missing data, source/vintage context, and an expanded view. District context and
-named commute anchors retain their geographic limitations.
+named commute anchors retain their geographic limitations. Comparison cells mark
+strongest/weakest for active mapped preferences, showing weight and preferred
+direction; unmapped or disabled preferences use neutral extrema. Ties use displayed
+precision, unknowns are excluded, and different commute anchors are not ranked.
+These row highlights explain individual values and do not replace match scoring.
 
 The assistant should ask targeted follow-up questions, translate explicit
 preferences into inspectable profile changes, call deterministic search and
