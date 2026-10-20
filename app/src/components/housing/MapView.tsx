@@ -249,6 +249,19 @@ export function MapView({
       return;
     }
 
+    if (initialRegionGroup) {
+      const regionFeatures = districts.features.filter(
+        (feature) => feature.properties.region_group === initialRegionGroup,
+      );
+      const regionalDistricts: DistrictFC = { ...districts, features: regionFeatures };
+      const regionBounds = L.geoJSON(regionalDistricts).getBounds();
+      if (regionBounds.isValid()) {
+        map.fitBounds(regionBounds, { padding: [36, 36] });
+        hasInitialFitRef.current = true;
+        return;
+      }
+    }
+
     if (listings.features.length) {
       const bounds = L.latLngBounds(
         listings.features.map((feature) => [
@@ -259,16 +272,6 @@ export function MapView({
       map.fitBounds(bounds, { padding: [36, 36], maxZoom: 14 });
       hasInitialFitRef.current = true;
       return;
-    }
-
-    if (initialRegionGroup) {
-      const regionFeatures = districts.features.filter(
-        (feature) => feature.properties.region_group === initialRegionGroup,
-      );
-      const regionalDistricts: DistrictFC = { ...districts, features: regionFeatures };
-      const bounds = L.geoJSON(regionalDistricts).getBounds();
-      if (bounds.isValid()) map.fitBounds(bounds, { padding: [36, 36] });
-      hasInitialFitRef.current = true;
     }
   }, [districts, initialDistrictName, initialDistrictSlug, initialRegionGroup, listings]);
 

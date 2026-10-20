@@ -1,6 +1,8 @@
 import type { Filters, ListingFC } from "./types";
 
 export const DEFAULT_FILTERS: Filters = {
+  districtSlugs: [],
+  regionGroup: "all",
   maxPrice: 2_000_000,
   minBeds: 0,
   minBaths: 0,
@@ -21,6 +23,8 @@ export function applyFilters(fc: ListingFC, f: Filters): ListingFC {
     type: "FeatureCollection",
     features: fc.features.filter((feat) => {
       const p = feat.properties;
+      if (f.districtSlugs.length && !f.districtSlugs.includes(p.district_slug ?? "")) return false;
+      if (f.regionGroup !== "all" && p.region_group !== f.regionGroup) return false;
       if (p.price > f.maxPrice) return false;
       if (p.beds < f.minBeds) return false;
       if (p.baths < f.minBaths) return false;
@@ -58,7 +62,15 @@ export function priceBounds(fc: ListingFC): { min: number; max: number } {
 
 export function serializeExplorerFilters(current: URLSearchParams, filters: Filters) {
   const params = new URLSearchParams(current);
+  if (
+    filters.district === "all" ||
+    (params.has("district") && params.get("district") !== filters.district)
+  )
+    params.delete("districtSlug");
+  if (filters.districtSlugs.length) params.set("districts", filters.districtSlugs.join(","));
+  else params.delete("districts");
   params.set("maxPrice", String(Math.round(filters.maxPrice)));
+  setOptionalValue(params, "regionGroup", filters.regionGroup, "all");
   setOptionalNumber(params, "minBeds", filters.minBeds);
   setOptionalNumber(params, "minBaths", filters.minBaths);
   setOptionalBoolean(params, "goodOnly", filters.goodOnly);

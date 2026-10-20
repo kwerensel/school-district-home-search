@@ -51,6 +51,39 @@ export function FiltersSidebar({
         </p>
       </div>
 
+      {filters.districtSlugs.length > 0 && (
+        <div className="space-y-2 rounded border p-3 text-xs">
+          <p>Shortlist from Discovery: {filters.districtSlugs.length} districts</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setFilters({ ...filters, districtSlugs: [] })}
+          >
+            Clear district shortlist
+          </Button>
+        </div>
+      )}
+      <div className="space-y-2">
+        <Label htmlFor="explorer-region">Region</Label>
+        <select
+          id="explorer-region"
+          className="w-full rounded-md border bg-background p-2 text-sm"
+          value={filters.regionGroup}
+          onChange={(event) =>
+            setFilters({
+              ...filters,
+              regionGroup: event.target.value as Filters["regionGroup"],
+              district: "all",
+              districtSlugs: [],
+            })
+          }
+        >
+          <option value="all">All regions</option>
+          <option value="pa-mainline">PA Main Line</option>
+          <option value="hudson-valley">Hudson Valley</option>
+        </select>
+      </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label>Max price</Label>

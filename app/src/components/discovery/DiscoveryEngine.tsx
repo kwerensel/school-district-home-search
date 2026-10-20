@@ -1,3 +1,4 @@
+import { DistrictMapSelection } from "./DistrictMapSelection";
 import { DiscoveryConversation } from "./DiscoveryConversation";
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ClientOnly } from "@tanstack/react-router";
@@ -144,6 +145,7 @@ export function DiscoveryEngine() {
   const [downPaymentText, setDownPaymentText] = useState(currencyInputValue(150000));
   const [creditBand, setCreditBand] = useState<CreditBand>("good");
   const [regionGroup, setRegionGroup] = useState<RegionFilter>("all");
+  const [mapSelection, setMapSelection] = useState<string[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [weights, setWeights] = useState<Record<WeightKey, number>>(DEFAULT_WEIGHTS);
   const [mapMetric, setMapMetric] = useState<MapMetricKey>("purchasingPower");
@@ -204,6 +206,9 @@ export function DiscoveryEngine() {
       ),
     [purchasingPower],
   );
+  const visibleMapSlugs = mapSelection.filter((slug) =>
+    ranked.some((district) => district.districtSlug === slug),
+  );
   const selected =
     ranked.find((district) => district.districtSlug === selectedSlug) ?? ranked[0] ?? null;
   const rankBySlug = useMemo(
@@ -221,17 +226,29 @@ export function DiscoveryEngine() {
     districtsQuery.isPending ||
     purchasingPowerQuery.isPending;
   const profileSearch = useMemo(() => {
-    return serializeDiscoveryProfile({
+    const params = serializeDiscoveryProfile({
       monthlyBudget,
       downPayment: downPaymentAmount,
       creditBand,
       regionGroup,
       weights,
-    }).toString();
-  }, [monthlyBudget, downPaymentAmount, creditBand, regionGroup, weights]);
+    });
+    if (mapSelection.length) params.set("districts", mapSelection.join(","));
+    if (selectedSlug) params.set("focus", selectedSlug);
+    return params.toString();
+  }, [
+    monthlyBudget,
+    downPaymentAmount,
+    creditBand,
+    regionGroup,
+    weights,
+    mapSelection,
+    selectedSlug,
+  ]);
   const selectedExplorerHref = useMemo(() => {
     const params = new URLSearchParams(profileSearch);
     if (selected) {
+      params.delete("districts");
       params.set("district", selected.districtName);
       params.set("districtSlug", selected.districtSlug);
       params.set("maxPrice", String(Math.floor(selected.maxPurchasePrice)));
@@ -251,7 +268,10 @@ export function DiscoveryEngine() {
   };
 
   useEffect(() => {
-    const profile = parseDiscoveryProfile(new URLSearchParams(window.location.search));
+    const searchParams = new URLSearchParams(window.location.search);
+    const profile = parseDiscoveryProfile(searchParams);
+    setSelectedSlug(searchParams.get("focus"));
+    setMapSelection((searchParams.get("districts") ?? "").split(",").filter(Boolean).slice(0, 200));
     setMonthlyBudget(profile.monthlyBudget);
     setMonthlyBudgetText(currencyInputValue(profile.monthlyBudget));
     setDownPaymentAmount(profile.downPayment);
@@ -264,7 +284,11 @@ export function DiscoveryEngine() {
 
   useEffect(() => {
     if (!urlHydrated) return;
-    window.history.replaceState(null, "", `${window.location.pathname}?${profileSearch}`);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${profileSearch}`,
+    );
   }, [profileSearch, urlHydrated]);
 
   return (
@@ -275,14 +299,14 @@ export function DiscoveryEngine() {
           <h1 className="text-base font-semibold text-foreground">Groundtruth Discovery</h1>
         </div>
         <Button asChild variant="outline" size="sm">
-          <a href="/explore">
+          <a href={`/explore?${profileSearch}`}>
             <Search className="mr-2 h-4 w-4" />
             Explorer
           </a>
         </Button>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(22rem,48%)] md:grid-cols-[380px_minmax(0,1fr)] md:grid-rows-1">
         <aside className="min-h-0 overflow-y-auto border-b border-border md:border-r md:border-b-0">
           <div className="space-y-6 p-5">
             {urlHydrated && (
@@ -393,6 +417,11 @@ export function DiscoveryEngine() {
               </div>
             </section>
 
+            <DistrictMapSelection
+              districts={ranked}
+              selectedSlugs={visibleMapSlugs}
+              onChange={setMapSelection}
+            />
             {selected ? (
               <SelectedDistrictPanel
                 selected={selected}
@@ -445,16 +474,21 @@ export function DiscoveryEngine() {
             </section>
 
             <section className="rounded-md border border-border p-4">
-              <p className="text-sm font-semibold text-foreground">How this ranking works</p>
+              <p className="text-sm font-semibold text-foreground">
+                How your preference matches work
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ranked among {ranked.length} districts in {comparisonScopeLabel(regionGroup)} using
-                the priorities above. A rank is comparative—it is not a probability or a percentage
-                of requirements satisfied.
+                These are your preference matches among {ranked.length} districts in{" "}
+                {comparisonScopeLabel(regionGroup)}, ordered by the budget and priorities you set.
+                The relative strengths and compromises below compare each district with this entire
+                region scope, including districts hidden from the map. They are not a direct
+                comparison with the district you last clicked. A match rank is not a percentage of
+                your requirements satisfied.
               </p>
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-foreground">Ranked Districts</h2>
+              <h2 className="text-sm font-semibold text-foreground">Your preference matches</h2>
               <div className="space-y-2">
                 {ranked.map((district, index) => {
                   const reasons = districtReasons(district, weights);
@@ -484,7 +518,7 @@ export function DiscoveryEngine() {
                           ) : null}
                         </div>
                         <p className="shrink-0 text-xs font-semibold text-foreground">
-                          #{index + 1} of {ranked.length}
+                          Match #{index + 1} of {ranked.length}
                         </p>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
@@ -504,13 +538,15 @@ export function DiscoveryEngine() {
                       <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                         {reasons.strengths.length ? (
                           <p>
-                            <span className="font-medium text-foreground">Stronger here:</span>{" "}
+                            <span className="font-medium text-foreground">Relative strengths:</span>{" "}
                             {reasons.strengths.join(", ")}
                           </p>
                         ) : null}
                         {reasons.tradeoffs.length ? (
                           <p>
-                            <span className="font-medium text-foreground">Tradeoff:</span>{" "}
+                            <span className="font-medium text-foreground">
+                              Relative compromises:
+                            </span>{" "}
                             {reasons.tradeoffs.join(", ")}
                           </p>
                         ) : null}
@@ -523,7 +559,7 @@ export function DiscoveryEngine() {
           </div>
         </aside>
 
-        <main className="relative min-h-[420px] md:min-h-0">
+        <main className="relative isolate z-0 min-h-0">
           {isBooting ? (
             <div className="h-full w-full bg-muted" />
           ) : tokenQuery.isError || districtsQuery.isError || purchasingPowerQuery.isError ? (
@@ -549,6 +585,7 @@ export function DiscoveryEngine() {
                   districts={districts}
                   purchasingPower={ranked}
                   selectedSlug={selected?.districtSlug ?? null}
+                  selectionSlugs={visibleMapSlugs}
                   rankBySlug={rankBySlug}
                   activeMetric={mapMetric}
                   onActiveMetricChange={setMapMetric}
@@ -593,7 +630,7 @@ function SelectedDistrictPanel({
   return (
     <section className="rounded-md border border-border p-4" data-testid="selected-district-panel">
       <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
-        <p className="uppercase tracking-normal">Selected District</p>
+        <p className="uppercase tracking-normal">District details</p>
         <p>{rank ? `#${rank} of ${districtCount} districts` : `${districtCount} districts`}</p>
       </div>
       <h2 className="mt-1 text-lg font-semibold text-foreground">{selected.districtName}</h2>

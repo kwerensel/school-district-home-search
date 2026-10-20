@@ -8,6 +8,7 @@ export const BboxSchema = z
 
 export const ListingQuerySchema = z
   .object({
+    payloadVersion: z.literal(2).optional(),
     bbox: BboxSchema.optional(),
     maxPrice: z.number().positive().optional(),
     minBeds: z.number().int().min(0).optional(),
@@ -89,6 +90,8 @@ export function buildListingsSql(input: ListingQuery): SqlFragment {
         SELECT
           l.id,
           l.geom,
+          l.region_slug AS region_group,
+          'sd-' || d.nces_geoid AS district_slug,
           l.address,
           l.city,
           l.state,

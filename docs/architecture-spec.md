@@ -304,7 +304,25 @@ Discovery must support an ongoing conversation that changes the analysis, not
 only generate prose about a fixed ranking. A user can describe neighborhood
 preferences, talk through competing priorities, and bring in long-term goals:
 leaving money available to invest, preserving capital or monthly flexibility
-for a personal business, or potentially renting the home out later.
+for a personal business, or potentially renting the home out later. These are
+illustrative examples, not a fixed goal taxonomy or persistent checklist. Users
+can supply any preference, constraint or longer-term goal in ordinary language.
+
+School districts are one optional comparison lens. Conversational tools must
+also resolve supported named municipalities and census tracts from the verified
+catalog; they must not force a neighborhood question into a district. An informal
+neighborhood name may not have a verified boundary. Ask for clarification rather
+than inventing one. Municipal boundaries currently have no direct promoted
+metrics: any existing overlapping tract context must stay separately labeled as
+whole-tract context, with coverage gaps explicit. Do not silently substitute
+district metrics or apply district tax estimates to a smaller geography.
+
+Map selection and map coloring are independent controls. Users may select
+multiple districts while viewing purchasing power or another available layer.
+The match ranking and color scale retain the stated active regional scope;
+selecting districts to display does not silently change the peer population.
+Relative strengths and compromises must name that peer scope. A direct selected
+pair comparison is a separate operation.
 
 The assistant should ask targeted follow-up questions, translate explicit
 preferences into inspectable profile changes, call deterministic search and

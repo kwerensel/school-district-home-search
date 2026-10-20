@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PlaceComparison } from "./PlaceComparison";
+import type { Place } from "@/lib/discovery/places";
 import { DiscoveryEvidence } from "./DiscoveryEvidence";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -36,12 +38,8 @@ export function DiscoveryConversation({
     retry: false,
   });
   const [comparison, setComparison] = useState(["", ""]);
-  const [goals, setGoals] = useState<Array<"investing" | "business-flexibility" | "future-rental">>(
-    [],
-  );
-  const [rentalUse, setRentalUse] = useState<"unspecified" | "long-term" | "short-term">(
-    "unspecified",
-  );
+  const [selectedPlaces, setSelectedPlaces] = useState<Place[]>([]);
+  const [contextNotes, setContextNotes] = useState("");
   const comparisonSlugs = comparison.filter(Boolean);
   const [analysis, setAnalysis] = useState<{ evidence: Evidence[]; signature: string } | null>(
     null,
@@ -68,8 +66,8 @@ export function DiscoveryConversation({
   const signature = JSON.stringify({
     profile,
     comparison,
-    goals,
-    rentalUse,
+    contextNotes,
+    selectedPlaces,
     housing,
     scenario,
     housingEnabled,
@@ -116,17 +114,22 @@ export function DiscoveryConversation({
       return;
     }
     return {
+      placeSlugs: selectedPlaces.map((place) => place.slug),
       profile: structuredClone(profile),
       comparisonSlugs,
-      goals,
-      rentalUse,
+      contextNotes,
       ...(scenarioEnabled && candidate.success ? { opportunity: candidate.data } : {}),
       ...(housingEnabled && housingCandidate.success ? { housing: housingCandidate.data } : {}),
     };
   }
 
   async function runAnalysis(
-    tool: "compare_regions" | "compare_housing_costs" | "opportunity_cost" | "rental_feasibility",
+    tool:
+      | "compare_places"
+      | "compare_regions"
+      | "compare_housing_costs"
+      | "opportunity_cost"
+      | "rental_feasibility",
   ) {
     if (busy.current) return;
     const data = context();
@@ -230,91 +233,132 @@ export function DiscoveryConversation({
         </Button>
         <p>Outside research: not enabled. No search outside Groundtruth has been performed.</p>
       </div>
-      <fieldset className="space-y-2 text-xs">
-        <legend className="font-medium">Longer-term goals for this conversation</legend>
-        {(
-          [
-            ["investing", "Leave room to invest"],
-            ["business-flexibility", "Preserve flexibility for a business"],
-            ["future-rental", "Keep a future rental option"],
-          ] as const
-        ).map(([goal, label]) => (
-          <label key={goal} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={goals.includes(goal)}
-              disabled={pending}
-              onChange={(event) =>
-                setGoals((previous) =>
-                  event.target.checked
-                    ? [...previous, goal]
-                    : previous.filter((value) => value !== goal),
-                )
-              }
-            />
-            {label}
-          </label>
-        ))}
-        <p className="text-muted-foreground">
-          These goals guide the discussion and stay in this page session. They do not add an
-          unverified neighborhood score.
-        </p>
-        {goals.includes("future-rental") && (
-          <label className="block">
-            Intended rental use
-            <select
-              className="mt-1 w-full rounded border bg-background p-2"
-              value={rentalUse}
-              disabled={pending}
-              onChange={(event) => setRentalUse(event.target.value as typeof rentalUse)}
-            >
-              <option value="unspecified">Still exploring</option>
-              <option value="long-term">Long-term lease</option>
-              <option value="short-term">Short-term stays</option>
-            </select>
-          </label>
-        )}
-      </fieldset>
-      <fieldset className="space-y-2 text-xs">
-        <legend className="font-medium">Compare specific districts (optional)</legend>
-        <p className="text-muted-foreground">
-          Choose up to two districts, or leave both empty to use the top-ranked results.
-        </p>
-        {comparison.map((slug, index) => (
-          <label key={index} className="block">
-            District {index + 1}
-            <select
-              className="mt-1 w-full rounded border bg-background p-2"
-              value={slug}
-              disabled={pending}
-              onChange={(event) =>
-                setComparison((previous) =>
-                  previous.map((value, i) => (i === index ? event.target.value : value)),
-                )
-              }
-            >
-              <option value="">No selection</option>
-              {slug && !districts.some((district) => district.districtSlug === slug) && (
-                <option value={slug}>Selection outside current search</option>
-              )}
-              {districts.map((district) => (
-                <option key={district.districtSlug} value={district.districtSlug}>
-                  {district.districtName}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
-      </fieldset>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={pending}
-        onClick={() => void runAnalysis("compare_regions")}
+      <form
+        className="space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void send();
+        }}
       >
-        Compare verified district data
-      </Button>
+        <label htmlFor="discovery-message" className="text-xs font-medium">
+          Your preferences or question
+        </label>
+        <textarea
+          id="discovery-message"
+          rows={3}
+          maxLength={4000}
+          className="w-full rounded border bg-background p-2 text-sm"
+          value={draft}
+          disabled={pending}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="I care more about leafy surroundings than walkability. What would change?"
+        />
+        <div className="flex gap-2">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={pending || !draft.trim() || !availability.data?.configured}
+          >
+            {pending ? "Working…" : "Discuss"}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={pending}
+            onClick={() => {
+              setTurns([]);
+              setAnalysis(null);
+              setComparison(["", ""]);
+              setContextNotes("");
+              setSelectedPlaces([]);
+              setError("");
+              setUndo(null);
+              setDraft("");
+              setHousingEnabled(false);
+              setHousing({ purchasePrice: "", additionalMonthlyCosts: "" });
+              setScenarioEnabled(false);
+              setScenario({
+                monthlyContribution: "",
+                upfrontCapital: "",
+                years: "",
+                annualReturn: "",
+              });
+            }}
+          >
+            Clear conversation
+          </Button>
+        </div>
+      </form>
+      <label className="block space-y-2 text-xs" htmlFor="discovery-context">
+        <span className="font-medium">Anything else to keep in mind? (optional)</span>
+        <textarea
+          id="discovery-context"
+          rows={2}
+          maxLength={4000}
+          className="w-full rounded border bg-background p-2 text-sm"
+          value={contextNotes}
+          disabled={pending}
+          onChange={(event) => setContextNotes(event.target.value)}
+          placeholder="Your priorities, longer-term plans, tradeoffs or constraints—in your own words."
+        />
+        <span className="block text-muted-foreground">
+          This context stays with this page session. You can discuss any goal; there is no fixed
+          checklist.
+        </span>
+      </label>
+      <PlaceComparison
+        regionGroup={profile.regionGroup}
+        selected={selectedPlaces}
+        onChange={setSelectedPlaces}
+        pending={pending}
+        onCompare={() => void runAnalysis("compare_places")}
+      />
+      <details className="space-y-2 text-xs">
+        <summary className="cursor-pointer font-medium">
+          School-district comparisons (optional)
+        </summary>
+        <fieldset className="space-y-2 text-xs">
+          <legend className="font-medium">Compare specific districts (optional)</legend>
+          <p className="text-muted-foreground">
+            Choose up to two districts, or leave both empty to use the top-ranked results.
+          </p>
+          {comparison.map((slug, index) => (
+            <label key={index} className="block">
+              District {index + 1}
+              <select
+                className="mt-1 w-full rounded border bg-background p-2"
+                value={slug}
+                disabled={pending}
+                onChange={(event) =>
+                  setComparison((previous) =>
+                    previous.map((value, i) => (i === index ? event.target.value : value)),
+                  )
+                }
+              >
+                <option value="">No selection</option>
+                {slug && !districts.some((district) => district.districtSlug === slug) && (
+                  <option value={slug}>Selection outside current search</option>
+                )}
+                {districts.map((district) => (
+                  <option key={district.districtSlug} value={district.districtSlug}>
+                    {district.districtName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </fieldset>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          onClick={() => void runAnalysis("compare_regions")}
+        >
+          Compare verified district data
+        </Button>
+      </details>
       {analysis && (
         <div className="space-y-2 border-t pt-3">
           <p className="text-xs font-medium">Data and scenario results — no model used</p>
@@ -407,9 +451,11 @@ export function DiscoveryConversation({
           Compare taxes and monthly costs across districts
         </label>
         <p className="mb-2 text-muted-foreground">
-          Enter the same home price to isolate cost differences. Additional costs should include
-          your maintenance, HOA, and other monthly allowances. Area tax estimates cannot establish a
-          particular property's bill.
+          Financial comparisons use the optional school-district selection and district tax
+          estimates. Town or tract selection does not silently assign a district. Enter the same
+          home price to isolate cost differences. Additional costs should include your maintenance,
+          HOA, and other monthly allowances. Area tax estimates cannot establish a particular
+          property's bill.
         </p>
         {(
           [
@@ -499,63 +545,7 @@ export function DiscoveryConversation({
       >
         What evidence is needed for rental use?
       </Button>
-      <form
-        className="space-y-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void send();
-        }}
-      >
-        <label htmlFor="discovery-message" className="text-xs font-medium">
-          Your preferences or question
-        </label>
-        <textarea
-          id="discovery-message"
-          rows={3}
-          maxLength={4000}
-          className="w-full rounded border bg-background p-2 text-sm"
-          value={draft}
-          disabled={pending}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="I care more about leafy surroundings than walkability. What would change?"
-        />
-        <div className="flex gap-2">
-          <Button
-            type="submit"
-            size="sm"
-            disabled={pending || !draft.trim() || !availability.data?.configured}
-          >
-            {pending ? "Working…" : "Discuss"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={pending}
-            onClick={() => {
-              setTurns([]);
-              setAnalysis(null);
-              setComparison(["", ""]);
-              setGoals([]);
-              setRentalUse("unspecified");
-              setError("");
-              setUndo(null);
-              setDraft("");
-              setHousingEnabled(false);
-              setHousing({ purchasePrice: "", additionalMonthlyCosts: "" });
-              setScenarioEnabled(false);
-              setScenario({
-                monthlyContribution: "",
-                upfrontCapital: "",
-                years: "",
-                annualReturn: "",
-              });
-            }}
-          >
-            Clear conversation
-          </Button>
-        </div>
-      </form>
+
       <p role="status" className="text-xs">
         {pending ? "Working with the available data and tools…" : error}
       </p>

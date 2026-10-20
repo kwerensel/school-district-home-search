@@ -24,6 +24,7 @@ interface Props {
   districts: DistrictFC | null;
   purchasingPower: DistrictPurchasingPower[];
   selectedSlug: string | null;
+  selectionSlugs: string[];
   rankBySlug: Map<string, number>;
   activeMetric: MapMetricKey;
   onActiveMetricChange: (metric: MapMetricKey) => void;
@@ -56,6 +57,7 @@ export function RegionChoroplethMap({
   districts,
   purchasingPower,
   selectedSlug,
+  selectionSlugs,
   rankBySlug,
   activeMetric,
   onActiveMetricChange,
@@ -78,16 +80,23 @@ export function RegionChoroplethMap({
     [purchasingPower],
   );
   const eligibleSlugs = useMemo(() => new Set(scopeKey.split("|")), [scopeKey]);
+  const selectionKey = selectionSlugs.join("|");
+  const selectionSet = useMemo(
+    () => new Set(selectionKey.split("|").filter(Boolean)),
+    [selectionKey],
+  );
   const visibleDistricts = useMemo<DistrictFC | null>(() => {
     if (!districts) return null;
     return {
       type: "FeatureCollection",
       features: districts.features.filter((feature) => {
         const slug = feature.properties.district_slug;
-        return Boolean(slug && eligibleSlugs.has(slug));
+        return Boolean(
+          slug && eligibleSlugs.has(slug) && (!selectionSet.size || selectionSet.has(slug)),
+        );
       }),
     };
-  }, [districts, eligibleSlugs]);
+  }, [districts, eligibleSlugs, selectionSet]);
   const values = purchasingPower
     .map((district) => metricValue(district, activeMetric))
     .filter((value): value is number => value !== null && Number.isFinite(value));
@@ -180,7 +189,7 @@ export function RegionChoroplethMap({
   }, [activeMetric, max, min, powerBySlug, purchasingPower.length, rankBySlug, selectedSlug]);
 
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 isolate">
       <div
         ref={containerRef}
         className="h-full w-full"
@@ -205,17 +214,22 @@ export function RegionChoroplethMap({
           </SelectContent>
         </Select>
         <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
-          One district-level layer at a time. Hover for the value.
+          {selectionSlugs.length
+            ? `${selectionSlugs.length} selected districts shown.`
+            : `All ${purchasingPower.length} districts shown.`}{" "}
+          Hover for the value.
         </p>
       </div>
 
-      {selected ? (
+      {selected &&
+      selectionSlugs.length <= 1 &&
+      (!selectionSlugs.length || selectionSlugs.includes(selected.districtSlug)) ? (
         <div
           className="absolute top-32 left-3 z-[500] max-w-[min(22rem,calc(100%-1.5rem))] rounded-md border border-border bg-background/95 p-3 shadow-sm"
           data-testid="selected-district-map-card"
         >
           <div className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
-            <p>Selected district</p>
+            <p>District details</p>
             <p>
               #{rankBySlug.get(selected.districtSlug) ?? "-"} of {purchasingPower.length}
             </p>
@@ -230,6 +244,23 @@ export function RegionChoroplethMap({
         </div>
       ) : null}
 
+      {selectionSlugs.length > 1 && (
+        <div
+          className="absolute top-32 left-3 z-[500] max-h-28 md:max-h-40 max-w-[min(22rem,calc(100%-1.5rem))] overflow-y-auto rounded-md border bg-background/95 p-3 text-xs shadow-sm"
+          aria-label="Selected districts comparison"
+        >
+          <p className="mb-1 font-semibold">Selected districts · {scale.shortLabel}</p>
+          {selectionSlugs.map((slug) => {
+            const district = powerBySlug.get(slug);
+            return district ? (
+              <p key={slug}>
+                {district.districtName}:{" "}
+                {formatMapMetricValue(activeMetric, metricValue(district, activeMetric))}
+              </p>
+            ) : null;
+          })}
+        </div>
+      )}
       <div
         className="absolute right-3 bottom-3 z-[500] rounded-md border border-border bg-background/95 p-3 shadow-sm"
         data-testid="district-layer-legend"
@@ -244,7 +275,9 @@ export function RegionChoroplethMap({
           <span>{scale.lowLabel}</span>
           <span>{scale.highLabel}</span>
         </div>
-        <p className="mt-2 text-[10px] text-muted-foreground">District-level comparison</p>
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          Color scale: all {purchasingPower.length} districts in this region scope
+        </p>
       </div>
     </div>
   );

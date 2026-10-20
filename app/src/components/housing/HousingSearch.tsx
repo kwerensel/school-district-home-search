@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ClientOnly, Link } from "@tanstack/react-router";
+import { ClientOnly } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Compass, Filter as FilterIcon, Home } from "lucide-react";
 import { FiltersSidebar } from "./FiltersSidebar";
 import { ListingDetailPanel } from "./ListingDetailPanel";
@@ -19,7 +25,16 @@ import {
   uniqueDistricts,
 } from "@/lib/housing/filters";
 import type { DistrictFC, Filters, ListingFC, ListingFeature } from "@/lib/housing/types";
+import { parseDiscoveryProfile, serializeDiscoveryProfile } from "@/lib/discovery/profile";
 import type { ExplorerMapMetricKey } from "@/lib/metrics/presentation";
+
+function discoveryReturnHref(params: URLSearchParams) {
+  const search = serializeDiscoveryProfile(parseDiscoveryProfile(params));
+  if (params.get("districts")) search.set("districts", params.get("districts")!);
+  if (params.get("focus") ?? params.get("districtSlug"))
+    search.set("focus", (params.get("focus") ?? params.get("districtSlug"))!);
+  return `/discover?${search}`;
+}
 
 const EMPTY_LISTINGS: ListingFC = { type: "FeatureCollection", features: [] };
 
@@ -35,8 +50,8 @@ export function HousingSearch() {
   });
 
   const listingsQuery = useQuery({
-    queryKey: ["listings"],
-    queryFn: () => getListingsFn({ data: {} }),
+    queryKey: ["listings", 2],
+    queryFn: () => getListingsFn({ data: { payloadVersion: 2 } }),
     staleTime: Infinity,
   });
 
@@ -56,6 +71,7 @@ export function HousingSearch() {
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selectedListing, setSelectedListing] = useState<ListingFeature | null>(null);
+  const [discoveryHref, setDiscoveryHref] = useState("/discover");
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [mapMetric, setMapMetric] = useState<ExplorerMapMetricKey>("schoolDistricts");
   const [initialFocus, setInitialFocus] = useState<{
@@ -71,6 +87,7 @@ export function HousingSearch() {
       typeof window === "undefined"
         ? new URLSearchParams()
         : new URLSearchParams(window.location.search);
+    setDiscoveryHref(discoveryReturnHref(params));
     const maxPrice = Number(params.get("maxPrice"));
     const minBeds = Number(params.get("minBeds"));
     const minBaths = Number(params.get("minBaths"));
@@ -86,6 +103,9 @@ export function HousingSearch() {
 
     setFilters((current) => ({
       ...current,
+      districtSlugs: (params.get("districts") ?? "").split(",").filter(Boolean).slice(0, 200),
+      regionGroup:
+        regionGroup === "pa-mainline" || regionGroup === "hudson-valley" ? regionGroup : "all",
       maxPrice:
         Number.isFinite(maxPrice) && maxPrice > 0 ? Math.min(maxPrice, bounds.max) : bounds.max,
       minBeds: Number.isFinite(minBeds) && minBeds >= 0 ? minBeds : current.minBeds,
@@ -104,8 +124,13 @@ export function HousingSearch() {
   useEffect(() => {
     if (!filtersInitialized || typeof window === "undefined") return;
     const params = serializeExplorerFilters(new URLSearchParams(window.location.search), filters);
+    setDiscoveryHref(discoveryReturnHref(params));
     const query = params.toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}`,
+    );
   }, [filters, filtersInitialized]);
 
   const isBooting =
@@ -125,11 +150,24 @@ export function HousingSearch() {
     }
   }, [filtered, selectedListing]);
 
+  const regionDistrictList = useMemo(
+    () =>
+      uniqueDistricts({
+        ...allListings,
+        features: allListings.features.filter(
+          (feature) =>
+            filters.regionGroup === "all" ||
+            feature.properties.region_group === filters.regionGroup,
+        ),
+      }),
+    [allListings, filters.regionGroup],
+  );
+
   const sidebar = (
     <FiltersSidebar
       filters={filters}
       setFilters={setFilters}
-      districts={districtList}
+      districts={regionDistrictList}
       priceMax={Math.max(bounds.max, 100_000)}
       resultCount={filtered.features.length}
       totalCount={allListings.features.length}
@@ -140,17 +178,19 @@ export function HousingSearch() {
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+      <header className="relative z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-4">
         <div className="flex items-center gap-2">
           <Home className="h-5 w-5 text-primary" />
-          <h1 className="text-base font-semibold text-foreground">Groundtruth Explorer</h1>
+          <h1 className="text-base font-semibold text-foreground">
+            <span className="hidden sm:inline">Groundtruth </span>Explorer
+          </h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-            <Link to="/discover/results">
+          <Button asChild variant="outline" size="sm">
+            <a href={discoveryHref}>
               <Compass className="mr-2 h-4 w-4" />
               Discover
-            </Link>
+            </a>
           </Button>
           <div className="md:hidden">
             <Sheet>
@@ -159,8 +199,11 @@ export function HousingSearch() {
                   <FilterIcon className="mr-2 h-4 w-4" /> Filters
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[320px] p-0">
+              <SheetContent side="left" className="w-[320px] overflow-y-auto p-0">
                 <SheetTitle className="sr-only">Filters</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Adjust the region, district shortlist, price and listing filters.
+                </SheetDescription>
                 {sidebar}
               </SheetContent>
             </Sheet>
@@ -173,7 +216,7 @@ export function HousingSearch() {
           {sidebar}
         </aside>
 
-        <main className="relative min-h-0 flex-1">
+        <main className="relative isolate z-0 min-h-0 flex-1">
           {isBooting ? (
             <div className="h-full w-full bg-muted" />
           ) : tokenQuery.isError || listingsQuery.isError || districtsQuery.isError ? (

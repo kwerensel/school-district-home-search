@@ -54,4 +54,40 @@ describe.skipIf(process.env.DISCOVERY_DB_SMOKE !== "1")("promoted Discovery data
       expect(analysis.evidence.at(-1)?.id).toBe("housing-opportunity");
     }
   }, 30000);
+  it("resolves named towns and keeps their metric gaps explicit", async () => {
+    const { sql } = await import("@/server/db");
+    const { searchVerifiedPlaces, loadVerifiedPlace } = await import("./places");
+    const execute = async (text: string, params: unknown[]) => sql.query(text, params);
+    const matches = await searchVerifiedPlaces(
+      { query: "Merion Station", regionGroup: "pa-mainline" },
+      execute,
+    );
+    const municipality = matches.find((place) => place.kind === "municipality");
+    expect(municipality).toBeDefined();
+    const context = await loadVerifiedPlace(municipality!.slug, "pa-mainline", execute);
+    expect(context?.place.kind).toBe("municipality");
+    expect(context?.metrics).toEqual([]);
+    expect(context?.tractContexts.every((tract) => tract.place.kind === "census_tract")).toBe(true);
+  }, 30000);
+  it("carries a multi-district shortlist through the frozen listing payload", async () => {
+    const { sql } = await import("@/server/db");
+    const { fetchListingsGeoJson } = await import("@/lib/housing/server-data");
+    const { applyFilters, DEFAULT_FILTERS } = await import("@/lib/housing/filters");
+    const listings = await fetchListingsGeoJson({ payloadVersion: 2 }, async (text, params) =>
+      sql.query(text, params),
+    );
+    expect(listings.features).toHaveLength(4505);
+    expect(
+      listings.features.every(
+        (feature) => feature.properties.region_group && feature.properties.district_slug,
+      ),
+    ).toBe(true);
+    const selected = applyFilters(listings, {
+      ...DEFAULT_FILTERS,
+      maxPrice: 100000000,
+      regionGroup: "pa-mainline",
+      districtSlugs: ["sd-4214160", "sd-4219920", "sd-4223640"],
+    });
+    expect(selected.features).toHaveLength(134);
+  }, 30000);
 });

@@ -11,6 +11,8 @@ export interface ListingProps {
   url: string | null;
   school_district: string;
   county_name?: string | null;
+  region_group?: string;
+  district_slug?: string;
   good_district: boolean;
   canopy_height_m_100m?: number | null;
   tree_canopy_pct_100m?: number | null;
@@ -38,6 +40,8 @@ export type DistrictFeature = Feature<Polygon | MultiPolygon, DistrictProps>;
 export type DistrictFC = FeatureCollection<Polygon | MultiPolygon, DistrictProps>;
 
 export interface Filters {
+  districtSlugs: string[];
+  regionGroup: "all" | "pa-mainline" | "hudson-valley";
   maxPrice: number;
   minBeds: number;
   minBaths: number;

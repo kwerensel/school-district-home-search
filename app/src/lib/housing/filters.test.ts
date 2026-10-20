@@ -74,3 +74,51 @@ describe("listing filters", () => {
     expect(params.get("treeCover")).toBe("leafy");
   });
 });
+
+describe("Explorer navigation filters", () => {
+  it("filters the existing dataset by region and a multi-district shortlist", () => {
+    const scoped: ListingFC = {
+      ...listings,
+      features: listings.features.map((feature, index) => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          region_group: index === 0 ? "pa-mainline" : "hudson-valley",
+          district_slug: index === 0 ? "sd-pa" : "sd-ny",
+        },
+      })),
+    };
+    expect(
+      applyFilters(scoped, { ...DEFAULT_FILTERS, regionGroup: "pa-mainline" }).features.map(
+        (feature) => feature.properties.id,
+      ),
+    ).toEqual([1]);
+    expect(
+      applyFilters(scoped, { ...DEFAULT_FILTERS, districtSlugs: ["sd-pa", "sd-ny"] }).features,
+    ).toHaveLength(2);
+    expect(
+      applyFilters(scoped, { ...DEFAULT_FILTERS, districtSlugs: ["sd-ny"] }).features.map(
+        (feature) => feature.properties.id,
+      ),
+    ).toEqual([2]);
+  });
+  it("clears a stale focused district slug after selecting a different district", () => {
+    const params = serializeExplorerFilters(
+      new URLSearchParams("district=Old&districtSlug=sd-old&monthlyBudget=5500"),
+      { ...DEFAULT_FILTERS, district: "New" },
+    );
+    expect(params.get("districtSlug")).toBeNull();
+    expect(params.get("district")).toBe("New");
+    expect(params.get("monthlyBudget")).toBe("5500");
+  });
+  it("roundtrips a region and district shortlist without leaking unrelated scenario inputs", () => {
+    const params = serializeExplorerFilters(new URLSearchParams(), {
+      ...DEFAULT_FILTERS,
+      regionGroup: "pa-mainline",
+      districtSlugs: ["sd-a", "sd-b"],
+    });
+    expect(params.get("regionGroup")).toBe("pa-mainline");
+    expect(params.get("districts")).toBe("sd-a,sd-b");
+    expect(params.get("contextNotes")).toBeNull();
+  });
+});

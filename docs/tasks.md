@@ -87,6 +87,13 @@ without claiming unsupported rents or rental eligibility. Existing data and
 promotion gates remain in force; archetype labels are optional context for
 this conversation, not a prerequisite to it.
 
+**2026-10-19 clarification:** goal examples are illustrative, not a checkbox
+vocabulary. Conversational comparison supports the verified place catalog
+(towns/tracts/districts) with geographic gaps explicit. Multi-district map
+selection is independent of color layers. Label rankings as preference matches
+and state whether relative tradeoffs use the full regional peer set or explicit
+selected places. Preserve mobile navigation and Discovery/Explorer state.
+
 **Local implementation checkpoint:** conversational tools, reversible preference
 previews, session goals, district-pair comparison, metric provenance, key-free
 scenario controls, housing-cost opportunity calculations, and simulated multi-turn

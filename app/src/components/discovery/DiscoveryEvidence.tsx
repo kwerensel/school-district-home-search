@@ -32,7 +32,7 @@ export function DiscoveryEvidence({ evidence }: { evidence: Evidence[] }) {
                   {source.value === null ? "unavailable" : sourceNumber.format(source.value)}{" "}
                   {source.units ?? "(units unavailable)"} — {source.source ?? "source unavailable"};
                   vintage {source.vintage}; native resolution{" "}
-                  {source.nativeResolution ?? "unavailable"}. District aggregate.
+                  {source.nativeResolution ?? "unavailable"}. Geographic context as labeled above.
                 </li>
               ))}
             </ul>

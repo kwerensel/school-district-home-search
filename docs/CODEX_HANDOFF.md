@@ -13,6 +13,14 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
 
 ## 2. Current Phase Or Feature Area
 
+Latest UI checkpoint (2026-10-19): Explorer mobile overlay/navigation repaired;
+conversation goals are open-ended; verified place lookup supports town/tract
+context; multi-district map selection is independent of layer choice; match
+ranking explicitly states its regional peer basis. See the correction checkpoint
+below and docs/screenshots/2026-10-19-navigation/README.md. User wants before/after
+screenshots saved for UI iterations: capture the baseline before future edits.
+
+
 Product clarification (2026-10-18): the user wants real conversational
 Discovery, including discussion that revises neighborhood preferences and
 analysis, and long-term goals around investing, personal-business flexibility,
@@ -1167,9 +1175,9 @@ Local UI QA artifact: `data/reports/qa/discovery-conversation-no-key.png`
   produce errors instead of silently substituting a ranking. A same-price pair
   plus investment assumptions produces a difference-only investment scenario,
   excluding standalone contributions/upfront capital to avoid double-counting.
-  Session-only long-term goals (investing/business flexibility/future rental)
-  and intended rental use are explicit controls, independent of truncated chat
-  history. Changed scenario inputs label old results as stale.
+  The initial fixed goal controls were superseded by open-ended context on
+  2026-10-19 (see correction below). Changed scenario inputs label old results
+  as stale.
 - Verification: app suite 63 passed (one opt-in live test skipped by default),
   TypeScript, lint (zero errors, six existing shadcn warnings), and Cloudflare
   production build pass. The opt-in read-only database smoke test also passed
@@ -1190,6 +1198,43 @@ Local UI QA artifact: `data/reports/qa/discovery-conversation-no-key.png`
   assistant preview/apply/undo; optional cited research; deployment cost/rate
   controls. No release/deployment or provider-credit success is claimed.
   This is an initial slice, not a release-ready claim of the whole product.
+
+### Discovery flexibility and navigation correction (2026-10-19)
+
+- User clarified that investing/business/rental examples are illustrative,
+  not persistent goal toggles, and that districts must be optional rather than
+  the only geography for conversational tradeoffs. Replaced goal enums/toggles
+  with open-ended private context; moved the composer ahead of optional tools.
+- Added catalog search and context tools for municipalities, census tracts and
+  districts. They read only promoted metrics and existing overlap records.
+  Merion Station resolves as a municipality with an explicit direct-metric gap
+  plus separately labeled Tracts 2045/2046; no district substitution, new
+  geospatial operation, source, migration or promotion was used.
+- Added any-number district map selection, independent layer choice, and
+  selected-district value summaries. Selection survives URL round trips and
+  Explorer handoff. Map colors and match percentiles keep the full active-region
+  reference population. Ranking is now labeled "Your preference matches";
+  strengths/compromises explicitly refer to all active-region peers, including
+  districts hidden from the map.
+- Fixed Explorer mobile filter-sheet layering by isolating the map stacking
+  context; Discover navigation is visible at narrow widths. Preserved router
+  history state, profile, focused district, region and multi-district shortlist
+  on return. Added region/shortlist filtering from existing listing identifiers
+  and versioned cached listing payloads so old responses cannot drop these fields.
+  Region-scoped district choices and stale districtSlug clearing avoid contradictory
+  filters. No RentCast or live listing expansion occurred.
+- Browser QA at 699 × 746: original committed overlay bug reproduced in a
+  temporary baseline; updated sheet opens above Leaflet; three selected districts
+  remain selected under purchasing power → tree coverage → purchasing power;
+  Explorer shows the expected 134 frozen listings; visible Discover link returns
+  with region and shortlist intact. Verified town lookup and explicit coverage gaps.
+- Captures are saved under docs/screenshots/2026-10-19-navigation/ with a README
+  distinguishing committed-baseline reconstructions, in-progress before captures,
+  and after captures. The temporary baseline server was stopped after capture.
+- Verification: 70 unit tests; 3 opt-in read-only live data tests; TypeScript,
+  lint (six pre-existing warnings) and production build. No model API calls.
+  The live conversation and inferred preference apply/undo still require API
+  funding and credential verification. Outside research remains disabled.
 
 ### Phase 9 Archetype And Narrative Foundation
 

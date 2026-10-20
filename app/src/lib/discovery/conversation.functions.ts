@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { PlaceSearchSchema, searchVerifiedPlaces, loadVerifiedPlace } from "./places";
+import type { PlaceAccess } from "./places";
 import { createServerFn } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import {
@@ -21,6 +23,29 @@ async function getDistricts(profile: ConversationProfile) {
     },
   });
 }
+
+async function executePlaceQuery(text: string, params: unknown[]) {
+  const { sql } = await import("@/server/db");
+  return sql.query(text, params);
+}
+const places: PlaceAccess = {
+  search: (query, regionGroup) =>
+    searchVerifiedPlaces(PlaceSearchSchema.parse({ query, regionGroup }), executePlaceQuery),
+  context: (slug, regionGroup) => loadVerifiedPlace(slug, regionGroup, executePlaceQuery),
+};
+export const searchDiscoveryPlaces = createServerFn({ method: "POST" })
+  .validator(PlaceSearchSchema)
+  .handler(async ({ data }) => {
+    setResponseHeader("Cache-Control", "no-store");
+    try {
+      return { status: "ok" as const, places: await searchVerifiedPlaces(data, executePlaceQuery) };
+    } catch {
+      return {
+        status: "error" as const,
+        message: "Verified place search could not load. Please try again.",
+      };
+    }
+  });
 
 type Reply =
   | { status: "ok"; result: ConversationResult }
@@ -47,6 +72,7 @@ export const converseWithDiscovery = createServerFn({ method: "POST" })
         apiKey,
         model: process.env.ANTHROPIC_MODEL,
         getDistricts,
+        places,
       });
       return { status: "ok", result };
     } catch {
@@ -63,6 +89,7 @@ export const converseWithDiscovery = createServerFn({ method: "POST" })
 
 const AnalysisRequestSchema = DiscoveryContextSchema.extend({
   tool: z.enum([
+    "compare_places",
     "compare_regions",
     "compare_housing_costs",
     "opportunity_cost",
@@ -77,7 +104,7 @@ export const runDiscoveryAnalysis = createServerFn({ method: "POST" })
       data,
     }): Promise<{ status: "ok"; evidence: Evidence[] } | { status: "error"; message: string }> => {
       try {
-        const analysis = await executeDiscoveryTool(data.tool, {}, data, getDistricts);
+        const analysis = await executeDiscoveryTool(data.tool, {}, data, getDistricts, places);
         if (!analysis.evidence.length)
           return {
             status: "error",
