@@ -41,7 +41,7 @@ COMMUTE_KEYS = (
 MIN_K = 4
 MAX_K = 9
 MIN_ACCEPTABLE_SILHOUETTE = 0.25
-DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5"
 
 
 @dataclass(frozen=True)
@@ -448,7 +448,7 @@ def _request_anthropic_label(
         {
             "model": model,
             "max_tokens": 180,
-            "temperature": 0,
+            **({"thinking": {"type": "between_tools"}} if model == DEFAULT_ANTHROPIC_MODEL else {}),
             "messages": [{"role": "user", "content": prompt}],
         }
     ).encode()

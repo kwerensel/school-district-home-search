@@ -146,6 +146,15 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   npm documents. Isolated fresh `npm ci`, all71 app tests and production build
   pass without private environment files or changing resolved package versions.
   Remote CI passed for pushed checkpoint `7e9782b` (app and pipeline).
+- Provider compatibility preflight: existing Anthropic catalog confirms
+  `claude-sonnet-5-5`; official docs mark the old Sonnet4 default retired.
+  Defaults/request shapes are updated locally with current no-upfront-thinking
+  settings and no deprecated sampling parameter. Unit suites, typecheck and
+  build pass. Live synthetic generation is **blocked by provider credit/billing**
+  (HTTP400, sanitized category only); no text generation completed, no account
+  billing changed and no further retries. Keep deterministic narrative fallback.
+  Do not attempt post-GVI Claude labeling until the account gate is resolved.
+  Evidence: `data/reports/anthropic_generation_preflight.json`.
 - Deferred Phase12 acceptance harness is prepared, **not executed**. It uses
   disposable accounts and injected test email/CAPTCHA adapters; production
   checks remain enforced. Session-owned saved-store queries now use the actual

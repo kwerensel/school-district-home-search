@@ -49,6 +49,10 @@ describe("tradeoff narrative guard", () => {
     const result = await requestTradeoffNarrative(payload, { apiKey: "test", fetcher });
     expect(result.source).toBe("template");
     expect(result.narrative).not.toContain("99");
+    const sent = JSON.parse(fetcher.mock.calls[0][1].body);
+    expect(sent.model).toBe("claude-sonnet-5-5");
+    expect(sent.thinking).toEqual({ type: "between_tools" });
+    expect(sent).not.toHaveProperty("temperature");
   });
 });
 

@@ -259,3 +259,23 @@ report `data/reports/gvi_streetlevel_research_hudson-valley.json` and QA
 reviewed and 12 post-spatial golden checks pass. No HV Mapillary query, photo,
 model download or inference was authorized or executed. Candidate image
 coverage remains unknown; photographic GVI/correlation remain uncomputed.
+
+## Offline date/season sensitivity — October 19
+
+Descriptive filtering of the already-approved PA metadata cache yields:
+
+| Metadata filter | Listings with >=3 candidate images | With >=3 distinct sequences |
+| --- | ---: | ---: |
+| All captured dates | 42 | 19 |
+| May–September, any year | 20 | 5 |
+| 2022 or later | 6 | 3 |
+| 2022 or later, May–September | 5 | 3 |
+| Summer 2024 (May–September) | 5 | 3 |
+
+These are sensitivity counts, not an approved selection protocol or successful
+segmentation. They inherit the three page caps and do not establish image
+quality, orientation, attribution, independence or representative coverage.
+A future pilot needs an explicit frozen protocol; the 42 all-date candidates
+must not be presented as 42 contemporary, independent comparison sites.
+Evidence: `data/reports/gvi_streetlevel_pa_candidate_season_sensitivity.json`.
+This analysis made zero provider requests and downloaded zero photographs.

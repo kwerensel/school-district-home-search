@@ -239,3 +239,12 @@ and cloud holes. No model/algorithm fingerprint or scientific rule changes.
 Source requests now have bounded connection/read timeouts and existing retry
 limits. [Rasterio concurrency guidance](https://rasterio.readthedocs.io/en/stable/topics/concurrency.html)
 explains the independent-dataset I/O model; shared dataset writes stay serial.
+
+The real-data PA source comparison uses the existing 10m composite grid and
+a shared extract-boundary interior (0.0001-degree inset avoids overlay precision
+slivers). The existing/Geofabrik 50m masks intersect in 23,923,991 pixels, with
+23,929,324 in their union: **99.9777% intersection-over-union**. Existing-only:
+1,361 pixels; Geofabrik-only: 3,972. Source snapshots differ by roughly a day;
+raw ways can retain isolated rings. The comparison checks corridor support,
+not optical or photographic values, and changes no PA metrics. PNG/JSON QA:
+`data/reports/qa/gvi_geofabrik_pa_corridor_comparison.*`; visual review passes.

@@ -67,13 +67,15 @@ export function guardedTradeoffNarrative(candidate: string, payload: TradeoffPay
   return { narrative: trimmed, source: "claude" as const };
 }
 
+export const DEFAULT_NARRATIVE_MODEL = "claude-sonnet-5-5";
+
 export async function requestTradeoffNarrative(
   payloadInput: TradeoffPayload,
   options: { apiKey: string; model?: string; fetcher?: typeof fetch },
 ) {
   const payload = TradeoffPayloadSchema.parse(payloadInput);
   const fetcher = options.fetcher ?? fetch;
-  const model = options.model ?? "claude-sonnet-4-20250514";
+  const model = options.model ?? DEFAULT_NARRATIVE_MODEL;
   const response = await fetcher("https://api.anthropic.com/v1/messages", {
     method: "POST",
     signal: AbortSignal.timeout(6000),
@@ -85,7 +87,7 @@ export async function requestTradeoffNarrative(
     body: JSON.stringify({
       model,
       max_tokens: 220,
-      temperature: 0,
+      ...(model === DEFAULT_NARRATIVE_MODEL ? { thinking: { type: "between_tools" } } : {}),
       messages: [
         {
           role: "user",

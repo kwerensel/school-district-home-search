@@ -122,3 +122,25 @@ def test_label_resolution_guards_even_an_explicit_pre_gvi_version():
     assert "metric_keys ? 'gvi_ndvi_street'" in query
     assert 'silhouette >= %s' in query
     assert params == (0.25,'pre-gvi-version','pre-gvi-version')
+
+
+def test_label_request_uses_available_model_without_retired_sampling_parameters(monkeypatch):
+    import json
+    from unittest.mock import MagicMock
+    from gt import archetypes
+    response=MagicMock()
+    response.__enter__.return_value=response
+    response.read.return_value=json.dumps({'content':[{'type':'text','text':json.dumps({'label':'Leafy Streets','one_line_description':'Districts with relatively high tree canopy.'})}]}).encode()
+    requests=[]
+    def open_request(request,**kwargs):
+        requests.append(request)
+        return response
+    monkeypatch.setattr(archetypes,'urlopen',open_request)
+    result=archetypes._request_anthropic_label([{'metric_key':'tree_canopy_pct','percentile':.8}],api_key='test-only-key',model=archetypes.DEFAULT_ANTHROPIC_MODEL)
+    assert result[0]=='Leafy Streets'
+    body=json.loads(requests[0].data)
+    assert body['model']=='claude-sonnet-5-5'
+    assert body['thinking']=={'type':'between_tools'}
+    assert 'temperature' not in body
+    archetypes._request_anthropic_label([],api_key='test-only-key',model='explicit-model-override')
+    assert 'thinking' not in json.loads(requests[1].data)
