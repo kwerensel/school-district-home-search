@@ -100,8 +100,20 @@ def _fetch_scenes(cache: Path, bounds: tuple) -> tuple[list[dict], dict]:
 def _roads(cache: Path, polygon) -> gpd.GeoDataFrame:
     path = cache / "osm-roads.geojson"
     request_path = cache / "osm-request.json"
-    simplified_cache = path.exists() and request_path.exists() and json.loads(request_path.read_text()).get("simplify") is True
-    if simplified_cache:
+    request = json.loads(request_path.read_text()) if request_path.exists() else {}
+    verified_extract = (request.get("source_type") == "geofabrik_pbf"
+                        and request.get("network_type") == "drive"
+                        and request.get("geometry_preserved") is True
+                        and (request.get("full_footprint_covered") is True
+                             or (request.get("served_footprint_covered") is True
+                                 and isinstance(request.get("excluded_tract_source_gaps"), list)))
+                        and request.get("complete") is True)
+    if request.get("source_type") == "geofabrik_pbf" and not verified_extract:
+        raise RuntimeError("Geofabrik road-cache coverage proof is incomplete")
+    if verified_extract and not np.allclose(request.get("bbox", []), polygon.bounds, rtol=0, atol=1e-10):
+        raise RuntimeError("Geofabrik road-cache envelope differs from the current source contract")
+    usable_cache = path.exists() and (request.get("simplify") is True or verified_extract)
+    if usable_cache:
         roads = gpd.read_file(path)
     else:
         import osmnx as ox
@@ -281,10 +293,16 @@ def run_gvi(manifest_path: Path, region_slug: str, grain: str) -> tuple[Validati
     roads = _roads(cache, box(*bounds))
     print(f"GVI {region_slug}: {len(roads)} road edges", flush=True)
     raster_path, source_stats = _composite(cache, items, tracts, listings, roads)
+    road_provenance = json.loads((cache / "osm-request.json").read_text())
+    excluded_tracts = set(road_provenance.get("excluded_tract_source_gaps", []))
+    if not excluded_tracts.issubset(set(tracts.slug)):
+        raise RuntimeError("Road source exclusions do not match registered tract geometry")
     region_metrics, listing_metrics = [], []
     with rasterio.open(raster_path) as source:
         if grain in {"tract", "both"}:
             for row in tracts.to_crs(source.crs).itertuples():
+                if str(row.slug) in excluded_tracts:
+                    continue
                 value = _zonal(source, row.geom)
                 if value is not None:
                     region_metrics.append(RegionMetric(str(row.slug), value))
@@ -302,6 +320,8 @@ def run_gvi(manifest_path: Path, region_slug: str, grain: str) -> tuple[Validati
             _stage_listing_metrics(cur, region_slug, manifest, listing_metrics)
             checks = _validation_checks(cur, region_slug, manifest, grain)
         conn.commit()
+    checks["road_source_provenance"] = road_provenance
+    checks["tract_source_gaps"] = [{"slug": slug, "reason": "outside_complete_road_extract_support"} for slug in sorted(excluded_tracts)]
     values = [m.value for m in [*region_metrics, *listing_metrics]]
     seen = {(m.listing_id, m.grain) for m in listing_metrics}
     checks |= {"nonfinite_values": sum(not math.isfinite(v) for v in values), "source": source_stats, "selection_manifest": str(cache / "selected-scenes.json"), "source_retrieved_at": selection["retrieved_at"], "raster_path": str(raster_path), "missing_listing_buffers": [{"listing_id": int(i), "grain": g} for i in listings.id for g in ("buffer_100m", "buffer_500m") if (int(i), g) not in seen] if grain in {"listing", "both"} else []}

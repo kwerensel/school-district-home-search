@@ -242,3 +242,20 @@ RGB/logit rejection, denominator, void-only, sparse-image and correlation cases.
 No real model masks were produced, no accuracy claim is made, and photographic
 GVI/correlation remain absent. Dependencies, imagery access/retention and
 attribution, use permissions, preprocessing and runtime gates remain open.
+
+## Hudson Valley offline road sampling — October 19
+
+After approved Geofabrik recovery, all 4,254 frozen Hudson Valley listings were
+sampled against the complete merged drive-road cache. This yielded 20,131
+points: 3,997 listings with five points, 17 with four, 13 with three, 16 with
+two, seven with one and 204 with none. Thus 4,027 meet the three-road-point
+research threshold. Sparse points remain sparse; no search radius is widened.
+
+The sample cache is
+`data/raw/gvi_streetlevel/hudson-valley/eb1130c76f852112/road-samples.json`;
+report `data/reports/gvi_streetlevel_research_hudson-valley.json` and QA
+`data/reports/qa/gvi_streetlevel_sampling_hudson-valley.png`. Road QA is
+`data/reports/qa/gvi_geofabrik_roads_hudson-valley.png`. Both maps were visually
+reviewed and 12 post-spatial golden checks pass. No HV Mapillary query, photo,
+model download or inference was authorized or executed. Candidate image
+coverage remains unknown; photographic GVI/correlation remain uncomputed.

@@ -181,3 +181,44 @@ explicit promote command. Public verification found 495 tract values
 views contain 61 PA district and 499 matching listing-buffer comparisons.
 Twelve post-promotion golden checks pass. No HV GVI is live; no archetype
 rebuild or photographic GVI is implied by this regional checkpoint.
+
+## Approved Geofabrik recovery — October 19
+
+The user explicitly approved the free New York OSM download and continuation
+of the build. Recovery uses the same provider's Connecticut, New Jersey and
+Pennsylvania extracts only where existing Hudson Valley buffers cross borders.
+No listing region is added. Pin all four files to `261018` (October 18), verify
+the provider MD5 and retain SHA-256, boundary hashes, source URLs and license.
+
+Official sources: [New York](https://download.geofabrik.de/north-america/us/new-york.html),
+[Connecticut](https://download.geofabrik.de/north-america/us/connecticut.html),
+[New Jersey](https://download.geofabrik.de/north-america/us/new-jersey.html),
+[Pennsylvania](https://download.geofabrik.de/north-america/us/pennsylvania.html).
+The downloads are OpenStreetMap data under ODbL 1.0; retain attribution to OSM
+contributors and Geofabrik. No account, API key, paid service or new package is
+required. Files remain gitignored under `data/raw/osm/geofabrik/`.
+
+`gt.osm_extract.prepare_geofabrik_roads` uses the installed GDAL/pyogrio OSM
+reader, reconstructing full way geometry before a SQL envelope predicate.
+It deliberately avoids driver-level node spatial filtering, which can omit
+vertices ([GDAL driver documentation](https://gdal.org/en/stable/drivers/vector/osm.html)).
+Tests verify retained vertices outside the envelope. Closed ways remain lines
+until the access/area filter; private/service/footpath/driveway ways are excluded
+using the OSMnx drive regex rules. Full raw way geometry avoids graph splitting
+and simplification; unlike OSMnx graph simplification it retains isolated road
+rings. The source contract records this distinction. Corridor width stays 50m.
+Duplicate IDs must have identical full geometry across extracts before merging.
+
+The state boundary union covers all 4,254 listing footprints through the 500m
+buffer plus 50m road-corridor allowance. New York alone leaves about 5km² of
+border-buffer support uncovered. The combined union leaves only 0.1235km² at
+a coastal tract, `tract-36119007600`; that entire tract is omitted from metric
+computation instead of calculating from partly supported roads. The existing
+99% tract gate counts it as missing (at most 436/437 before optical checks).
+No missing listing result or unsupported coastal tract is filled with zero.
+
+Per-extract intermediate GeoPackages are keyed by PBF hash, query envelope,
+filter and GDAL configuration, enabling local retries without downloading or
+reconstructing completed extracts again. The final `osm-request.json` records
+served footprint coverage and excluded tract source gaps. The layer report
+retains that provenance and still needs fresh validation/QA before promotion.

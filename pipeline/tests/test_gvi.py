@@ -197,3 +197,25 @@ def test_unknown_policy_fails_closed_on_incomplete_or_duplicate_evidence(failure
     else:
         checks['listing_buffer_500m_computed'] -= 1
     assert not listing_source_gap_policy(checks)['passed']
+
+
+def test_geofabrik_cache_requires_complete_coverage_proof(tmp_path):
+    import json
+    import geopandas as gpd
+    from shapely.geometry import LineString
+    from gt.layers.gvi import _roads
+    polygon=box(-74.1,40.9,-73.9,41.1)
+    gpd.GeoDataFrame(geometry=[LineString([(-74,41),(-74,41.01)])],crs=4326).to_file(tmp_path/'osm-roads.geojson',driver='GeoJSON')
+    evidence={'source_type':'geofabrik_pbf','network_type':'drive','geometry_preserved':True,
+              'complete':True,'served_footprint_covered':True,'full_footprint_covered':False,
+              'excluded_tract_source_gaps':['coastal'],'bbox':list(polygon.bounds)}
+    path=tmp_path/'osm-request.json'
+    path.write_text(json.dumps(evidence))
+    assert len(_roads(tmp_path,polygon))==1
+    with pytest.raises(RuntimeError,match='envelope differs'):
+        _roads(tmp_path,box(-75,40,-73,42))
+    evidence['complete']=False
+    path.write_text(json.dumps(evidence))
+    with pytest.raises(RuntimeError,match='coverage proof is incomplete'):
+        _roads(tmp_path,polygon)
+    assert (tmp_path/'osm-roads.geojson').exists()

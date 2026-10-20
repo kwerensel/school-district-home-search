@@ -5,6 +5,7 @@ source_urls:
   - https://earth-search.aws.element84.com/v1/collections/sentinel-2-c1-l2a
   - https://registry.opendata.aws/sentinel-2-l2a-cogs/
   - https://www.openstreetmap.org/copyright
+  - https://download.geofabrik.de/north-america/us/new-york.html
 vintage: "2025-summer"
 units: ndvi
 direction: higher_better
@@ -33,3 +34,7 @@ notes: >
   road beyond buffer radius plus 50 m, and zero corridor/observation pixels.
   Missing rows remain Unknown; cloud insufficiency, raster bounds errors,
   unmatched diagnostics and reducer inconsistencies still block promotion.
+  The approved Geofabrik fallback reconstructs full OSM way geometry locally
+  with the same drive access rules. Neighbor extracts supply border-buffer
+  road context without adding listing regions. Source-unsupported tracts stay
+  absent and count against the unchanged 99 percent tract threshold.

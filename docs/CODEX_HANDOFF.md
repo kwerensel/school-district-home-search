@@ -27,7 +27,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   comparison/commute/shortlist, private operator foundation and preserved auth.
   `1cfa0e9` contains the initial derived views/research foundation. Existing HDBSCAN and
   Better Auth/saved-data work is preserved; production deployment is excluded.
-- PA satellite GVI is **promoted**, HV remains blocked. Fixed 2025 summer,
+- PA satellite GVI is **promoted**, HV composite is processing. Fixed 2025 summer,
   max12 unique clear days/tile, calibrated reflectance, SCL/cloud masks,
   three-day floor and exact-shape 50 m OSM corridors are implemented. PA has
   36 selected scenes/128 candidates, 206,731 road geometries and a 9,736×8,240
@@ -43,11 +43,23 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   499 listing-buffer values,61 district divergence values,4505 frozen listings.
   Twelve post-promotion spatial goldens pass. Evidence:
   `docs/qa/2026-10-19-gvi-pa-promotion.md`.
-  HV still lacks complete roads/composite/validation; partial OSM cache cannot
-  support regional claims. Current source health:primary HTTP406, existing
-  mirror HTTP500. Existing retry/cache evidence remains in
-  `data/reports/gvi_source_access_hudson-valley_latest.json`. Both-region
-  completion and the post-GVI model rebuild remain blocked on source access.
+  The former HV Overpass blocker is resolved through approved Geofabrik
+  recovery below. HV still needs composite completion, fresh validation/QA,
+  explicit promotion and model rebuild. Prior endpoint failures/cache evidence
+  remain recorded; no partial Overpass chunk is used as complete coverage.
+- October19: user approved free Geofabrik OSM recovery and continued build.
+  Pinned NY/CT/NJ/PA October18 extracts are downloaded/checksum-verified; adjacent
+  states supply only existing HV boundary buffers. No new listing regions or
+  dependencies. Local full-way importer has filter/geometry/checksum/coverage
+  tests; no PBF node bbox filtering. Road QA visually passes for111833 ways. All4254 listing supports are covered;
+  one coastal tract (36119007600) is source-unsupported and omitted under the
+  unchanged99% gate. Road recovery is complete; the44-scene satellite composite is active:
+  `/private/tmp/gt-geofabrik-hv.log`. No HV validation or promotion yet. Source
+  packet: `docs/layer-onboarding/gvi_ndvi_street.md`. HV offline Phase11
+  sampling is complete:20131 points,4027/4254 listings have>=3 road samples,
+  204 have none. No HV Mapillary request or imagery/inference. Sampling/road
+  QA PNGs visually pass;12 post-spatial goldens pass.163 pipeline tests pass
+  (2 opt-in skipped);48 focused GVI/import tests pass.
 - `010_green_divergence.sql` is installed: promoted-input tract, district and
   matching listing-buffer views, local percentiles, paired values/vintages.
   A fixed invoker-rights input function avoids a dependency blocking the
@@ -143,7 +155,7 @@ Hard constraints from `AGENTS.md` remain active: no LLM/ZIP/deductive district a
   missing. No pending labels approved and no production deployment performed.
 - GVI implementation/CLI/QA helpers are committed and pushed in `63ac41b`;
   the former strict source-gap gate is resolved by explicit user
-  approval and fresh validated evidence. Remaining gates:HV OSM availability,
+  approval and fresh validated evidence. Remaining gates:HV composite/validation/QA completion,
   photographic inference dependency/rights review, deferred Geocodio key,
   post-GVI rebuild/label review and full account acceptance. Production remains
   excluded. Preserve roadmap scope; do not infer complete Phase8/9 from PA-only
@@ -1297,10 +1309,11 @@ the Phase 8 build path remains stable.
 
 Next actions, in order:
 
-1. Recover Hudson Valley OSM access using the existing approved source/cache,
-   then stage, validate, QA and explicitly promote HV satellite GVI. PA is
-   already promoted with the approved three Unknowns. Never treat incomplete
-   HV road chunks as complete support. Derived green views/app wiring exist.
+1. Finish the active HV composite, fresh staging/validation/QA and explicit
+   promotion. The OSM source blocker is resolved via approved local Geofabrik
+   extracts. PA is promoted; derived views/app wiring exist. Keep legitimate
+   source gaps explicit and preserve the fixed coverage/range/day thresholds.
+
 2. Once both regions pass, rebuild the post-GVI HDBSCAN model, inspect results,
    generate pending Claude labels and request human copy review. Phase10 guided
    Discovery, commute anchors, comparison, shortlist and mobile QA are complete.
